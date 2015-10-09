@@ -6,10 +6,10 @@ The build script reads source files from S3, runs Jekyll, and uploads the genera
 
 Configure the build process with following environment variables:
 
-`AWS_ACCESS_KEY_ID` AWS access key
-`AWS_SECRET_ACCESS_KEY` AWS secret key
-`S3_PATH` S3 bucket prefix for build files (no leading slash, include trailing slash)
-`FINISHED_URL` a URL that will receive a `POST` request with a JSON body including the `status` code and output `message` from the Jekyll process
+- `AWS_ACCESS_KEY_ID` AWS access key
+- `AWS_SECRET_ACCESS_KEY` AWS secret key
+- `S3_PATH` S3 bucket prefix for build files (no leading slash, include trailing slash)
+- `FINISHED_URL` a URL that will receive a `POST` request with a JSON body including the `status` code and output `message` from the Jekyll process
 
 The AWS variables are unset in the Jekyll subprocess so Jekyll and its plugins do not have access to this information.
 
