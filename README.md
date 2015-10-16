@@ -1,17 +1,27 @@
 # Docker Builder for federalist
 
-This is a Docker image that runs Jekyll to build a site. It's used to allow Jekyll sites to build with user-provided plugins in a safe space.
+This is a Docker image that runs Jekyll to build a and uploads it to AWS S3. It's used to allow Jekyll sites to build with user-provided plugins in a safe space.
 
-The build script reads source files from S3, runs Jekyll, and uploads the generated `_site` files back to S3, then `POST`s the results to a URL.
+First, the container checks out the site from GitHub. Then it builds the site with Jekyll. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3 also creates redirect objects for directories, such as `/path` => `/path/`.
+
+Any errors or final status codes are `POST`ed to a URL.
 
 Configure the build process with following environment variables:
 
 - `AWS_ACCESS_KEY_ID` AWS access key
 - `AWS_SECRET_ACCESS_KEY` AWS secret key
-- `S3_PATH` S3 bucket prefix for build files (no leading slash, include trailing slash)
-- `FINISHED_URL` a URL that will receive a `POST` request with a JSON body including the `status` code and output `message` from the Jekyll process
+- `CALLBACK` a URL that will receive a `POST` request with a JSON body including the `status` code and output `message` from the Jekyll process
+- `BUCKET` S3 bucket to upload the built site
+- `BASEURL` `baseurl` value to build the site with, including a leading slash
+- `CACHE_CONTROL` Value to set for the Cache-Control header
+- `BRANCH` Branch to check out
+- `CONFIG` A yaml block of configuration to add to `_config.yml` before building
+- `REPOSITORY` Name of the re
+- `OWNER` Owner (GitHub user) of the repository
+- `PREFIX` Prefix for assets on S3
+- `GITHUB_TOKEN` GitHub oauth token for cloning the repository
 
-The AWS variables are unset in the Jekyll subprocess so Jekyll and its plugins do not have access to this information.
+The AWS and GitHub token variables are unset in the Jekyll subprocess so Jekyll and its plugins do not have access to this information.
 
 
 ### Public domain
