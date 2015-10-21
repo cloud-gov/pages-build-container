@@ -20,6 +20,9 @@ Configure the build process with following environment variables:
 - `OWNER` Owner (GitHub user) of the repository
 - `PREFIX` Prefix for assets on S3
 - `GITHUB_TOKEN` GitHub oauth token for cloning the repository
+- `GENERATOR` The static generator to use to build the site (`jekyll` or `hugo`\*; anything else will just publish all files in the repository)
+
+\* The Hugo application is not yet part of this image
 
 The AWS and GitHub token variables are unset in the Jekyll subprocess so Jekyll and its plugins do not have access to this information.
 

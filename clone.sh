@@ -10,6 +10,3 @@ git clone -b $BRANCH --single-branch \
 
 # Remove _site if it exists (otherwise we'll get a permission error)
 rm -rf _site
-
-# Add Federalist configuration settings
-echo "\nbaseurl: ${BASEURL-"''"}\nbranch: ${BRANCH}\n${CONFIG}" >> _config.yml
