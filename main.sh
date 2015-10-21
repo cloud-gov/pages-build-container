@@ -12,7 +12,7 @@ post () {
 
   # Reset output if no errors
   if [ $status -eq 0 ]; then
-    output=""
+    $output=""
   fi
 
   # POST to build finished endpoint
@@ -28,8 +28,6 @@ trap post ERR
 output=$($(dirname $0)/clone.sh 2>&1)
 output=$($(dirname $0)/build.sh 2>&1)
 output=$($(dirname $0)/publish.sh 2>&1)
-#$(dirname $0)/clone.sh
-#$(dirname $0)/build.sh
-#$(dirname $0)/publish.sh
+
 # Post success
 post
