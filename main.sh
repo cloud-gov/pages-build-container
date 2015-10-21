@@ -12,7 +12,7 @@ post () {
 
   # Reset output if no errors
   if [ $status -eq 0 ]; then
-    $output=""
+    output=""
   fi
 
   # POST to build finished endpoint
@@ -21,13 +21,10 @@ post () {
     $CALLBACK
 }
 
-# Post errors
-trap post ERR
+# Post before exit
+trap post 0 # EXIT signal
 
 # Run scripts
 output=$($(dirname $0)/clone.sh 2>&1)
 output=$($(dirname $0)/build.sh 2>&1)
 output=$($(dirname $0)/publish.sh 2>&1)
-
-# Post success
-post
