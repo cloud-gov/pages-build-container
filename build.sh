@@ -1,36 +1,75 @@
 #!/bin/sh
 
-# Download build files from S3
-# Requires $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY
-aws s3 cp s3://federalist.18f.gov/build/${S3_PATH} . --recursive
+# TODO cancel build task if it exceeds timeout
 
-# Remove _site if it exists (otherwise we'll get a permission error)
-rm -r _site
+# Stop script on errors
+set -e
+set -o pipefail
 
-# Launch Jekyll in a subshell and save its output
-output=$(
+# Remove sensitive environment variables
+unset AWS_ACCESS_KEY_ID
+unset AWS_SECRET_ACCESS_KEY
+unset GITHUB_TOKEN
 
-  # Remove sensitive environment variables
-  unset AWS_ACCESS_KEY_ID
-  unset AWS_SECRET_ACCESS_KEY
+# Run build process based on configuration files
+
+# Jekyll with Gemfile plugins
+if [[ "$GENERATOR" = "jekyll" && -f Gemfile ]]; then
+
+  # Add Federalist configuration settings
+  echo -e "\nbaseurl: ${BASEURL-"''"}\nbranch: ${BRANCH}\n${CONFIG}" >> _config.yml
+
+  # Run the build process from the jekyll docker image
+  strip_jekyll() {
+    if grep -qE "gem\s+(?:\"|')jekyll(?:\"|')" Gemfile; then
+      sed -ri "/^gem\s+(\"|')jekyll\1.*$/d" \
+        Gemfile
+    fi
+  }
+
+  if [ "$FORCE_APK_INSTALL" ]; then
+    install_user_pkgs_from_file
+  fi
+
+  if [ -f "Gemfile" ] || [ "$1" = "bundle" ]; then
+    if [ "$UPDATE_GEMFILE" ]; then
+      chpst -u jekyll:jekyll docker-helper backup_gemfile
+      chpst -u jekyll:jekyll docker-helper copy_default_gems_to_gemfile
+      chpst -u jekyll:jekyll docker-helper make_gemfile_uniq
+
+      strip_jekyll
+      chpst -u jekyll:jekyll docker-helper \
+        add_gemfile_dependency "$JEKYLL_VERSION"
+    fi
+
+    chpst -u jekyll:jekyll docker-helper install_users_gems
+    if ! grep -qE "^\s*gem\s+(\"|')jekyll(\"|')" Gemfile; then
+      echo "Moving Gemfile to Gemfile.docker because jekyll is not included."
+      mv /srv/jekyll/Gemfile /srv/jekyll/Gemfile.docker
+    fi
+  fi
 
   # Run Jekyll as the jekyll user, pinned to directories
-  chpst -u jekyll:jekyll jekyll build \
-    --config _config.yml,_config_base.yml \
-    --source . --destination ./_site 2>&1
+  chpst -u jekyll:jekyll bundle exec jekyll build --source . --destination ./_site
+  # bundle exec jekyll build --source . --destination ./_site # Use for OSX
 
-  # Return Jekyll exist status
-  exit $?
+# Jekyll
+elif [ "$GENERATOR" = "jekyll" ]; then
 
-)
+  # Add Federalist configuration settings
+  echo -e "\nbaseurl: ${BASEURL-"''"}\nbranch: ${BRANCH}\n${CONFIG}" >> _config.yml
 
-# Capture exit status
-status=$?
+  # Run Jekyll as the jekyll user, pinned to directories
+  chpst -u jekyll:jekyll jekyll build --source . --destination ./_site
+  # jekyll build --source . --destination ./_site # Use for OSX
 
-# Upload output to S3
-aws s3 cp ./_site/ s3://federalist.18f.gov/build/${S3_PATH}_site/ --recursive
+# Hugo
+elif [ "$GENERATOR" = "hugo" ]; then
+  echo "Hugo not installed!"
+  # hugo -b ${BASEURL-"''"} -s . -d ./_site
 
-# POST to build finished endpoint
-curl -H "Content-Type: application/json" \
-  -d "{\"status\":\"$status\",\"message\":\"`echo $output`\"}" \
-  $FINISHED_URL
+# Static files
+else
+  mkdir _site
+  mv * _site/
+fi
