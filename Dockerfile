@@ -1,17 +1,12 @@
-FROM jekyll/jekyll:pages
+FROM 18fgsa/docker-ruby-ubuntu
+
+RUN curl https://bootstrap.pypa.io/get-pip.py | python \
+  && pip install awscli
 
 # Copy the script files
 COPY *.sh /app/
 
-# Install Bash
-RUN apk --update add bash
-
-# Install the AWS CLI
-# source: https://github.com/anigeo/docker-awscli/blob/master/Dockerfile
-RUN mkdir -p /aws
-RUN apk --update add py-pip
-RUN pip install awscli
-RUN apk --purge -v del py-pip
+WORKDIR /src
 
 # Run the build script when container starts
 CMD ["bash", "/app/main.sh"]
