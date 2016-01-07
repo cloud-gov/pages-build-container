@@ -10,6 +10,7 @@ set -o pipefail
 unset AWS_ACCESS_KEY_ID
 unset AWS_SECRET_ACCESS_KEY
 unset GITHUB_TOKEN
+unset CALLBACK
 
 # Run build process based on configuration files
 
