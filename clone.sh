@@ -5,7 +5,7 @@ set -e
 set -o pipefail
 
 # Download repository from GitHub
-if [ -z "$SOURCE_OWNER" ] && [ -z "$SOURCE_REPO" ]; then
+if [ -n "$SOURCE_OWNER" ] && [ -n "$SOURCE_REPO" ]; then
   git clone -b $BRANCH --single-branch \
     https://${GITHUB_TOKEN}@github.com/${SOURCE_OWNER}/${SOURCE_REPO}.git .
   git remote add destination https://${GITHUB_TOKEN}@github.com/${OWNER}/${REPOSITORY}.git
