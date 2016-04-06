@@ -15,11 +15,9 @@ post () {
     output=""
   fi
 
-  output=`echo $output | tr -cd '\11\12\15\40-\176'`
-
   # POST to build finished endpoint
   curl -H "Content-Type: application/json" \
-    -d "{\"status\":\"$status\",\"message\":\"`echo $output`\"}" \
+    -d "{\"status\":\"$status\",\"message\":\"`echo -n $output | base64 --wrap=0`\"}" \
     $CALLBACK
 }
 
