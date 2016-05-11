@@ -28,13 +28,6 @@ aws s3 sync . s3://${BUCKET}/${PREFIX}/ --no-follow-symlinks \
   --delete --cache-control $CACHE_CONTROL \
   --exclude "*.html" --exclude "*.css" --exclude "*.js" --exclude "*.json" --exclude "*.svg"
 
-# check for a 404 error page; if it exists, set the AWS error page to it
-if [ "`ls 404* | wc -l`" -eq "1" ]
-then
-  aws s3 website s3://${BUCKET}/${PREFIX}/ --error-document 404.html
-fi
-
-
 # create redirects for directories
 # TODO: this is slow... can it be run in batch or avoid deleting these on sync?
 for i in `find . -type d -print | cut -c 3-`; do
