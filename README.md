@@ -26,6 +26,20 @@ Configure the build process with following environment variables:
 
 The AWS and GitHub token variables are unset in the Jekyll subprocess so Jekyll and its plugins do not have access to this information.
 
+### Development & making changes
+
+You'll need to have `docker` on your machine installed. If you just want to install the container image and run it, you can use `docker pull 18fgsa/federalist-docker-build`. `docker pull` behaves similarly to `git pull`. Run the container with `docker run 18fgsa/federalist-docker-build`.
+
+If you want to make changes, you should first clone the repo and then build the docker container locally.
+
+0. `git clone git@github.com:18F/federalist-docker-build.git && cd federalist-docker-build`
+0. `docker build -t federalist-docker-build .`
+0. `docker run federalist-docker-build`
+
+After you make any changes to the container, you should run the `docker build` command again before `docker run`.
+
+In either case you'll want to supply your docker container with environment variables. `docker run` accepts an `-e` flag to designate environment variables. You must precede each key/value pair with the flag. For example:
+`docker run -e OWNER=18f -e REPOSITORY=18f.gsa.gov federalist-docker-build` (if you used `docker pull` this container image is probably named `18fgsa/federalist-docker-build`).
 
 ### Public domain
 

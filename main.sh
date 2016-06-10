@@ -17,7 +17,7 @@ post () {
 
   # POST to build finished endpoint
   curl -H "Content-Type: application/json" \
-    -d "{\"status\":\"$status\",\"message\":\"`echo $output`\"}" \
+    -d "{\"status\":\"$status\",\"message\":\"`echo -n $output | base64 --wrap=0`\"}" \
     $CALLBACK
 }
 
