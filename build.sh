@@ -35,6 +35,8 @@ elif [ "$GENERATOR" = "hugo" ]; then
 
 # Static files
 else
+  shopt -s extglob dotglob
   mkdir _site
-  mv * _site/
+  mv !(_site) _site
+  shopt -u dotglob
 fi
