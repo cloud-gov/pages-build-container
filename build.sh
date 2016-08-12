@@ -5,6 +5,7 @@
 # Stop script on errors
 set -e
 set -o pipefail
+shopt -s extglob dotglob
 
 # Remove sensitive environment variables
 unset AWS_ACCESS_KEY_ID
@@ -36,5 +37,5 @@ elif [ "$GENERATOR" = "hugo" ]; then
 # Static files
 else
   mkdir _site
-  mv * _site/
+  mv !(_site) _site
 fi
