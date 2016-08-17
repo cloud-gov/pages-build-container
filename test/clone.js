@@ -17,6 +17,22 @@ const REPOSITORY = 'cool-things';
 const SOURCE_OWNER = '18f';
 const SOURCE_REPO = 'test-repo';
 
+const expectedRmArguments = [ '-rf', '_site' ];
+
+function execCloneScript(opts) {
+  const output = child_process.execSync(cloneScriptPath, opts).toString();
+  const commands = output.split('\n').reduce(function(result, current) {
+    const decoded = decodeB64(current);
+    if (decoded !== '') {
+      result.push(JSON.parse(decoded).slice(2));
+    }
+
+    return result;
+  }, []);
+
+  return commands;
+}
+
 test('executes clone command without SOURCE_OWNER or SOURCE_REPO', (t) => {
   const opts = {
     env: {
@@ -26,9 +42,13 @@ test('executes clone command without SOURCE_OWNER or SOURCE_REPO', (t) => {
       PATH: envPath
     }
   };
-  const output = child_process.execSync(cloneScriptPath, opts).toString();
-  const decoded = decodeB64(output);
-  const command = JSON.parse(decoded).slice(2);
+  // const output = child_process.execSync(cloneScriptPath, opts).toString();
+  // const decoded = decodeB64(output);
+  // console.log('decoded', decoded);
+  // const command = JSON.parse(decoded).slice(2);
+
+  const commands = execCloneScript(opts);
+  console.log('commands', commands);
 
   const expectedCloneArguments = [
     'clone',
@@ -39,8 +59,9 @@ test('executes clone command without SOURCE_OWNER or SOURCE_REPO', (t) => {
     '.'
   ];
 
-  t.plan(1);
-  t.deepEqual(command, expectedCloneArguments);
+  t.plan(2);
+  t.deepEqual(commands[0], expectedCloneArguments);
+  t.deepEqual(commands[1], expectedRmArguments);
 });
 
 test('executes clone command with SOURCE_OWNER or SOURCE_REPO', (t) => {
@@ -55,15 +76,8 @@ test('executes clone command with SOURCE_OWNER or SOURCE_REPO', (t) => {
     }
   };
 
-  const output = child_process.execSync(cloneScriptPath, opts).toString();
-  const commands = output.split('\n').reduce(function(result, current) {
-    const decoded = decodeB64(current);
-    if (decoded !== '') {
-      result.push(JSON.parse(decoded).slice(2));
-    }
-
-    return result;
-  }, []);
+  const commands = execCloneScript(opts);
+  console.log('commands', commands);
 
   const expectedCloneArguments = [
     'clone',
@@ -85,9 +99,10 @@ test('executes clone command with SOURCE_OWNER or SOURCE_REPO', (t) => {
     BRANCH
   ];
 
-  t.plan(4);
-  t.equal(commands.length, 3);
+  t.plan(5);
+  t.equal(commands.length, 4);
   t.deepEqual(commands[0], expectedCloneArguments);
   t.deepEqual(commands[1], expectedRemoteAddArguemnts);
   t.deepEqual(commands[2], expectedPushCommands);
+  t.deepEqual(commands[3], expectedRmArguments);
 });
