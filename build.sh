@@ -21,15 +21,15 @@ unset FEDERALIST_BUILDER_CALLBACK
 
 # use .nvmrc if it exists
 if [[ -f .nvmrc ]]; then
-  nvm install >&   /dev/null
-  nvm use >& /dev/null
+  nvm install
+  nvm use
 fi
 
 # install from package.json if it exists
 # run the federalist command
 if [[ -f package.json ]]; then
-  npm install >& /dev/null
-  npm run federalist || true >& /dev/null
+  npm install
+  npm run federalist || true
 fi
 
 # Jekyll with Gemfile plugins
