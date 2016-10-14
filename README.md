@@ -22,6 +22,7 @@ Configure the build process with following environment variables:
 - `PREFIX` Prefix for assets on S3
 - `GITHUB_TOKEN` GitHub oauth token for cloning the repository
 - `GENERATOR` The static generator to use to build the site (`jekyll` or `hugo`\*; anything else will just publish all files in the repository)
+- `FEDERALIST_BUILDER_CALLBACK` The callback URL the container should use to let federalist-builder know that it has finished.
 
 \* The Hugo application is not yet part of this image
 

@@ -15,10 +15,16 @@ post () {
     output=""
   fi
 
-  # POST to build finished endpoint
+  # POST to federalist's build finished endpoint
   curl -H "Content-Type: application/json" \
     -d "{\"status\":\"$status\",\"message\":\"`echo -n $output | base64 --wrap=0`\"}" \
     $CALLBACK
+
+  # POST to federalist-builder's build finished endpoint
+  curl -X "DELETE" $FEDERALIST_BUILDER_CALLBACK
+
+  # Sleep until restarted for the next build
+  sleep infinity
 }
 
 # Post before exit
