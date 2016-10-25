@@ -9,6 +9,7 @@ Any errors or final status codes are `POST`ed to a URL.
 Configure the build process with following environment variables:
 
 - `AWS_ACCESS_KEY_ID` AWS access key
+- `AWS_DEFAULT_REGION` AWS region
 - `AWS_SECRET_ACCESS_KEY` AWS secret key
 - `CALLBACK` a URL that will receive a `POST` request with a JSON body including the `status` code and output `message` from the Jekyll process
 - `BUCKET` S3 bucket to upload the built site
