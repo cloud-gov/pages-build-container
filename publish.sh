@@ -16,7 +16,7 @@ for i in `find . | grep -E "\.html$|\.css$|\.js$|\.json$|\.svg$"`; do
   fi
 done
 
-export AWS_DEFAULT_REGION=us-east-1
+export AWS_DEFAULT_REGION=us-gov-west-1
 
 # sync compressed files
 aws s3 sync . s3://${BUCKET}/${PREFIX}/ --no-follow-symlinks \
