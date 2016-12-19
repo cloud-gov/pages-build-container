@@ -16,6 +16,9 @@ unset FEDERALIST_BUILDER_CALLBACK
 
 # Run build process based on configuration files
 
+# Initialize nvm
+. $NVM_DIR/nvm.sh
+
 # use .nvmrc if it exists
 if [[ -f .nvmrc ]]; then
   nvm install
