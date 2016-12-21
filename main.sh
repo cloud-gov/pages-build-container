@@ -1,5 +1,16 @@
 #!/bin/bash
 
+. $NVM_DIR/nvm.sh
+
+# Create a build log
+log_output () {
+  formatted_output="$(output="$2" node -e 'console.log(JSON.stringify(process.env.output))')"
+
+  curl -H "Content-Type: application/json" \
+    -d "{\"source\":\"`echo $1`\",\"output\":`echo $formatted_output`}" \
+    $LOG_CALLBACK || true
+}
+
 # Post to webhook on completion
 post () {
 
@@ -9,12 +20,14 @@ post () {
   # Reset output if no errors
   if [ $status -eq 0 ]; then
     output=""
+  else
+    log_output "ERROR" $output
   fi
 
   # POST to federalist's build finished endpoint && POST to federalist-builder's build finished endpoint
   curl -H "Content-Type: application/json" \
     -d "{\"status\":\"$status\",\"message\":\"`echo -n $output | base64 --wrap=0`\"}" \
-    $CALLBACK \
+    $STATUS_CALLBACK \
     ; curl -X "DELETE" $FEDERALIST_BUILDER_CALLBACK
 
   # Sleep until restarted for the next build
@@ -25,6 +38,9 @@ post () {
 trap post 0 # EXIT signal
 
 # Run scripts
-output=$($(dirname $0)/clone.sh 2>&1)
-output=$($(dirname $0)/build.sh 2>&1)
-output=$($(dirname $0)/publish.sh 2>&1)
+output="$($(dirname $0)/clone.sh 2>&1)"
+log_output "clone.sh" "$output"
+output="$($(dirname $0)/build.sh 2>&1)"
+log_output "build.sh" "$output"
+output="$($(dirname $0)/publish.sh 2>&1)"
+log_output "publish.sh" "$output"
