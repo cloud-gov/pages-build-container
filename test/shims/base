@@ -1,0 +1,7 @@
+#! /usr/bin/env node
+
+const helpers = require('../helpers');
+const encodeB64 = helpers.encodeB64;
+
+const processArgs = process.argv.slice();
+console.log(encodeB64(JSON.stringify(processArgs)));

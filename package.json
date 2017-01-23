@@ -1,0 +1,22 @@
+{
+  "name": "federalist-docker-build",
+  "version": "1.0.0",
+  "description": "This is a Docker image that runs Jekyll to build a and uploads it to AWS S3. It's used to allow Jekyll sites to build with user-provided plugins in a safe space.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/18F/federalist-docker-build.git"
+  },
+  "author": "Jeremia Kimelman <jeremia.kimelman@gsa.gov>",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "bugs": {
+    "url": "https://github.com/18F/federalist-docker-build/issues"
+  },
+  "homepage": "https://github.com/18F/federalist-docker-build#readme",
+  "dependencies": {
+    "tape": "^4.6.0"
+  }
+}
