@@ -24,9 +24,9 @@ if [ "$GENERATOR" = "jekyll" ]; then
 
   if [[ -f Gemfile ]]; then
     bundle install --quiet
-    bundle exec jekyll build --source . --destination ./_site
+    bundle exec jekyll build --destination ./_site
   else
-    jekyll build --source . --destination ./_site
+    jekyll build --destination ./_site
   fi
 
 # Hugo
