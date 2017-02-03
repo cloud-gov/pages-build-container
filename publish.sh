@@ -19,11 +19,13 @@ done
 # sync compressed files
 aws s3 sync . s3://${BUCKET}/${SITE_PREFIX}/ --no-follow-symlinks \
   --delete --content-encoding gzip --cache-control $CACHE_CONTROL --exclude "*" \
+  --sse "AES256" \
   --include "*.html" --include "*.css" --include "*.js" --include "*.json" --include "*.svg"
 
 # sync remaining files
 aws s3 sync . s3://${BUCKET}/${SITE_PREFIX}/ --no-follow-symlinks \
   --delete --cache-control $CACHE_CONTROL \
+  --sse "AES256" \
   --exclude "*.html" --exclude "*.css" --exclude "*.js" --exclude "*.json" --exclude "*.svg"
 
 # create redirects for directories
@@ -31,5 +33,6 @@ aws s3 sync . s3://${BUCKET}/${SITE_PREFIX}/ --no-follow-symlinks \
 for i in `find . -type d -print | cut -c 3-`; do
   aws s3api put-object --cache-control $CACHE_CONTROL \
     --bucket $BUCKET --key ${SITE_PREFIX}/$i \
+    --server-side-encryption "AES256" \
     --website-redirect-location "${BASEURL}/$i/"
 done
