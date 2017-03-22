@@ -29,7 +29,7 @@ fi
 # install from package.json if it exists
 # run the federalist command
 if [[ -f package.json ]]; then
-  npm install --only=production
+  npm install --production
   npm run federalist || true
 fi
 
