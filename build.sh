@@ -37,7 +37,6 @@ fi
 if [ "$GENERATOR" = "jekyll" ]; then
 
   # Add Federalist configuration settings
-  git log -1 --pretty=format:'%ncommit: {%n "commit": "%H",%n "author": "%an <%ae>",%n "date": "%ad",%n "message": "%s"%n}' >> _config.yml
   echo -e "\nbaseurl: ${BASEURL-"''"}\nbranch: ${BRANCH}\n${CONFIG}" >> _config.yml
 
   if [[ -f Gemfile ]]; then
