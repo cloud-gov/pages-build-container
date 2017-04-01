@@ -30,7 +30,12 @@ fi
 # run the federalist command
 if [[ -f package.json ]]; then
   npm install --production
-  npm run federalist || true
+
+  # Only run the federalist script if it is present
+  FEDERALIST_SCRIPT=$(node -e "require('./package.json').scripts.federalist ? console.log('federalist') : null")
+  if [[ $FEDERALIST_SCRIPT = "federalist" ]]; then
+    npm run federalist
+  fi;
 fi
 
 # Jekyll with Gemfile plugins
