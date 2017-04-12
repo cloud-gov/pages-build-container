@@ -17,6 +17,18 @@ unset FEDERALIST_BUILDER_CALLBACK
 
 # Run build process based on configuration files
 
+# Init RMV
+echo "[build.sh] Initializing RVM"
+source /usr/local/rvm/scripts/rvm
+
+# Install new ruby version if .ruby-version is present
+echo $PATH
+if [[ -f .ruby-version ]]; then
+  echo "[build.sh] Using ruby version in .ruby-version"
+  rvm install "$(cat .ruby-version)"
+fi
+echo "[build.sh] Ruby version: $(ruby -v)"
+
 # Initialize nvm
 echo "[build.sh] Initializing NVM"
 . $NVM_DIR/nvm.sh
@@ -53,12 +65,16 @@ if [ "$GENERATOR" = "jekyll" ]; then
   echo -e "\nbaseurl: ${BASEURL-"''"}\nbranch: ${BRANCH}\n${CONFIG}" >> _config.yml
 
   if [[ -f Gemfile ]]; then
+    echo "[build.sh] Setting up bundler"
+    gem install bundler
     echo "[build.sh] Installing dependencies in Gemfile"
     bundle install
     echo "[build.sh] Building using Jekyll version: $(bundle exec jekyll -v)"
     bundle exec jekyll build --destination ./_site
   else
-    echo "[build.sh] Building using Jekyll version: $(bundle exec jekyll -v)"
+    echo "[build.sh] Installing Jekyll"
+    gem install jekyll
+    echo "[build.sh] Building using Jekyll version: $(jekyll -v)"
     jekyll build --destination ./_site
   fi
 

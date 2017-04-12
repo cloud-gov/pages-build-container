@@ -1,11 +1,16 @@
 FROM 18fgsa/docker-ruby-ubuntu
 RUN apt-get update
 
+# Create a federalist urser
+RUN useradd -G rvm federalist
+RUN mkdir /home/federalist
+RUN chown -R federalist /home/federalist
+
 # Defaults for ENV vairables
 ENV AWS_DEFAULT_REGION "us-east-1"
 
-# Preload recent Jekyll versions and install github-pages gem
-RUN gem install jekyll jekyll:3.0.1 jekyll:3.0.0 jekyll:2.5.3 jekyll:2.4.0 github-pages
+# skip installing gem documentation
+RUN echo 'install: --no-document\nupdate: --no-document' >> "/home/federalist/.gemrc"
 
 # Install the AWS CLI
 RUN curl https://bootstrap.pypa.io/get-pip.py | python3 \
@@ -17,8 +22,14 @@ ENV PYTHON /usr/bin/python2.7
 
 # Copy the script files
 COPY *.sh /app/
+RUN chmod -R 555 /app
 
+# Add the working directory
 WORKDIR /src
+RUN chown -R federalist /src
+
+# Change to the Federalist user
+USER federalist
 
 # Run the build script when container starts
 CMD ["bash", "/app/main.sh"]
