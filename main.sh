@@ -4,6 +4,7 @@
 
 # Stop script on errors
 set -e
+set -o pipefail
 
 # Create a build log
 log_output () {
@@ -13,14 +14,15 @@ log_output () {
     REQUEST="{\"source\":\"`echo $1`\",\"output\":\"`echo -n "$2" | base64 --wrap=0`\"}"
   fi
 
+  set +o pipefail
   curl -H "Content-Type: application/json" \
     -d $REQUEST \
     $LOG_CALLBACK || true
+  set -o pipefail
 }
 
 # Post to webhook on completion
 post () {
-
   # Capture exit status
   status=$?
 
@@ -33,6 +35,7 @@ post () {
   fi
 
   # POST to federalist's build finished endpoint && POST to federalist-builder's build finished endpoint
+  set +o pipefail
   curl -H "Content-Type: application/json" \
     -d "{\"status\":\"$status\",\"message\":\"`echo -n "$output" | base64 --wrap=0`\"}" \
     $STATUS_CALLBACK \
