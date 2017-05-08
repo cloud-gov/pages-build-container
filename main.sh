@@ -27,8 +27,12 @@ post () {
   status=$?
 
   # Reset output if no errors
-  if [ $status -eq 0 ]; then
+  if [ $status -eq 0 ] && [ "$build_complete" = "true" ]; then
     output=""
+  elif [ $status -eq 0 ]; then
+    output="The build did not complete. It may have timed out."
+    status=1
+    log_output "ERROR" "$output"
   else
     echo "$output"
     log_output "ERROR" "$output"
@@ -57,5 +61,7 @@ log_output "build.sh" "$output"
 
 output="$($(dirname $0)/publish.sh 2>&1 | tee /dev/stderr)"
 log_output "publish.sh" "$output"
+
+build_complete=true
 
 echo "[main.sh] Done!"
