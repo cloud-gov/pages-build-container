@@ -8,7 +8,7 @@ set -o pipefail
 cd ./_site/
 
 # Remove the .git directory
-rm -rf .*
+rm -rf .[^.]*
 
 # compress files
 echo "[publish.sh] Compressing files"
