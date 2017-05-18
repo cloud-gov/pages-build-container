@@ -38,15 +38,16 @@ post () {
     log_output "ERROR" "$output"
   fi
 
-  # POST to federalist's build finished endpoint && POST to federalist-builder's build finished endpoint
+  set +e
   set +o pipefail
+
+  # Post to the Federalist web application endpoint with status and output
   curl -H "Content-Type: application/json" \
     -d "{\"status\":\"$status\",\"message\":\"`echo -n "$output" | base64 --wrap=0`\"}" \
-    $STATUS_CALLBACK \
-    ; curl -X "DELETE" $FEDERALIST_BUILDER_CALLBACK || true
+    $STATUS_CALLBACK || true
 
-  # Sleep until restarted for the next build
-  sleep infinity
+  # Post the Federalist build scheduler to alert that the container is available
+  curl -X "DELETE" $FEDERALIST_BUILDER_CALLBACK || true
 }
 
 # Post before exit

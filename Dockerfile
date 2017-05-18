@@ -22,4 +22,4 @@ COPY *.sh /app/
 WORKDIR /src
 
 # Run the build script when container starts
-CMD ["bash", "-l", "/app/main.sh"]
+CMD ["bash", "/app/run.sh"]
