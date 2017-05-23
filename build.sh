@@ -12,6 +12,7 @@ unset AWS_ACCESS_KEY_ID
 unset AWS_SECRET_ACCESS_KEY
 unset GITHUB_TOKEN
 unset CALLBACK
+unset FEDERALIST_BUILDER_CALLBACK 
 
 # Run build process based on configuration files
 
