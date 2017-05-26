@@ -1,5 +1,3 @@
-**NOTE**: The master branch for this repo is the default branch so Docker Hub will build this image correctly for our legacy environment. Our legacy environment is being spun down. People should not use `master` and should instead prefer the `staging` branch which has the latest changes and security patches.
-
 # Docker Builder for federalist
 
 This is a Docker image that runs Jekyll to build a and uploads it to AWS S3. It's used to allow Jekyll sites to build with user-provided plugins in a safe space.
