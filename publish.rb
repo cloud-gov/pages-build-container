@@ -116,7 +116,7 @@ class SiteRedirect < SiteObject
 
   def destination
     if filename == ""
-      "/"
+      "#{BASEURL}/"
     else
       "#{BASEURL}/#{filename}/"
     end
