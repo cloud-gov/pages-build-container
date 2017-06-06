@@ -80,8 +80,8 @@ if [ "$GENERATOR" = "jekyll" ]; then
 
 # Hugo
 elif [ "$GENERATOR" = "hugo" ]; then
-  echo "Hugo not installed!"
-  # hugo -b ${BASEURL-"''"} -s . -d ./_site
+  echo "[build.sh] Using hugo version: $(hugo version)"
+  hugo --baseURL ${BASEURL-"''"} --source . --destination ./_site
 
 # Static files
 else
