@@ -43,6 +43,10 @@ After you make any changes to the container, you should run the `docker build` c
 In either case you'll want to supply your docker container with environment variables. `docker run` accepts an `-e` flag to designate environment variables. You must precede each key/value pair with the flag. For example:
 `docker run -e OWNER=18f -e REPOSITORY=18f.gsa.gov federalist-docker-build` (if you used `docker pull` this container image is probably named `18fgsa/federalist-docker-build`).
 
+### Deploying to cloud.gov
+
+For detailed instructions on deploying this build container to cloud.gov, see https://federalist-docs.18f.gov/pages/how-federalist-works/cloud-gov-setup/.
+
 ### Public domain
 
 This project is in the worldwide [public domain](LICENSE.md). As stated in [CONTRIBUTING](CONTRIBUTING.md):
