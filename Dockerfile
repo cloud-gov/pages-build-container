@@ -15,8 +15,8 @@ RUN apt-get install -y python2.7
 ENV PYTHON /usr/bin/python2.7
 
 # install hugo
-ENV HUGO_VERSION 0.22.1
-RUN curl -sSL https://github.com/spf13/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_Linux-64bit.deb -o hugo.deb \
+ENV HUGO_VERSION 0.23
+RUN curl -sSL https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_Linux-64bit.deb -o hugo.deb \
   && dpkg -i hugo.deb
 
 # Copy the script files
