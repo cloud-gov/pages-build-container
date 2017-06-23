@@ -60,7 +60,7 @@ log_output "clone.sh" "$output"
 output="$($(dirname $0)/build.sh 2>&1 | tee /dev/stderr)"
 log_output "build.sh" "$output"
 
-output="$($(dirname $0)/publish.sh 2>&1 | tee /dev/stderr)"
+output="$(ruby $(dirname $0)/publish.rb 2>&1 | tee /dev/stderr)"
 log_output "publish.sh" "$output"
 
 build_complete=true
