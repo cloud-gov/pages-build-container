@@ -1,0 +1,12 @@
+docutils==0.13.1
+gitdb2==2.0.2
+GitPython==2.1.5
+lockfile==0.12.2
+luigi==2.6.2
+mypy==0.511
+py==1.4.34
+pytest==3.1.2
+python-daemon==2.1.2
+smmap2==2.0.3
+tornado==4.5.1
+typed-ast==1.0.4
