@@ -1,75 +1,73 @@
-import os
-import tempfile
-import logging
+'''Clone tasks'''
+
 import luigi
 
 from git import Repo
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(name)s] %(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S')
+from .common import BaseTask, logging
 
-clone_logger = logging.getLogger('clone')
+CLONE_LOGGER = logging.getLogger('clone')
 
 
-class CloneRepo(luigi.Task):
-    repo_name = luigi.Parameter()                    # REPOSITORY
-    repo_owner = luigi.Parameter()                   # OWNER
-    branch = luigi.Parameter()                       # BRANCH
-    github_token = luigi.Parameter(default='git',    # GITHUB_TOKEN
-                                   significant=False)  # keep out of signature
-    repo_base_url = luigi.Parameter(default='github.com')
-    clone_dir = luigi.Parameter(default='')
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        if not self.clone_dir:
-            self.clone_dir = tempfile.mkdtemp()
-
-        self.output_path = os.path.join(self.clone_dir, 'site_repo')
-
+class CloneSiteMain(BaseTask):
+    '''
+    Meta task for cloning the source repository
+    '''
     def output(self):
-        return luigi.LocalTarget(self.output_path)
+        return luigi.LocalTarget(self.clone_dir)
 
-    @property
-    def repo_url(self):
-        return (f'https://{self.github_token}@{self.repo_base_url}'
-                f'/{self.repo_owner}/{self.repo_name}.git')
+    def requires(self):
+        if self.template_repo_name and self.template_repo_owner:
+            return CloneTemplateRepo(
+                repo_name=self.repo_name, repo_owner=self.repo_owner,
+                branch=self.branch, github_token=self.github_token,
+                work_dir=self.work_dir,
+                template_repo_owner=self.template_repo_owner,
+                template_repo_name=self.template_repo_name)
+        else:
+            return CloneRepo(self.repo_name, self.repo_owner, self.branch,
+                             self.github_token, self.work_dir)
+
+
+class CloneRepo(BaseTask):
+    '''
+    Task to clone the source repository to a local directory
+    '''
+    def output(self):
+        return luigi.LocalTarget(self.clone_dir)
 
     def run(self):
-        clone_logger.info(f'Cloning {self.repo_owner}/{self.repo_name}'
-                          f' to {self.output_path}')
-        Repo.clone_from(self.repo_url, self.output_path, branch=self.branch)
+        CLONE_LOGGER.info(f'Cloning {self.repo_owner}/{self.repo_name}'
+                          f' to {self.clone_dir}')
+        Repo.clone_from(self.repo_url, self.clone_dir, branch=self.branch)
 
 
 class CloneTemplateRepo(CloneRepo):
+    '''
+    Task to clone a template site repository to a local directory
+    and push the clone to the new target remote repository
+    '''
     # Expects that the destination repo exists
-    # (it's created by federalist web)
-
+    # (it's created by the Federalist web app)
     template_repo_name = luigi.Parameter()   # SOURCE_REPO
     template_repo_owner = luigi.Parameter()  # SOURCE_OWNER
 
-    @property
-    def template_repo_url(self):
-        return (f'https://{self.github_token}@{self.repo_base_url}'
-                f'/{self.template_repo_owner}'
-                f'/{self.template_repo_name}.git')
+    # def output(self):
+    #   inherited from CloneRepo
 
     def run(self):
         # First clone the template repo
-        clone_logger.info(
+        CLONE_LOGGER.info(
             f'Cloning template {self.template_repo_owner}/'
             f'{self.template_repo_name}'
-            f' to {self.output_path}')
+            f' to {self.clone_dir}')
 
         repo = Repo.clone_from(self.template_repo_url,
-                               self.output_path,
+                               self.clone_dir,
                                branch=self.branch)  # TODO: needed?
 
         # Then push to the destination repo
         destination = repo.create_remote('destination', self.repo_url)
-        clone_logger.info(
+        CLONE_LOGGER.info(
             f'Pushing site to {self.repo_owner}/{self.repo_name}')
         repo.git.push(destination, self.branch)
