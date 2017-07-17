@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import luigi
 
 import tasks
 from tasks.common import logging
@@ -39,6 +40,7 @@ class RunAll(tasks.BaseTask):
     PYTHONPATH='.' luigi --module main RunAll --repo-owner jseppi \
         --repo-name test-federalist-site --branch master --local-scheduler
     '''
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if os.path.exists(self.work_dir):
@@ -47,9 +49,10 @@ class RunAll(tasks.BaseTask):
             shutil.rmtree(self.built_site_dir, ignore_errors=True)
 
     def requires(self):
-
         return MAIN_TASK(
             repo_name=self.repo_name, repo_owner=self.repo_owner, branch=self.branch,
             work_dir=self.work_dir, github_token=self.github_token,
+            build_engine=self.build_engine,
             template_repo_name=self.template_repo_name,
-            template_repo_owner=self.template_repo_owner)
+            template_repo_owner=self.template_repo_owner,
+            base_url=self.base_url)

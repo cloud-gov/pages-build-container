@@ -31,7 +31,6 @@ class BuildSiteMain(BaseTask):
     # - Install node version from .nvmrc if it is present
     # - If package.json, install deps and `run npm run federalist`
     # - Run build-engine-specific task
-    build_engine = luigi.Parameter(default='copy')
 
     def output(self):
         return luigi.LocalTarget(self.built_site_dir)
@@ -53,13 +52,18 @@ class BuildSiteMain(BaseTask):
         BUILD_LOGGER.info(f'$PATH: {os.getenv("PATH", "")}')
 
         BUILD_LOGGER.info(f'Build engine is: {self.build_engine}')
-        if self.build_engine is 'copy':
-            yield BuildCopySite(self.repo_name, self.repo_owner, self.branch,
-                                self.github_token, self.work_dir)
-        elif self.build_engine is 'jekyll':
-            yield BuildJekyllSite()
-        elif self.build_engine is 'hugo':
-            yield BuildHugoSite()
+        if self.build_engine == 'copy':
+            yield BuildCopySite(repo_name=self.repo_name, repo_owner=self.repo_owner,
+                                branch=self.branch, github_token=self.github_token,
+                                work_dir=self.work_dir, base_url=self.base_url)
+        elif self.build_engine == 'jekyll':
+            yield BuildJekyllSite(repo_name=self.repo_name, repo_owner=self.repo_owner,
+                                  branch=self.branch, github_token=self.github_token,
+                                  work_dir=self.work_dir, base_url=self.base_url)
+        elif self.build_engine == 'hugo':
+            yield BuildHugoSite(repo_name=self.repo_name, repo_owner=self.repo_owner,
+                                branch=self.branch, github_token=self.github_token,
+                                work_dir=self.work_dir, base_url=self.base_url)
 
 
 class BuildJekyllSite(BaseTask):
@@ -89,19 +93,24 @@ class BuildJekyllSite(BaseTask):
 
 class BuildHugoSite(BaseTask):
     '''
-    Task to built the source repository using hugo
+    Task to built the source repository using hugo.
     '''
-    # Expects hugo to be in PATH
-
-    # TODO:
-    #   - invoke hugo:
-    #  echo "[build.sh] Using hugo version: $(hugo version)"
-    #   hugo --baseURL ${BASEURL-"''"} --source . --destination ./_site
+    def output(self):
+        return luigi.LocalTarget(self.built_site_dir)
 
     def run(self):
-        # if not os.path.exists(self.built_site_dir):
-        #     os.makedirs(self.built_site_dir)
-        pass
+        hugo_version = subprocess.check_output('hugo version', shell=True)
+        BUILD_LOGGER.info(f'Using hugo version: {hugo_version.decode("utf-8")}')
+
+        # hugo builds to relative desintation directory so we need
+        # to resolve self.built_site_dir to an absolute path
+        abs_destination = os.path.abspath(self.built_site_dir)
+
+        output = subprocess.check_output(
+            f'hugo --baseURL {self.base_url} --source {self.clone_dir} '
+            f'--destination {abs_destination}', shell=True
+        )
+        BUILD_LOGGER.info(output)
 
 
 class BuildCopySite(BaseTask):

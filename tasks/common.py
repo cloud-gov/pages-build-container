@@ -37,12 +37,14 @@ class BaseTask(luigi.Task):
     repo_name = luigi.Parameter()                       # REPOSITORY
     repo_owner = luigi.Parameter()                      # OWNER
     branch = luigi.Parameter()                          # BRANCH
+    work_dir = luigi.Parameter(significant=False)
 
     # Optional parameters
+    base_url = luigi.Parameter(default="''",            # BASE_URL
+                               significant=False)
+    build_engine = luigi.Parameter(default='copy')
     github_token = luigi.Parameter(default='git',       # GITHUB_TOKEN
                                    significant=False)   # keep out of signature
-
-    work_dir = luigi.Parameter(significant=False)
     template_repo_name = luigi.Parameter(default='')   # SOURCE_REPO
     template_repo_owner = luigi.Parameter(default='')  # SOURCE_OWNER
 
@@ -57,13 +59,13 @@ class BaseTask(luigi.Task):
                 f'{self.template_repo_owner}/{self.template_repo_name}.git')
 
     @property
-    def whatever_dir(self):  # TODO: rename this or work_dir
+    def repo_work_dir(self):
         return os.path.join(self.work_dir, self.repo_owner, self.repo_name)
 
     @property
     def clone_dir(self):
-        return os.path.join(self.whatever_dir, CLONE_DIR_NAME)
+        return os.path.join(self.repo_work_dir, CLONE_DIR_NAME)
 
     @property
     def built_site_dir(self):
-        return os.path.join(self.whatever_dir, BUILT_SITE_DIR_NAME)
+        return os.path.join(self.repo_work_dir, BUILT_SITE_DIR_NAME)

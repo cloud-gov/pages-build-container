@@ -25,8 +25,10 @@ class CloneSiteMain(BaseTask):
                 template_repo_owner=self.template_repo_owner,
                 template_repo_name=self.template_repo_name)
         else:
-            return CloneRepo(self.repo_name, self.repo_owner, self.branch,
-                             self.github_token, self.work_dir)
+            return CloneRepo(
+                repo_name=self.repo_name, repo_owner=self.repo_owner,
+                branch=self.branch, github_token=self.github_token,
+                work_dir=self.work_dir)
 
 
 class CloneRepo(BaseTask):
@@ -45,12 +47,14 @@ class CloneRepo(BaseTask):
 class CloneTemplateRepo(CloneRepo):
     '''
     Task to clone a template site repository to a local directory
-    and push the clone to the new target remote repository
+    and push the clone to the new target remote repository.abs
+
+    Expects that the destination repo exists
+    (it's created by the Federalist web app).
     '''
-    # Expects that the destination repo exists
-    # (it's created by the Federalist web app)
-    template_repo_name = luigi.Parameter()   # SOURCE_REPO
-    template_repo_owner = luigi.Parameter()  # SOURCE_OWNER
+
+    # template_repo_name = luigi.Parameter()   # SOURCE_REPO
+    # template_repo_owner = luigi.Parameter()  # SOURCE_OWNER
 
     # def output(self):
     #   inherited from CloneRepo

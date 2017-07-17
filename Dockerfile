@@ -3,6 +3,7 @@ FROM python:3.6
 
 # Install general dependencies and configure locales
 # TODO: Why is this locale stuff necessary?
+# TODO: I see this error: bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       apt-utils build-essential git curl libssl-dev \
@@ -79,4 +80,4 @@ RUN pip install -r requirements.txt
 ADD . ./
 
 # TODO: the run args should come from environment vars set by federalist-builder
-CMD PYTHONPATH='.' luigi --module main RunAll --repo-owner jseppi --repo-name test-federalist-site --branch master --work-dir ./tmp --local-scheduler --log-level INFO
+CMD PYTHONPATH='.' luigi --module main RunAll --repo-owner jseppi --repo-name hugoBasicExample --branch master --build-engine hugo --work-dir ./tmp --local-scheduler --log-level INFO
