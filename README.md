@@ -1,8 +1,8 @@
 # Docker Builder for federalist
 
-This is a Docker image that runs Jekyll to build a and uploads it to AWS S3. It's used to allow Jekyll sites to build with user-provided plugins in a safe space.
+This is a Docker image that uses the specified build engine to build a site and uploads it to AWS S3. It's used to allow sites to build with user-provided plugins in a safe space.
 
-First, the container checks out the site from GitHub. Then it builds the site with Jekyll. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3 also creates redirect objects for directories, such as `/path` => `/path/`.
+First, the container checks out the site from GitHub. Then it builds the site with the specified build engine. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3 also creates redirect objects for directories, such as `/path` => `/path/`.
 
 Any errors or final status codes are `POST`ed to a URL.
 
@@ -21,10 +21,8 @@ Configure the build process with following environment variables:
 - `OWNER` Owner (GitHub user) of the repository
 - `SITE_PREFIX` Prefix for assets on S3
 - `GITHUB_TOKEN` GitHub oauth token for cloning the repository
-- `GENERATOR` The static generator to use to build the site (`jekyll` or `hugo`\*; anything else will just publish all files in the repository)
+- `GENERATOR` The static generator to use to build the site (`jekyll` or `hugo`; anything else will just publish all files in the repository)
 - `FEDERALIST_BUILDER_CALLBACK` The callback URL the container should use to let federalist-builder know that it has finished.
-
-\* The Hugo application is not yet part of this image
 
 The AWS and GitHub token variables are unset in the Jekyll subprocess so Jekyll and its plugins do not have access to this information.
 
