@@ -1,4 +1,4 @@
-# Docker Builder for federalist
+# federalist-garden-build
 
 This is a Docker image that uses the specified build engine to build a site and uploads it to AWS S3. It's used to allow sites to build with user-provided plugins in a safe space.
 
