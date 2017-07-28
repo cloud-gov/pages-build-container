@@ -10,7 +10,7 @@ if [ -n "$SOURCE_OWNER" ] && [ -n "$SOURCE_REPO" ]; then
   git clone -b $BRANCH --single-branch \
     https://${GITHUB_TOKEN}@github.com/${SOURCE_OWNER}/${SOURCE_REPO}.git .
   git remote add destination https://${GITHUB_TOKEN}@github.com/${OWNER}/${REPOSITORY}.git
-  echo "[clone.sh] Pushing site to $SOURCE_OWNER/$SOURCE_REPO"
+  echo "[clone.sh] Pushing site to $OWNER/$REPOSITORY"
   git push destination $BRANCH
 else
   echo "[clone.sh] Cloning site"
