@@ -49,7 +49,7 @@ if [[ -f package.json ]]; then
   npm install --production
 
   # Only run the federalist script if it is present
-  FEDERALIST_SCRIPT=$(node -e "require('./package.json').scripts.federalist ? console.log('federalist') : null")
+  FEDERALIST_SCRIPT=$(node -e "var s = require('./package.json').scripts; s && s.federalist ? console.log('federalist') : null")
   if [[ $FEDERALIST_SCRIPT = "federalist" ]]; then
     echo "[build.sh] Running federalist build script in package.json"
     npm run federalist
