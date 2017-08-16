@@ -81,7 +81,11 @@ if [ "$GENERATOR" = "jekyll" ]; then
 # Hugo
 elif [ "$GENERATOR" = "hugo" ]; then
   echo "[build.sh] Using hugo version: $(hugo version)"
-  hugo --baseURL ${BASEURL-"''"} --source . --destination ./_site
+  if [[ $BASEURL ]]; then
+    hugo --baseURL ${BASEURL} --source . --destination ./_site
+  else
+    hugo --source . --destination ./_site
+  fi
 
 # Static files
 else
