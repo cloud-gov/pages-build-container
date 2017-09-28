@@ -17,7 +17,7 @@ Configure the build process with following environment variables:
 - `CACHE_CONTROL` Value to set for the Cache-Control header
 - `BRANCH` Branch to check out
 - `CONFIG` A yaml block of configuration to add to `_config.yml` before building
-- `REPOSITORY` Name of the re
+- `REPOSITORY` Name of the repository
 - `OWNER` Owner (GitHub user) of the repository
 - `SITE_PREFIX` Prefix for assets on S3
 - `GITHUB_TOKEN` GitHub oauth token for cloning the repository
