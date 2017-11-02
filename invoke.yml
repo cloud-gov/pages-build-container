@@ -1,0 +1,8 @@
+# Configuration for invoke
+#
+# Ref: http://docs.pyinvoke.org/en/latest/concepts/configuration.html
+
+run:
+    # Always replace the environment with either the specified
+    # env kwarg, which defaults to an empty dict
+    replace_env: true

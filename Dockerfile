@@ -10,6 +10,7 @@ RUN apt-get update \
 
 # install nvm and install versions 4 and 6
 # TODO: Default to 6 LTS instead of 4
+# Ref: https://github.com/18F/federalist/issues/1209
 ENV NVM_DIR /usr/local/nvm
 ENV NODE_DEFAULT_VERSION 4
 RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.31.3/install.sh | bash \
@@ -28,16 +29,8 @@ RUN \curl -sSL https://get.rvm.io | bash -s stable
 RUN /bin/bash -l -c 'rvm install $RUBY_VERSION && rvm use --default $RUBY_VERSION'
 RUN echo rvm_silence_path_mismatch_check_flag=1 >> /etc/rvmrc
 
-# Defaults for ENV variables
-ENV AWS_DEFAULT_REGION "us-east-1"
-
 # skip installing gem documentation
 RUN echo 'install: --no-document\nupdate: --no-document' >> "/etc/.gemrc"
-
-# Install the AWS SDK and MIME for publishing
-# TODO: This can probably be removed if the publish script is converted to python also
-# and instead installed via requirements.txt
-RUN bin/bash -l -c "gem install aws-sdk mime-types"
 
 WORKDIR /app
 

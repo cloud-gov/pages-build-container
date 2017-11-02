@@ -1,12 +1,15 @@
+'''main task entrypoint'''
+
 import os
 import json
 import base64
 import requests
 
-from invoke import task, call
+from invoke import task
 from dotenv import load_dotenv
 
-from .common import logging
+from logs import logging
+
 from .clone import clone_repo, push_repo_remote
 
 LOGGER = logging.getLogger('MAIN')
@@ -126,17 +129,17 @@ def main(ctx):
     SOURCE_OWNER = os.getenv('SOURCE_OWNER')
 
     if SOURCE_OWNER and SOURCE_REPO:
-        # TODO: How can we call these directly without ctx.run?
-        # Looks like it is unsupported: https://github.com/pyinvoke/invoke/issues/170
-        ctx.run(f'invoke clone-repo -o {SOURCE_OWNER} '
-                f'-r {SOURCE_REPO} -g {GITHUB_TOKEN} '
-                f'-b {BRANCH}')
-        ctx.run(f'invoke push-repo-remote -o {OWNER} '
-                f'-r {REPOSITORY} -g {GITHUB_TOKEN} '
-                f'-b {BRANCH}')
-        pass
-    else:
-        ctx.run(f'invoke clone-repo -o {OWNER} '
-                f'-r {REPOSITORY} -g {GITHUB_TOKEN} '
-                f'-b {BRANCH}')
+        # First clone the source (ie, template) repository
+        clone_repo(ctx, owner=SOURCE_OWNER, repository=SOURCE_REPO,
+            github_token=GITHUB_TOKEN, branch=BRANCH)
 
+        # Then push the cloned source repo up to the destination repo.
+        # Note that the destination repo must already exist but be empty.
+        # The Federalist web app takes care of that operation.
+        push_repo_remote(ctx, owner=OWNER, repository=REPOSITORY,
+            github_token=GITHUB_TOKEN, branch=BRANCH)
+
+    else:
+        # Just clone the given repository
+        clone_repo(ctx, owner=OWNER, repository=REPOSITORY,
+            github_token=GITHUB_TOKEN, branch=BRANCH)

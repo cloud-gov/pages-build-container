@@ -4,8 +4,9 @@ Clone tasks and helpers
 from invoke import task, call
 
 from .common import (REPO_BASE_URL, CLONE_DIR_PATH,
-                     SITE_BUILD_DIR_PATH, clean,
-                     logging)
+                     SITE_BUILD_DIR_PATH, clean)
+
+from logs import logging
 
 
 LOGGER = logging.getLogger('CLONE')
@@ -14,7 +15,6 @@ LOGGER = logging.getLogger('CLONE')
 def clone_url(owner, repository, access_token):
     '''Creates a URL to a remote git repository'''
     return f'https://{access_token}@{REPO_BASE_URL}/{owner}/{repository}.git'
-
 
 @task(
     pre=[call(clean, which=CLONE_DIR_PATH)],
@@ -33,8 +33,7 @@ def clone_repo(ctx, owner, repository, github_token, branch):
     ctx.run(
         f'git clone -b {branch} --single-branch '
         f'{clone_url(owner, repository, github_token)} '
-        f'{CLONE_DIR_PATH}',
-        env={},
+        f'{CLONE_DIR_PATH}'
     )
 
 
@@ -43,5 +42,5 @@ def push_repo_remote(ctx, owner, repository, github_token, branch, remote_name='
     '''Pushes the git repo in CLONE_DIR_PATH to a new remote destination'''
     LOGGER.info(f'Pushing cloned repository to {owner}/{repository}/{branch}')
     with ctx.cd(CLONE_DIR_PATH):
-        ctx.run(f'git remote add {remote_name} {clone_url(owner, repository, github_token)}', env={})
-        ctx.run(f'git push {remote_name} {branch}', env={})
+        ctx.run(f'git remote add {remote_name} {clone_url(owner, repository, github_token)}')
+        ctx.run(f'git push {remote_name} {branch}')
