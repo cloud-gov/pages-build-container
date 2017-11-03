@@ -3,7 +3,7 @@ Clone tasks and helpers
 '''
 from invoke import task, call
 
-from logs import logging
+from log_utils import logging
 
 from .common import (REPO_BASE_URL, CLONE_DIR_PATH,
                      SITE_BUILD_DIR_PATH, clean)

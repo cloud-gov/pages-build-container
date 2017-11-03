@@ -11,7 +11,7 @@ from pathlib import Path
 
 import requests
 from invoke import task, call
-from logs import logging
+from log_utils import logging
 
 from .common import (CLONE_DIR_PATH, SITE_BUILD_DIR,
                      WORKING_DIR, SITE_BUILD_DIR_PATH,
@@ -20,7 +20,7 @@ from .common import (CLONE_DIR_PATH, SITE_BUILD_DIR,
 
 LOGGER = logging.getLogger('BUILD')
 
-NVM_SH_PATH = Path(os.path.join(os.environ['NVM_DIR'], 'nvm.sh'))
+NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
 
 PACKAGE_JSON_PATH = Path(os.path.join(CLONE_DIR_PATH, 'package.json'))

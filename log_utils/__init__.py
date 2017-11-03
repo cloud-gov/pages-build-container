@@ -1,3 +1,6 @@
+'''
+Setup nice logs. Clients should import `logging` from here.
+'''
 import os
 import logging
 

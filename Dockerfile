@@ -6,7 +6,7 @@ RUN apt-get update \
       apt-utils build-essential git curl libssl-dev \
       libreadline-dev zlib1g-dev libffi-dev
 
-# install nvm and install versions 4 and 6
+# Install nvm and install versions 4 and 6
 # TODO: Default to 6 LTS instead of 4
 # Ref: https://github.com/18F/federalist/issues/1209
 ENV NVM_DIR /usr/local/nvm
@@ -41,5 +41,4 @@ RUN pip install -r requirements.txt
 
 ADD . ./
 
-# TODO
-# CMD invoke all-the-final-args-and-env-vars
+CMD ["bash", "inv main"]
