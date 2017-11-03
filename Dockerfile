@@ -1,8 +1,6 @@
-# FROM 18fgsa/docker-ruby-ubuntu
 FROM python:3.6
 
 # Install general dependencies
-# TODO: I removed all the locale stuff -- is that ok?
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       apt-utils build-essential git curl libssl-dev \
