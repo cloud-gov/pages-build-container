@@ -5,17 +5,18 @@ Build tasks and helpers
 import os
 import json
 import shutil
-import requests
 
 from contextlib import ExitStack
 from pathlib import Path
+
+import requests
 from invoke import task, call
+from logs import logging
 
 from .common import (CLONE_DIR_PATH, SITE_BUILD_DIR,
                      WORKING_DIR, SITE_BUILD_DIR_PATH,
                      clean)
 
-from logs import logging
 
 LOGGER = logging.getLogger('BUILD')
 
@@ -88,11 +89,12 @@ def node_context(ctx, *more_contexts):
 
     contexts += more_contexts
     stack = ExitStack()
-    for cm in contexts:
-        stack.enter_context(cm)
+    for context in contexts:
+        stack.enter_context(context)
     return stack
 
 def build_env(branch, owner, repository, site_prefix, base_url):
+    '''Creats a dict of environment variables to pass into a build context'''
     return {
         'BRANCH': branch,
         'OWNER': owner,
@@ -121,8 +123,8 @@ def setup_ruby(ctx):
     with ctx.prefix(f'source {RVM_PATH}'):
         if RUBY_VERSION_PATH.is_file():
             ruby_version = ''
-            with open(RUBY_VERSION_PATH, 'r') as f:
-                ruby_version = f.readline().strip()
+            with open(RUBY_VERSION_PATH, 'r') as ruby_vers_file:
+                ruby_version = ruby_vers_file.readline().strip()
             if ruby_version:
                 LOGGER.info('Using ruby version in .ruby-version')
                 ctx.run('rvm install {ruby_version}')
@@ -137,8 +139,8 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix, config='', base_ur
     Builds the cloned site with Jekyll
     '''
     # Add baseurl, branch, and the custom config to _config.yml
-    with open(JEKYLL_CONF_YML_PATH, 'a') as f:
-        f.writelines([
+    with open(JEKYLL_CONF_YML_PATH, 'a') as jekyll_conf_file:
+        jekyll_conf_file.writelines([
             '\n'
             f'baseurl: {base_url}\n',
             f'branch: {branch}\n',
@@ -178,11 +180,11 @@ def install_hugo(ctx, version='0.23'):
     dl_url = (f'https://github.com/gohugoio/hugo/releases/download/'
               f'v{version}/hugo_{version}_Linux-64bit.deb')
     response = requests.get(dl_url)
-    hugo_deb = os.path.join(WORKING_DIR, 'hugo.deb')
-    with open(hugo_deb, 'wb') as fd:
+    hugo_deb_path = os.path.join(WORKING_DIR, 'hugo.deb')
+    with open(hugo_deb_path, 'wb') as hugo_deb_file:
         for chunk in response.iter_content(chunk_size=128):
-            fd.write(chunk)
-    ctx.run(f'dpkg -i {hugo_deb}')
+            hugo_deb_file.write(chunk)
+    ctx.run(f'dpkg -i {hugo_deb_path}')
 
 
 @task(pre=[run_federalist_script])

@@ -3,10 +3,10 @@ Clone tasks and helpers
 '''
 from invoke import task, call
 
+from logs import logging
+
 from .common import (REPO_BASE_URL, CLONE_DIR_PATH,
                      SITE_BUILD_DIR_PATH, clean)
-
-from logs import logging
 
 
 LOGGER = logging.getLogger('CLONE')
