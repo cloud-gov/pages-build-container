@@ -3,6 +3,7 @@ _old
 tmp
 test-run.sh
 .cache
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

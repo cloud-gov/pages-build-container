@@ -3,13 +3,11 @@ Publish tasks and helpers
 '''
 from invoke import task
 
-from .common import (CLONE_DIR_PATH, SITE_BUILD_DIR,
-                     WORKING_DIR, SITE_BUILD_DIR_PATH,
-                     clean)
-
 from logs import logging
+from publishing.s3publisher import publish_to_s3
 
-from s3publisher import publish_to_s3
+from .common import SITE_BUILD_DIR_PATH
+
 
 LOGGER = logging.getLogger('PUBLISH')
 
@@ -17,8 +15,9 @@ LOGGER = logging.getLogger('PUBLISH')
 def publish(ctx, base_url, site_prefix, bucket, cache_control,
             aws_region, access_key_id, secret_access_key,
             dry_run=False):
-    # TODO: is base_url actually required?
-    # TODO: create my own bucket in cloud.gov for testing
+    '''
+    Publish the built site to S3
+    '''
     LOGGER.info('Publishing to S3')
 
     publish_to_s3(
