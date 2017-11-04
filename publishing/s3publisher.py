@@ -67,6 +67,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
                   aws_region, access_key_id, secret_access_key, dry_run=False):
     '''Publishes the given directory to S3'''
 
+    total_start_time = datetime.now() # To report publish time
+
     # With glob, dotfiles are ignored by default
     # Note that the filenames will include the `directory` prefix
     # but we won't want that for the eventual S3 keys
@@ -146,8 +148,6 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     LOGGER.info(f'New: {len(new_objects)}')
     LOGGER.info(f'Modified: {len(modified_objects)}')
     LOGGER.info(f'Deleted: {len(deletion_objects)}')
-
-    total_start_time = datetime.now()
 
     # Upload new and modified files
     upload_objects = new_objects + modified_objects

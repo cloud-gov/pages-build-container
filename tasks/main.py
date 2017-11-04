@@ -2,6 +2,8 @@
 
 import os
 
+from datetime import datetime
+
 from invoke import task
 from dotenv import load_dotenv
 
@@ -83,6 +85,7 @@ def main(ctx):
     # So rather than calling the task function through python, we'll
     # call it instead using `ctx.run('invoke the_task ...')`
 
+    start_time = datetime.now()
 
     ##
     # CLONE
@@ -152,3 +155,8 @@ def main(ctx):
         '--secret-access-key': AWS_SECRET_ACCESS_KEY,
     }
     run_task(ctx, 'publish', publish_flags)
+
+    delta = datetime.now() - start_time
+    delta_mins = int(delta.total_seconds() // 60)
+    delta_leftover_secs = int(delta.total_seconds() % 60)
+    LOGGER.info(f'Total build time: {delta_mins}m {delta_leftover_secs}s')

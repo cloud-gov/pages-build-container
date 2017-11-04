@@ -137,7 +137,7 @@ def setup_ruby(ctx):
                 ruby_version = ruby_vers_file.readline().strip()
             if ruby_version:
                 LOGGER.info('Using ruby version in .ruby-version')
-                ctx.run('rvm install {ruby_version}')
+                ctx.run(f'rvm install {ruby_version}')
 
         ruby_ver_res = ctx.run('ruby -v')
         LOGGER.info(f'Ruby version: {ruby_ver_res.stdout}')
