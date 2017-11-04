@@ -111,6 +111,7 @@ def build_env(branch, owner, repository, site_prefix, base_url):
         'REPOSITORY': repository,
         'SITE_PREFIX': site_prefix,
         'BASEURL': base_url,
+        'LANG': 'C.UTF-8'  # necessary to make sure build engines use utf-8
     }
 
 
@@ -176,6 +177,7 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix, config='', base_ur
         LOGGER.info(f'Building using Jekyll version: {jekyll_vers_res.stdout}')
 
         destination = path.join(path.curdir, SITE_BUILD_DIR)
+
         ctx.run(
             f'{jekyll_cmd} build --destination {destination}',
             env=build_env(branch, owner, repository, site_prefix, base_url)
