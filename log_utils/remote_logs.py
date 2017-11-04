@@ -12,6 +12,8 @@ def b64string(text):
 # TODO: re-examine original sh file to make sure
 # these do the same thing
 
+# TODO: try them out with https://httpbin.org/
+
 def post_output_log(log_callback_url, source, output, limit=500000,
                     limit_msg='output suppressed due to length'):
     '''

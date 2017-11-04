@@ -147,6 +147,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     LOGGER.info(f'Modified: {len(modified_objects)}')
     LOGGER.info(f'Deleted: {len(deletion_objects)}')
 
+    total_start_time = datetime.now()
+
     # Upload new and modified files
     upload_objects = new_objects + modified_objects
     for file in upload_objects:
@@ -175,3 +177,6 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             delta = datetime.now() - start_time
             LOGGER.info(
                 f'Deleted {file.s3_key} in {delta.total_seconds():.2f}s')
+
+    total_delta = datetime.now() - total_start_time
+    LOGGER.info(f'Total time to publish: {total_delta.total_seconds():.2f}s')

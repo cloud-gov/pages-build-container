@@ -4,3 +4,6 @@ services:
     build: .
     volumes:
       - .:/app
+  # TODO: use httpbin for dev testing
+  # httpbin:
+  #   image: kennethreitz/httpbin:latest

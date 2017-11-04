@@ -3,6 +3,8 @@ Build tasks and helpers
 '''
 
 import os
+from os import path
+
 import json
 import shutil
 
@@ -23,11 +25,14 @@ LOGGER = logging.getLogger('BUILD')
 NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
 
-PACKAGE_JSON_PATH = Path(os.path.join(CLONE_DIR_PATH, 'package.json'))
-NVMRC_PATH = Path(os.path.join(CLONE_DIR_PATH, '.nvmrc'))
-RUBY_VERSION_PATH = Path(os.path.join(CLONE_DIR_PATH), '.ruby-version')
-GEMFILE_PATH = Path(os.path.join(CLONE_DIR_PATH), 'Gemfile')
-JEKYLL_CONF_YML_PATH = os.path.join(CLONE_DIR_PATH, '_config.yml')
+HUGO_BIN = 'hugo'
+HUGO_BIN_PATH = Path(path.join(WORKING_DIR), HUGO_BIN)
+
+PACKAGE_JSON_PATH = Path(path.join(CLONE_DIR_PATH, 'package.json'))
+NVMRC_PATH = Path(path.join(CLONE_DIR_PATH, '.nvmrc'))
+RUBY_VERSION_PATH = Path(path.join(CLONE_DIR_PATH), '.ruby-version')
+GEMFILE_PATH = Path(path.join(CLONE_DIR_PATH), 'Gemfile')
+JEKYLL_CONF_YML_PATH = path.join(CLONE_DIR_PATH, '_config.yml')
 
 
 def has_federalist_script():
@@ -66,9 +71,14 @@ def setup_node(ctx):
             LOGGER.info(f'NPM version: {npm_ver_res.stdout}')
 
             if PACKAGE_JSON_PATH.is_file():
-                with ctx.prefix('nvm use'):
-                    LOGGER.info('Installing production dependencies in package.json')
-                    ctx.run('npm install --production')
+                LOGGER.info('Installing production dependencies in package.json')
+                npm_command = 'npm'
+
+                if NVMRC_PATH.is_file():
+                    # prefix with `nvm use` if the .nvmrc file is present
+                    npm_command = f'nvm use && {npm_command}'
+
+                ctx.run(f'{npm_command} install --production')
 
 def node_context(ctx, *more_contexts):
     '''
@@ -165,26 +175,28 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix, config='', base_ur
         jekyll_vers_res = ctx.run(f'{jekyll_cmd} -v')
         LOGGER.info(f'Building using Jekyll version: {jekyll_vers_res.stdout}')
 
-        destination = os.path.join(os.path.curdir, SITE_BUILD_DIR)
+        destination = path.join(path.curdir, SITE_BUILD_DIR)
         ctx.run(
             f'{jekyll_cmd} build --destination {destination}',
             env=build_env(branch, owner, repository, site_prefix, base_url)
         )
 
 @task
-def install_hugo(ctx, version='0.23'):
+def download_hugo(ctx, version='0.23'):
     '''
-    Downloads and installs the .deb package of the specified version of Hugo
+    Downloads the specified version of Hugo
     '''
-    LOGGER.info(f'Downloading and installing hugo version {version}')
+    LOGGER.info(f'Downloading hugo version {version}')
     dl_url = (f'https://github.com/gohugoio/hugo/releases/download/'
-              f'v{version}/hugo_{version}_Linux-64bit.deb')
+              f'v{version}/hugo_{version}_Linux-64bit.tar.gz')
     response = requests.get(dl_url)
-    hugo_deb_path = os.path.join(WORKING_DIR, 'hugo.deb')
-    with open(hugo_deb_path, 'wb') as hugo_deb_file:
+    hugo_tar_path = path.join(WORKING_DIR, 'hugo.tar.gz')
+    with open(hugo_tar_path, 'wb') as hugo_tar:
         for chunk in response.iter_content(chunk_size=128):
-            hugo_deb_file.write(chunk)
-    ctx.run(f'dpkg -i {hugo_deb_path}')
+            hugo_tar.write(chunk)
+
+    ctx.run(f'tar -xzf {hugo_tar_path} -C {WORKING_DIR}')
+    ctx.run(f'chmod +x {HUGO_BIN_PATH}')
 
 
 @task(pre=[run_federalist_script])
@@ -192,25 +204,33 @@ def build_hugo(ctx, branch, owner, repository, site_prefix, base_url='', hugo_ve
     '''
     Builds the cloned site with Hugo
     '''
-    install_hugo(ctx, hugo_version)
-    hugo_vers_res = ctx.run('hugo version')
+    # Note that no pre- or post-tasks will be called when calling
+    # download_hugo this way
+    download_hugo(ctx, hugo_version)
+
+    hugo_vers_res = ctx.run(f'{HUGO_BIN_PATH} version')
     LOGGER.info(f'hugo version: {hugo_vers_res.stdout}')
     LOGGER.info('Building site with hugo')
 
-    destination = os.path.join(os.path.curdir, SITE_BUILD_DIR)
-    with node_context(ctx, ctx.cd(CLONE_DIR_PATH)):
-        hugo_args = f'--source . --destination {destination}'
+    with node_context(ctx):  # in case some hugo plugin needs node
+        # Strangely, hugo's `destination` arg is relative to the `source` path
+        # so that's why we use SITE_BUILD_DIR instead of SITE_BUILD_DIR_PATH
+        # as the `destination`.
+        # So, the following command will not work as intended if SITE_BUILD_DIR
+        # is ever moved outside of the CLONE_DIR_PATH.
+        hugo_args = f'--source {CLONE_DIR_PATH} --destination {SITE_BUILD_DIR}'
         if base_url:
             hugo_args += f' --baseUrl {base_url}'
+
         ctx.run(
-            f'hugo {hugo_args}',
+            f'{HUGO_BIN_PATH} {hugo_args}',
             env=build_env(branch, owner, repository, site_prefix, base_url)
         )
 
 @task(pre=[
     run_federalist_script,
     # Remove cloned repo's .git directory
-    call(clean, which=os.path.join(CLONE_DIR_PATH, '.git')),
+    call(clean, which=path.join(CLONE_DIR_PATH, '.git')),
 ])
 def build_static(ctx):
     '''Moves all files from CLONE_DIR into SITE_BUILD_DIR'''
@@ -221,5 +241,5 @@ def build_static(ctx):
     for file in files:
         # don't move the SITE_BUILD_DIR dir into itself
         if file is not SITE_BUILD_DIR:
-            shutil.move(os.path.join(CLONE_DIR_PATH, file),
+            shutil.move(path.join(CLONE_DIR_PATH, file),
                         SITE_BUILD_DIR_PATH)

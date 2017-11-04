@@ -16,6 +16,9 @@ CLONE_DIR = 'site_repo'
 CLONE_DIR_PATH = os.path.join(WORKING_DIR, CLONE_DIR)
 
 SITE_BUILD_DIR = '_site'
+
+# Changing SITE_BUILD_DIR_PATH to not be inside CLONE_DIR_PATH
+# will break hugo builds. See `build_hugo` task.
 SITE_BUILD_DIR_PATH = os.path.join(CLONE_DIR_PATH, SITE_BUILD_DIR)
 
 LOGGER = logging.getLogger('COMMON')
