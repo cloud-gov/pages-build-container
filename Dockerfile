@@ -41,4 +41,4 @@ RUN pip install -r requirements.txt
 
 ADD . ./
 
-CMD ["bash", "inv main"]
+CMD inv main
