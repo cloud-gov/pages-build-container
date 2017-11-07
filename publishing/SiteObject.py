@@ -93,7 +93,7 @@ class SiteFile(SiteObject):
 
     def generate_md5(self):
         '''Generates an md5 hash of the file contents'''
-        hash_md5 = hashlib.md5()
+        hash_md5 = hashlib.md5()  # nosec
 
         with open(self.filename, "rb") as file:
             for chunk in iter(lambda: file.read(4096), b""):
@@ -154,7 +154,7 @@ class SiteRedirect(SiteObject):
                          site_prefix=site_prefix)
 
         self.base_url = base_url
-        self.md5 = hashlib.md5(self.destination.encode()).hexdigest()
+        self.md5 = hashlib.md5(self.destination.encode()).hexdigest()  # nosec
 
     @property
     def destination(self):

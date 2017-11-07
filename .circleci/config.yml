@@ -39,3 +39,7 @@ jobs:
           name: Run tests
           command: |
             docker-compose run app pytest
+      - run:
+          name: Run bandit
+          command: |
+            docker-compose run app bandit -r .
