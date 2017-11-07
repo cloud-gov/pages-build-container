@@ -1,45 +1,23 @@
 version: 2
 jobs:
   build:
-    working_directory: /app
-    docker:
-      - image: docker:17.05.0-ce-git
+    machine: true
     steps:
       - checkout
-      - setup_remote_docker
       - run:
-          name: Install dependencies
+          name: Build docker image
           command: |
-            apk add --no-cache py-pip=9.0.0-r1
-            pip install docker-compose
-      # - restore_cache:
-      #     keys:
-      #       - v1-{{ .Branch }}
-      #     paths:
-      #       - /caches/app.tar
+            docker build -t federalist-garden-build-py:$CIRCLE_BRANCH --build-arg is_testing=1 .
+      - run:
+          name: Docker pytest
+          command: |
+            docker run --rm -i -t federalist-garden-build-py:$CIRCLE_BRANCH pytest
+      - run:
+          name: Docker bandit
+          command: |
+            docker run --rm -i -t federalist-garden-build-py:$CIRCLE_BRANCH bandit -r .
+      # TODO: once the code is cleaned up, enable this step
       # - run:
-      #     name: Load Docker image layer cache
+      #     name: Docker flake8
       #     command: |
-      #       set +o pipefail
-      #       docker load -i /caches/app.tar | true
-      - run:
-          name: Build Docker image
-          command: |
-            docker-compose build
-      # - run:
-      #     name: Save Docker image layer cache
-      #     command: |
-      #       mkdir -p /caches
-      #       docker save -o /caches/app.tar app
-      # - save_cache:
-      #     key: v1-{{ .Branch }}-{{ epoch }}
-      #     paths:
-      #       - /caches/app.tar
-      - run:
-          name: Run tests
-          command: |
-            docker-compose run app pytest
-      - run:
-          name: Run bandit
-          command: |
-            docker-compose run app bandit -r .
+      #       docker run --rm -i -t federalist-garden-build-py:$CIRCLE_BRANCH flake8
