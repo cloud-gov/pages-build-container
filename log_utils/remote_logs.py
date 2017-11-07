@@ -4,15 +4,19 @@ import json
 import base64
 import requests
 
+
+STATUS_CODE_COMPLETE = 0
+STATUS_CODE_ERROR = 1
+
 def b64string(text):
-    '''Base64 encodes a string as utf-8'''
-    return base64.b64encode(text.encode('utf-8'))
+    '''
+    Base64 encodes a string as utf-8
 
+    >>> b64string('boop')
+    'Ym9vcA=='
+    '''
+    return base64.b64encode(text.encode('utf-8')).decode('utf-8')
 
-# TODO: re-examine original sh file to make sure
-# these do the same thing
-
-# TODO: try them out with https://httpbin.org/
 
 def post_output_log(log_callback_url, source, output, limit=500000,
                     limit_msg='output suppressed due to length'):
@@ -48,51 +52,51 @@ def post_status(status_callback_url, status, output):
     )
 
 
-def post_build_complete(builder_callback_url, status_callback_url):
+def post_build_complete(status_callback_url, builder_callback_url):
     post_status(
         status_callback_url,
-        status=0,
+        status=STATUS_CODE_COMPLETE,
         output='')
 
-    # Send a DELETE to the Federalist build scheduler to alert that the container is available
+    # Send a DELETE to the Federalist build scheduler to alert that the
+    # container is available
     requests.delete(builder_callback_url)
 
 
-def post_build_error(log_callback_url, status_callback_url, builder_callback_url, error_output):
-    # TODO: status callback also?
+def post_build_error(log_callback_url, status_callback_url,
+                     builder_callback_url, error_output):
     output = error_output
 
     post_output_log(
         log_callback_url,
         source='ERROR',
-        output=output
-    )
+        output=output)
 
     # Post to the Federalist web application endpoint with status and output
     post_status(status_callback_url,
-                status=1,
-                output=output
-                )
+                status=STATUS_CODE_ERROR,
+                output=output)
 
-    # Send a DELETE to the Federalist build scheduler to alert that the container is available
+    # Send a DELETE to the Federalist build scheduler to alert that
+    # the container is available
     requests.delete(builder_callback_url)
 
 
-def post_build_timeout(log_callback_url, status_callback_url, builder_callback_url):
-    # TODO: status callback also?
+def post_build_timeout(log_callback_url, status_callback_url,
+                       builder_callback_url):
     output = 'The build did not complete. It may have timed out.'
 
     post_output_log(
         log_callback_url,
         source='ERROR',
-        output=output
-    )
+        output=output)
 
-    # Post to the Federalist web application endpoint with status and output
+    # Post to the Federalist web application endpoint with status
+    # and output
     post_status(status_callback_url,
-                status=1,
-                output=output
-                )
+                status=STATUS_CODE_ERROR,
+                output=output)
 
-    # Send a DELETE to the Federalist build scheduler to alert that the container is available
+    # Send a DELETE to the Federalist build scheduler to alert that the
+    # container is available
     requests.delete(builder_callback_url)

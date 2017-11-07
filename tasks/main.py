@@ -1,21 +1,32 @@
 '''Main task entrypoint'''
 
 import os
+import logging
 
 from datetime import datetime
 
 from invoke import task
 from dotenv import load_dotenv
+from stopit import TimeoutException, SignalTimeout as Timeout
 
-from log_utils import logging
+from log_utils.config import configure_logging
+from log_utils.remote_logs import (
+    post_output_log, post_build_complete,
+    post_build_error, post_build_timeout)
 
+
+# TODO: post_output_log after each main build step
 
 LOGGER = logging.getLogger('MAIN')
+
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+DOTENV_PATH = os.path.join(BASE_DIR, '.env')
+TIMEOUT_SECONDS = 20 * 60  # 20 minutes
 
 
 def run_task(ctx, task_name, flags_dict=None):
     '''
-    Uses `ctx.run` to call the specified `task_name` with the 
+    Uses `ctx.run` to call the specified `task_name` with the
     argument flags given in `flags_dict`, if specified.
     '''
     flag_args = []
@@ -24,8 +35,9 @@ def run_task(ctx, task_name, flags_dict=None):
             flag_args.append(f"{flag}='{val}'")
 
     command = f'inv {task_name} {" ".join(flag_args)}'
-    LOGGER.info(f'Calling sub-task: {command}')
-    ctx.run(command)
+    result = ctx.run(command)
+    return result
+
 
 @task
 def main(ctx):
@@ -35,18 +47,26 @@ def main(ctx):
     All values needed for the build are loaded from
     environment variables.
     '''
+    # (variable naming)
     # pylint: disable=C0103
-    # TODO: use logging methods in logs/remote_logs
+
+    # keep track of total time
+    start_time = datetime.now()
+
+    # configure logging
+    configure_logging()
 
     LOGGER.info('Running full build process')
-
-    BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-    DOTENV_PATH = os.path.join(BASE_DIR, '.env')
 
     if os.path.exists(DOTENV_PATH):
         LOGGER.info('Loading environment from .env file')
         load_dotenv(DOTENV_PATH)
 
+    # These environment variables will be set into the environment
+    # by federalist-builder.
+
+    # During development, we can use a `.env` file (loaded above)
+    # to make it easier to specify variables.
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
     AWS_DEFAULT_REGION = os.environ['AWS_DEFAULT_REGION']
     AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
@@ -61,102 +81,126 @@ def main(ctx):
     GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
     GENERATOR = os.environ['GENERATOR']
 
-
-    CALLBACK = os.environ['CALLBACK']
-    FEDERALIST_BUILDER_CALLBACK = os.environ['FEDERALIST_BUILDER_CALLBACK']
-
-    # https://federalist-staging.18f.gov/v0/build/<build_id>/status/<token>
-    STATUS_CALLBACK = os.environ['STATUS_CALLBACK']
-    # https://federalist-staging.18f.gov/v0/build/<build_id>/log/<same_token>
-    LOG_CALLBACK = os.environ['LOG_CALLBACK']
-
     # Optional environment variables
     SOURCE_REPO = os.getenv('SOURCE_REPO')
     SOURCE_OWNER = os.getenv('SOURCE_OWNER')
 
+    # Ex: https://federalist-builder.fr.cloud.gov/builds/<token>/callback
+    FEDERALIST_BUILDER_CALLBACK = os.environ['FEDERALIST_BUILDER_CALLBACK']
 
-    # Unfortunately, pyinvoke doesn't have a great way to call tasks from
-    # within other tasks. If you call them directly, their pre- and post-
-    # dependencies are not executed.
-    #
-    # Here's the GitHub issue about this:
-    # https://github.com/pyinvoke/invoke/issues/170
-    #
-    # So rather than calling the task function through python, we'll
-    # call it instead using `ctx.run('invoke the_task ...')`
+    # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/status/<token>
+    STATUS_CALLBACK = os.environ['STATUS_CALLBACK']
 
-    start_time = datetime.now()
+    # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/log/<token>
+    LOG_CALLBACK = os.environ['LOG_CALLBACK']
 
-    ##
-    # CLONE
-    #
-    if SOURCE_OWNER and SOURCE_REPO:
-        # First clone the source (ie, template) repository
-        clone_source_flags = {
-            '--owner': SOURCE_OWNER,
-            '--repository': SOURCE_REPO,
-            '--github-token': GITHUB_TOKEN,
-            '--branch': BRANCH,
-        }
-        run_task(ctx, 'clone-repo', clone_source_flags)
-        
-        # Then push the cloned source repo up to the destination repo.
-        # Note that the destination repo must already exist but be empty.
-        # The Federalist web app takes care of that operation.
-        push_repo_flags = {
-            '--owner': OWNER,
-            '--repository': REPOSITORY,
-            '--github-token': GITHUB_TOKEN,
-            '--branch': BRANCH,
-        }
-        run_task(ctx, 'push-repo-remote', push_repo_flags)
-    else:
-        # Just clone the given repository
-        clone_flags = {
-            '--owner': OWNER,
-            '--repository': REPOSITORY,
-            '--github-token': GITHUB_TOKEN,
-            '--branch': BRANCH,
-        }
-        run_task(ctx, 'clone-repo', clone_flags)
-    
-    ##
-    # BUILD
-    #
-    build_flags = {
-        '--branch': BRANCH,
-        '--owner': OWNER,
-        '--repository': REPOSITORY,
-        '--site-prefix': SITE_PREFIX,
-        '--base-url': BASEURL,
-    }
-    if GENERATOR == 'jekyll':
-        build_flags['--config'] = CONFIG
-        run_task(ctx, 'build-jekyll', build_flags)
-    elif GENERATOR == 'hugo':
-        # extra: --hugo-version (not yet used)
-        run_task(ctx, 'build-hugo', build_flags)
-    elif GENERATOR == 'static':
-        # no build arguments are needed
-        run_task(ctx, 'build-static')
-    else:
-        raise ValueError(f'Invalid GENERATOR: {GENERATOR}')
+    try:
+        # throw a timeout exception after TIMEOUT_SECONDS
+        with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
 
-    ##
-    # PUBLISH
-    #
-    publish_flags = {
-        '--base-url': BASEURL,
-        '--site-prefix': SITE_PREFIX,
-        '--bucket': BUCKET,
-        '--cache-control': CACHE_CONTROL,
-        '--aws-region': AWS_DEFAULT_REGION,
-        '--access-key-id': AWS_ACCESS_KEY_ID,
-        '--secret-access-key': AWS_SECRET_ACCESS_KEY,
-    }
-    run_task(ctx, 'publish', publish_flags)
+            # Unfortunately, pyinvoke doesn't have a great way to call tasks from
+            # within other tasks. If you call them directly, their pre- and post-
+            # dependencies are not executed.
+            #
+            # Here's the GitHub issue about this:
+            # https://github.com/pyinvoke/invoke/issues/170
+            #
+            # So rather than calling the task functions through python, we'll
+            # call them instead using `ctx.run('invoke the_task ...')` via the
+            # helper `run_task` method.
 
-    delta = datetime.now() - start_time
-    delta_mins = int(delta.total_seconds() // 60)
-    delta_leftover_secs = int(delta.total_seconds() % 60)
-    LOGGER.info(f'Total build time: {delta_mins}m {delta_leftover_secs}s')
+            ##
+            # CLONE
+            #
+            if SOURCE_OWNER and SOURCE_REPO:
+                # First clone the source (ie, template) repository
+                clone_source_flags = {
+                    '--owner': SOURCE_OWNER,
+                    '--repository': SOURCE_REPO,
+                    '--github-token': GITHUB_TOKEN,
+                    '--branch': BRANCH,
+                }
+                run_task(ctx, 'clone-repo', clone_source_flags)
+
+                # Then push the cloned source repo up to the destination repo.
+                # Note that the destination repo must already exist but be empty.
+                # The Federalist web app takes care of that operation.
+                push_repo_flags = {
+                    '--owner': OWNER,
+                    '--repository': REPOSITORY,
+                    '--github-token': GITHUB_TOKEN,
+                    '--branch': BRANCH,
+                }
+                run_task(ctx, 'push-repo-remote', push_repo_flags)
+            else:
+                # Just clone the given repository
+                clone_flags = {
+                    '--owner': OWNER,
+                    '--repository': REPOSITORY,
+                    '--github-token': GITHUB_TOKEN,
+                    '--branch': BRANCH,
+                }
+                run_task(ctx, 'clone-repo', clone_flags)
+
+            ##
+            # BUILD
+            #
+            build_flags = {
+                '--branch': BRANCH,
+                '--owner': OWNER,
+                '--repository': REPOSITORY,
+                '--site-prefix': SITE_PREFIX,
+                '--base-url': BASEURL,
+            }
+
+            # Run the npm `federalist` task (if it is defined)
+            run_task(ctx, 'run-federalist-script', build_flags)
+
+            # Run the appropriate build engine based on GENERATOR
+            if GENERATOR == 'jekyll':
+                build_flags['--config'] = CONFIG
+                run_task(ctx, 'build-jekyll', build_flags)
+            elif GENERATOR == 'hugo':
+                # extra: --hugo-version (not yet used)
+                run_task(ctx, 'build-hugo', build_flags)
+            elif GENERATOR == 'static':
+                # no build arguments are needed
+                run_task(ctx, 'build-static')
+            else:
+                raise ValueError(f'Invalid GENERATOR: {GENERATOR}')
+
+            ##
+            # PUBLISH
+            #
+            publish_flags = {
+                '--base-url': BASEURL,
+                '--site-prefix': SITE_PREFIX,
+                '--bucket': BUCKET,
+                '--cache-control': CACHE_CONTROL,
+                '--aws-region': AWS_DEFAULT_REGION,
+                '--access-key-id': AWS_ACCESS_KEY_ID,
+                '--secret-access-key': AWS_SECRET_ACCESS_KEY,
+            }
+            run_task(ctx, 'publish', publish_flags)
+
+            delta = datetime.now() - start_time
+            delta_mins = int(delta.total_seconds() // 60)
+            delta_leftover_secs = int(delta.total_seconds() % 60)
+            LOGGER.info(
+                f'Total build time: {delta_mins}m {delta_leftover_secs}s')
+
+            # Finished!
+            post_build_complete(STATUS_CALLBACK,
+                                FEDERALIST_BUILDER_CALLBACK)
+
+    except TimeoutException:
+        LOGGER.exception('Build has timed out')
+        post_build_timeout(LOG_CALLBACK,
+                           STATUS_CALLBACK,
+                           FEDERALIST_BUILDER_CALLBACK)
+    except Exception as err:  # pylint: disable=W0703
+        LOGGER.exception(f'Exception raised during build: {err}')
+        post_build_error(LOG_CALLBACK,
+                         STATUS_CALLBACK,
+                         FEDERALIST_BUILDER_CALLBACK,
+                         str(err))

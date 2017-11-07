@@ -3,3 +3,4 @@ colorlog==2.10.0
 python-dotenv==0.7.1
 requests==2.18.4
 boto3==1.4.7
+stopit==1.1.1

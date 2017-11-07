@@ -1,9 +1,10 @@
 '''
 Publish tasks and helpers
 '''
+import logging
+
 from invoke import task
 
-from log_utils import logging
 from publishing.s3publisher import publish_to_s3
 
 from .common import SITE_BUILD_DIR_PATH

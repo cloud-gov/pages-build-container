@@ -4,10 +4,9 @@ Common variables, tasks, and functions
 
 import os
 import shutil
+import logging
 
 from invoke import task
-
-from log_utils import logging
 
 REPO_BASE_URL = 'github.com'
 WORKING_DIR = os.path.join(os.curdir, 'tmp')

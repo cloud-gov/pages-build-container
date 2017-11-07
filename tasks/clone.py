@@ -1,9 +1,9 @@
 '''
 Clone tasks and helpers
 '''
-from invoke import task, call
+import logging
 
-from log_utils import logging
+from invoke import task, call
 
 from .common import (REPO_BASE_URL, CLONE_DIR_PATH,
                      SITE_BUILD_DIR_PATH, clean)
@@ -16,7 +16,18 @@ def clone_url(owner, repository, access_token):
     '''Creates a URL to a remote git repository'''
     return f'https://{access_token}@{REPO_BASE_URL}/{owner}/{repository}.git'
 
-@task(
+
+def _clone_repo(ctx, owner, repository, github_token, branch):
+    '''Clones the GitHub repository specified by owner and repository into CLONE_DIR_PATH'''
+    LOGGER.info(f'Cloning {owner}/{repository}/{branch} to {CLONE_DIR_PATH}')
+    ctx.run(
+        f'git clone -b {branch} --single-branch '
+        f'{clone_url(owner, repository, github_token)} '
+        f'{CLONE_DIR_PATH}'
+    )
+
+# 'Exported' clone-repo task
+clone_repo = task(
     pre=[call(clean, which=CLONE_DIR_PATH)],
     post=[
         # Remove _site if it exists
@@ -25,16 +36,9 @@ def clone_url(owner, repository, access_token):
     help={
         "owner": "Owner of the repository to clone",
         "repository": "Name of the repository to clone",
-    }
-)
-def clone_repo(ctx, owner, repository, github_token, branch):
-    '''Clones the GitHub repository specified by owner and repository into CLONE_DIR_PATH'''
-    LOGGER.info(f'Cloning {owner}/{repository}/{branch} to {CLONE_DIR_PATH}')
-    ctx.run(
-        f'git clone -b {branch} --single-branch '
-        f'{clone_url(owner, repository, github_token)} '
-        f'{CLONE_DIR_PATH}'
-    )
+    },
+    name='clone-repo'
+)(_clone_repo)
 
 
 @task

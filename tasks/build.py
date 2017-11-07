@@ -7,13 +7,13 @@ from os import path
 
 import json
 import shutil
+import logging
 
 from contextlib import ExitStack
 from pathlib import Path
 
 import requests
 from invoke import task, call
-from log_utils import logging
 
 from .common import (CLONE_DIR_PATH, SITE_BUILD_DIR,
                      WORKING_DIR, SITE_BUILD_DIR_PATH,
@@ -111,19 +111,23 @@ def build_env(branch, owner, repository, site_prefix, base_url):
         'REPOSITORY': repository,
         'SITE_PREFIX': site_prefix,
         'BASEURL': base_url,
-        'LANG': 'C.UTF-8'  # necessary to make sure build engines use utf-8
+        # necessary to make sure build engines use utf-8 encoding
+        'LANG': 'C.UTF-8',
     }
 
-
-@task(pre=[setup_node])
-def run_federalist_script(ctx):
+def _run_federalist_script(ctx, branch, owner, repository, site_prefix, base_url=''):
     '''
     Runs the npm "federalist" script if it is defined
     '''
     if PACKAGE_JSON_PATH.is_file() and has_federalist_script():
         with node_context(ctx, ctx.cd(CLONE_DIR_PATH)):
             LOGGER.info('Running federalist build script in package.json')
-            ctx.run('npm run federalist')
+            ctx.run('npm run federalist',
+                    env=build_env(branch, owner, repository, site_prefix, base_url))
+
+# 'Exported' run_federalist_script task
+run_federalist_script = task(
+    pre=[setup_node], name='run-federalist-script')(_run_federalist_script)
 
 @task
 def setup_ruby(ctx):
@@ -144,8 +148,7 @@ def setup_ruby(ctx):
         LOGGER.info(f'Ruby version: {ruby_ver_res.stdout}')
 
 
-@task(pre=[run_federalist_script, setup_ruby])
-def build_jekyll(ctx, branch, owner, repository, site_prefix, config='', base_url=''):
+def _build_jekyll(ctx, branch, owner, repository, site_prefix, config='', base_url=''):
     '''
     Builds the cloned site with Jekyll
     '''
@@ -183,6 +186,9 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix, config='', base_ur
             env=build_env(branch, owner, repository, site_prefix, base_url)
         )
 
+# 'Exported' build_jekyll task
+build_jekyll = task(pre=[setup_ruby], name='build-jekyll')(_build_jekyll)
+
 @task
 def download_hugo(ctx, version='0.23'):
     '''
@@ -201,13 +207,13 @@ def download_hugo(ctx, version='0.23'):
     ctx.run(f'chmod +x {HUGO_BIN_PATH}')
 
 
-@task(pre=[run_federalist_script])
+@task
 def build_hugo(ctx, branch, owner, repository, site_prefix, base_url='', hugo_version='0.23'):
     '''
     Builds the cloned site with Hugo
     '''
     # Note that no pre- or post-tasks will be called when calling
-    # download_hugo this way
+    # the download_hugo task this way
     download_hugo(ctx, hugo_version)
 
     hugo_vers_res = ctx.run(f'{HUGO_BIN_PATH} version')
@@ -229,12 +235,7 @@ def build_hugo(ctx, branch, owner, repository, site_prefix, base_url='', hugo_ve
             env=build_env(branch, owner, repository, site_prefix, base_url)
         )
 
-@task(pre=[
-    run_federalist_script,
-    # Remove cloned repo's .git directory
-    call(clean, which=path.join(CLONE_DIR_PATH, '.git')),
-])
-def build_static(ctx):
+def _build_static(ctx):
     '''Moves all files from CLONE_DIR into SITE_BUILD_DIR'''
     LOGGER.info(f'Moving files to {SITE_BUILD_DIR}')
     os.makedirs(SITE_BUILD_DIR_PATH)
@@ -245,3 +246,10 @@ def build_static(ctx):
         if file is not SITE_BUILD_DIR:
             shutil.move(path.join(CLONE_DIR_PATH, file),
                         SITE_BUILD_DIR_PATH)
+
+# 'Exported' build-static task
+build_static = task(
+    pre=[
+        # Remove cloned repo's .git directory
+        call(clean, which=path.join(CLONE_DIR_PATH, '.git')),
+    ], name='build-static')(_build_static)
