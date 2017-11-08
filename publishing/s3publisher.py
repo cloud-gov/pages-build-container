@@ -9,11 +9,10 @@ from datetime import datetime
 
 import boto3
 
-from log_utils import logging
-
+from log_utils import get_logger
 from .SiteObject import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
-LOGGER = logging.getLogger('S3_PUBLISHER')
+LOGGER = get_logger('S3_PUBLISHER')
 
 
 

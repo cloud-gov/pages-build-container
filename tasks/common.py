@@ -8,7 +8,7 @@ import shutil
 from invoke import task
 from dotenv import load_dotenv as _load_dotenv
 
-from log_utils import logging
+from log_utils import get_logger
 
 REPO_BASE_URL = 'github.com'
 WORKING_DIR = os.path.join(os.curdir, 'tmp')
@@ -25,7 +25,7 @@ DOTENV_PATH = os.path.join(BASE_DIR, '.env')
 # will break hugo builds. See `build_hugo` task.
 SITE_BUILD_DIR_PATH = os.path.join(CLONE_DIR_PATH, SITE_BUILD_DIR)
 
-LOGGER = logging.getLogger('COMMON')
+LOGGER = get_logger('COMMON')
 
 def load_dotenv():
     if os.path.exists(DOTENV_PATH):

@@ -3,6 +3,7 @@ Build tasks and helpers
 '''
 
 import os
+
 from os import path
 
 import json
@@ -14,14 +15,13 @@ from pathlib import Path
 import requests
 from invoke import task, call
 
-from log_utils import logging
-
+from log_utils import get_logger
 from .common import (CLONE_DIR_PATH, SITE_BUILD_DIR,
                      WORKING_DIR, SITE_BUILD_DIR_PATH,
                      clean)
 
 
-LOGGER = logging.getLogger('BUILD')
+LOGGER = get_logger('BUILD')
 
 NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')

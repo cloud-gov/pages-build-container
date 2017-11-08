@@ -7,12 +7,11 @@ from invoke import task
 
 from publishing.s3publisher import publish_to_s3
 
-from log_utils import logging
-
+from log_utils import get_logger
 from .common import SITE_BUILD_DIR_PATH
 
 
-LOGGER = logging.getLogger('PUBLISH')
+LOGGER = get_logger('PUBLISH')
 
 
 @task

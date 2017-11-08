@@ -1,22 +1,20 @@
 '''Main task entrypoint'''
 
 import os
-import io
 
 from datetime import datetime
 
-from invoke import task
+from invoke import task, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
 
-from .common import load_dotenv
-from log_utils import logging
+from log_utils import get_logger
 from log_utils.remote_logs import (
     post_output_log, post_build_complete,
     post_build_error, post_build_timeout)
+from .common import load_dotenv
 
-# TODO: somehow also send the logger outputs to the log callback
+LOGGER = get_logger('MAIN')
 
-LOGGER = logging.getLogger('MAIN')
 TIMEOUT_SECONDS = 20 * 60  # 20 minutes
 
 
@@ -24,8 +22,7 @@ def replace_private_values(text, private_values,
                            replace_string='[PRIVATE VALUE HIDDEN]'):
     '''
     Replaces instances of the strings in `private_values` list
-    with `replace_string`
-
+    with `replace_string`.
 
     >>> replace_private_values('18F boop Rulez boop', ['boop'])
     '18F [PRIVATE VALUE HIDDEN] Rulez [PRIVATE VALUE HIDDEN]'
@@ -40,10 +37,14 @@ def replace_private_values(text, private_values,
     return text
 
 
-def run_task(ctx, task_name, log_callback_url, flags_dict=None, env=None):
+def run_task(ctx, task_name, private_values, log_callback,
+             flags_dict=None, env=None):
     '''
     Uses `ctx.run` to call the specified `task_name` with the
     argument flags given in `flags_dict` and `env`, if specified.
+
+    The result's stdout is posted to log_callback, with `private_values`
+    removed.
     '''
     flag_args = []
     if flags_dict:
@@ -58,9 +59,9 @@ def run_task(ctx, task_name, log_callback_url, flags_dict=None, env=None):
 
     result = ctx.run(command, **run_kwargs)
 
-    post_output_log(log_callback_url=log_callback_url,
-                    source=task_name,
-                    output=result.stdout)
+    output = replace_private_values(result.stdout, private_values)
+
+    post_output_log(log_callback, source=task_name, output=output)
 
     return result
 
@@ -105,6 +106,9 @@ def main(ctx):
     AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
     GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
 
+    # List of private strings to be removed from any posted logs
+    private_values = [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, GITHUB_TOKEN]
+
     # Optional environment variables
     SOURCE_REPO = os.getenv('SOURCE_REPO')
     SOURCE_OWNER = os.getenv('SOURCE_OWNER')
@@ -144,7 +148,9 @@ def main(ctx):
                     '--branch': BRANCH,
                 }
 
-                run_task(ctx, 'clone-repo', LOG_CALLBACK,
+                run_task(ctx, 'clone-repo',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
                          flags_dict=clone_source_flags,
                          env={'GITHUB_TOKEN': GITHUB_TOKEN})
 
@@ -157,7 +163,9 @@ def main(ctx):
                     '--branch': BRANCH,
                 }
 
-                run_task(ctx, 'push-repo-remote', LOG_CALLBACK,
+                run_task(ctx, 'push-repo-remote',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
                          flags_dict=push_repo_flags,
                          env={'GITHUB_TOKEN': GITHUB_TOKEN})
             else:
@@ -168,7 +176,9 @@ def main(ctx):
                     '--branch': BRANCH,
                 }
 
-                run_task(ctx, 'clone-repo', LOG_CALLBACK,
+                run_task(ctx, 'clone-repo',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
                          flags_dict=clone_flags,
                          env={'GITHUB_TOKEN': GITHUB_TOKEN})
 
@@ -184,18 +194,29 @@ def main(ctx):
             }
 
             # Run the npm `federalist` task (if it is defined)
-            run_task(ctx, 'run-federalist-script', LOG_CALLBACK, build_flags)
+            run_task(ctx, 'run-federalist-script',
+                     log_callback=LOG_CALLBACK,
+                     private_values=private_values,
+                     flags_dict=build_flags)
 
             # Run the appropriate build engine based on GENERATOR
             if GENERATOR == 'jekyll':
                 build_flags['--config'] = CONFIG
-                run_task(ctx, 'build-jekyll', LOG_CALLBACK, build_flags)
+                run_task(ctx, 'build-jekyll',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
+                         flags_dict=build_flags)
             elif GENERATOR == 'hugo':
                 # extra: --hugo-version (not yet used)
-                run_task(ctx, 'build-hugo', LOG_CALLBACK, build_flags)
+                run_task(ctx, 'build-hugo',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
+                         flags_dict=build_flags)
             elif GENERATOR == 'static':
                 # no build arguments are needed
-                run_task(ctx, 'build-static', LOG_CALLBACK)
+                run_task(ctx, 'build-static',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values)
             else:
                 raise ValueError(f'Invalid GENERATOR: {GENERATOR}')
 
@@ -215,7 +236,9 @@ def main(ctx):
                 'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
             }
 
-            run_task(ctx, 'publish', LOG_CALLBACK,
+            run_task(ctx, 'publish',
+                     log_callback=LOG_CALLBACK,
+                     private_values=private_values,
                      flags_dict=publish_flags,
                      env=publish_env)
 
@@ -234,7 +257,7 @@ def main(ctx):
         post_build_timeout(LOG_CALLBACK,
                            STATUS_CALLBACK,
                            FEDERALIST_BUILDER_CALLBACK)
-    except Exception as err:  # pylint: disable=W0703
+    except UnexpectedExit as err:  # pylint: disable=W0703
 
         # TODO: Need to make sure tokens, aws keys, etc
         # are not exposed here
@@ -255,14 +278,13 @@ def main(ctx):
         #   not sure how to handle it.
         # https://github.com/pyinvoke/invoke/blob/8d65acf06b6d9fe48e7e48d1ccca325a232bc667/invoke/exceptions.py#L69
 
-        LOGGER.info(f'Exception raised during build')
-
         err_string = replace_private_values(
-            str(err),
+            err.result.stderr,
             [GITHUB_TOKEN, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]
         )
 
-        LOGGER.debug(f'Posting build error:\n {err_string}')
+        LOGGER.info(f'Exception raised during build:')
+        LOGGER.info(err_string)
 
         post_build_error(LOG_CALLBACK,
                          STATUS_CALLBACK,

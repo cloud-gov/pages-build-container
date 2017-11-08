@@ -5,13 +5,12 @@ import os
 
 from invoke import task, call
 
-from log_utils import logging
-
+from log_utils import get_logger
 from .common import (REPO_BASE_URL, CLONE_DIR_PATH,
                      SITE_BUILD_DIR_PATH, clean)
 
 
-LOGGER = logging.getLogger('CLONE')
+LOGGER = get_logger('CLONE')
 
 
 def clone_url(owner, repository, access_token):

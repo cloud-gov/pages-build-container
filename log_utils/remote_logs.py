@@ -52,6 +52,10 @@ def post_status(status_callback_url, status, output):
 
 
 def post_build_complete(status_callback_url, builder_callback_url):
+    '''
+    POSTs a STATUS_CODE_COMPLETE status to the status_callback_url
+    and issues a DELETE to the builder_callback_url.
+    '''
     post_status(
         status_callback_url,
         status=STATUS_CODE_COMPLETE,
@@ -64,6 +68,9 @@ def post_build_complete(status_callback_url, builder_callback_url):
 
 def post_build_error(log_callback_url, status_callback_url,
                      builder_callback_url, error_output):
+    '''
+    Sends build error notifications and output to the given callbacks.
+    '''
     output = error_output
 
     post_output_log(
@@ -83,6 +90,9 @@ def post_build_error(log_callback_url, status_callback_url,
 
 def post_build_timeout(log_callback_url, status_callback_url,
                        builder_callback_url):
+    '''
+    Sends timeout error notifications to the given callbacks.
+    '''
     output = 'The build did not complete. It may have timed out.'
 
     post_output_log(
