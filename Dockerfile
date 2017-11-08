@@ -44,4 +44,4 @@ ADD . ./
 ARG is_testing
 RUN if [ "$is_testing" ]; then pip install -r requirements-dev.txt; fi;
 
-CMD inv main
+CMD ["bash", "./run.sh"]
