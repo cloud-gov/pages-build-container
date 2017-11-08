@@ -8,7 +8,7 @@
 - TODO: pytest
 - TODO: send logs after each step
 - TODO: capture errors and post logs:
-  https://gist.github.com/66Ton99/b13c2867adef506554a4
+  http://alanwsmith.com/capturing-python-log-output-in-a-variable
 - TODO: use mypy?
 - TODO: gemnasium, circle, etc.
 - TODO: dockerize for both dev and deploy
@@ -49,6 +49,12 @@ create a new `.env` file based on the `.env.sample`:
 cp .env.sample .env
 ```
 
+For the AWS S3 values needed, you might find it helpful to
+spin up an S3 service in your cloud.gov sandbox space.
+
+For the `GITHUB_TOKEN`, create a new OAuth token for your GitHub account
+and use that.
+
 Then fill out the values in it. Be careful not to commit this file because
 it might have sensitive information in it. It is ignored by the `.gitignore` file.
 
@@ -57,7 +63,7 @@ docker-compose build
 docker-compose run app
 ```
 
-Run `docker-compose run app bash` to start up bash in a transient `app` container.
+Run `docker-compose run app bash` to start up `bash` in a transient `app` container. Then you can run `inv main` (or any other `inv <TASK>`) directly from that terminal.
 
 For testing:
 
