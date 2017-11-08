@@ -6,28 +6,44 @@ import io
 from datetime import datetime
 
 from invoke import task
-from dotenv import load_dotenv
 from stopit import TimeoutException, SignalTimeout as Timeout
 
+from .common import load_dotenv
 from log_utils import logging
 from log_utils.remote_logs import (
     post_output_log, post_build_complete,
     post_build_error, post_build_timeout)
 
-
 # TODO: somehow also send the logger outputs to the log callback
 
 LOGGER = logging.getLogger('MAIN')
-
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-DOTENV_PATH = os.path.join(BASE_DIR, '.env')
 TIMEOUT_SECONDS = 20 * 60  # 20 minutes
 
 
-def run_task(ctx, task_name, log_callback_url, flags_dict=None):
+def replace_private_values(text, private_values,
+                           replace_string='[PRIVATE VALUE HIDDEN]'):
+    '''
+    Replaces instances of the strings in `private_values` list
+    with `replace_string`
+
+
+    >>> replace_private_values('18F boop Rulez boop', ['boop'])
+    '18F [PRIVATE VALUE HIDDEN] Rulez [PRIVATE VALUE HIDDEN]'
+
+    >>> replace_private_values('18F boop Rulez beep',
+    ...                        ['boop', 'beep'], 'STUFF')
+    '18F STUFF Rulez STUFF'
+    '''
+    for priv_val in private_values:
+        text = text.replace(priv_val, replace_string)
+
+    return text
+
+
+def run_task(ctx, task_name, log_callback_url, flags_dict=None, env=None):
     '''
     Uses `ctx.run` to call the specified `task_name` with the
-    argument flags given in `flags_dict`, if specified.
+    argument flags given in `flags_dict` and `env`, if specified.
     '''
     flag_args = []
     if flags_dict:
@@ -35,7 +51,12 @@ def run_task(ctx, task_name, log_callback_url, flags_dict=None):
             flag_args.append(f"{flag}='{val}'")
 
     command = f'inv {task_name} {" ".join(flag_args)}'
-    result = ctx.run(command, echo=False)
+
+    run_kwargs = {}
+    if env:
+        run_kwargs['env'] = env
+
+    result = ctx.run(command, **run_kwargs)
 
     post_output_log(log_callback_url=log_callback_url,
                     source=task_name,
@@ -60,18 +81,16 @@ def main(ctx):
 
     LOGGER.info('Running full build process')
 
-    if os.path.exists(DOTENV_PATH):
-        LOGGER.info('Loading environment from .env file')
-        load_dotenv(DOTENV_PATH)
+    # Load from .env for development
+    load_dotenv()
 
     # These environment variables will be set into the environment
     # by federalist-builder.
 
     # During development, we can use a `.env` file (loaded above)
     # to make it easier to specify variables.
-    AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+
     AWS_DEFAULT_REGION = os.environ['AWS_DEFAULT_REGION']
-    AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
     BUCKET = os.environ['BUCKET']
     BASEURL = os.environ['BASEURL']
     CACHE_CONTROL = os.environ['CACHE_CONTROL']
@@ -80,8 +99,11 @@ def main(ctx):
     REPOSITORY = os.environ['REPOSITORY']
     OWNER = os.environ['OWNER']
     SITE_PREFIX = os.environ['SITE_PREFIX']
-    GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
     GENERATOR = os.environ['GENERATOR']
+
+    AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+    AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+    GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
 
     # Optional environment variables
     SOURCE_REPO = os.getenv('SOURCE_REPO')
@@ -119,10 +141,12 @@ def main(ctx):
                 clone_source_flags = {
                     '--owner': SOURCE_OWNER,
                     '--repository': SOURCE_REPO,
-                    '--github-token': GITHUB_TOKEN,
                     '--branch': BRANCH,
                 }
-                run_task(ctx, 'clone-repo', LOG_CALLBACK, clone_source_flags)
+
+                run_task(ctx, 'clone-repo', LOG_CALLBACK,
+                         flags_dict=clone_source_flags,
+                         env={'GITHUB_TOKEN': GITHUB_TOKEN})
 
                 # Then push the cloned source repo up to the destination repo.
                 # Note that the destination repo must already exist but be empty.
@@ -130,20 +154,23 @@ def main(ctx):
                 push_repo_flags = {
                     '--owner': OWNER,
                     '--repository': REPOSITORY,
-                    '--github-token': GITHUB_TOKEN,
                     '--branch': BRANCH,
                 }
-                run_task(ctx, 'push-repo-remote',
-                         LOG_CALLBACK, push_repo_flags)
+
+                run_task(ctx, 'push-repo-remote', LOG_CALLBACK,
+                         flags_dict=push_repo_flags,
+                         env={'GITHUB_TOKEN': GITHUB_TOKEN})
             else:
                 # Just clone the given repository
                 clone_flags = {
                     '--owner': OWNER,
                     '--repository': REPOSITORY,
-                    '--github-token': GITHUB_TOKEN,
                     '--branch': BRANCH,
                 }
-                run_task(ctx, 'clone-repo', LOG_CALLBACK, clone_flags)
+
+                run_task(ctx, 'clone-repo', LOG_CALLBACK,
+                         flags_dict=clone_flags,
+                         env={'GITHUB_TOKEN': GITHUB_TOKEN})
 
             ##
             # BUILD
@@ -181,10 +208,16 @@ def main(ctx):
                 '--bucket': BUCKET,
                 '--cache-control': CACHE_CONTROL,
                 '--aws-region': AWS_DEFAULT_REGION,
-                '--access-key-id': AWS_ACCESS_KEY_ID,
-                '--secret-access-key': AWS_SECRET_ACCESS_KEY,
             }
-            run_task(ctx, 'publish', LOG_CALLBACK, publish_flags)
+
+            publish_env = {
+                'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
+                'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
+            }
+
+            run_task(ctx, 'publish', LOG_CALLBACK,
+                     flags_dict=publish_flags,
+                     env=publish_env)
 
             delta = datetime.now() - start_time
             delta_mins = int(delta.total_seconds() // 60)
@@ -210,15 +243,29 @@ def main(ctx):
         # how we pass those keys to the sub-steps. Like
         # maybe they should use env vars if present?
 
-        # TODO: also seeing this:
+        # TODO: also seeing this, which is not helpful:
+        #
         # Stderr: already printed
         #
         # Cloning into './tmp/site_repo'...
         # Exit code: 128
         # Stdout: already printed
+        #
+        # ^ all of that comes from pyinvoke itself
+        #   not sure how to handle it.
+        # https://github.com/pyinvoke/invoke/blob/8d65acf06b6d9fe48e7e48d1ccca325a232bc667/invoke/exceptions.py#L69
 
         LOGGER.info(f'Exception raised during build')
+
+        err_string = replace_private_values(
+            str(err),
+            [GITHUB_TOKEN, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]
+        )
+
+        LOGGER.debug(f'Posting build error:\n {err_string}')
+
         post_build_error(LOG_CALLBACK,
                          STATUS_CALLBACK,
                          FEDERALIST_BUILDER_CALLBACK,
-                         str(err))
+                         err_string)
+

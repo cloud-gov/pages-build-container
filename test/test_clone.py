@@ -1,3 +1,5 @@
+import os
+
 from invoke import MockContext, Result
 
 from tasks import clean, clone_repo
@@ -6,9 +8,9 @@ from tasks import clean, clone_repo
 
 # TODO
 def test_clone():
+    os.environ['GITHUB_TOKEN'] = 'fake_token'
     c = MockContext(run=Result("TODO\n"))
-    clone_repo(c, owner='owner', repository='repo', branch='master',
-               github_token='token')
+    clone_repo(c, owner='owner', repository='repo', branch='master')
 
 # TODO
 def test_clean():

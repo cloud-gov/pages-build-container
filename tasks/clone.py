@@ -1,6 +1,8 @@
 '''
 Clone tasks and helpers
 '''
+import os
+
 from invoke import task, call
 
 from log_utils import logging
@@ -17,10 +19,16 @@ def clone_url(owner, repository, access_token):
     return f'https://{access_token}@{REPO_BASE_URL}/{owner}/{repository}.git'
 
 
-def _clone_repo(ctx, owner, repository, github_token, branch):
-    '''Clones the GitHub repository specified by owner and repository into CLONE_DIR_PATH'''
+def _clone_repo(ctx, owner, repository, branch):
+    '''
+    Clones the GitHub repository specified by owner and repository into CLONE_DIR_PATH.
+
+    Expects GITHUB_TOKEN to be in the environment.
+    '''
+
     LOGGER.info(f'Cloning {owner}/{repository}/{branch} to {CLONE_DIR_PATH}')
 
+    github_token = os.environ['GITHUB_TOKEN']
 
     ctx.run(
         f'git clone -b {branch} --single-branch '
@@ -44,9 +52,16 @@ clone_repo = task(
 
 
 @task
-def push_repo_remote(ctx, owner, repository, github_token, branch, remote_name='destination'):
-    '''Pushes the git repo in CLONE_DIR_PATH to a new remote destination'''
+def push_repo_remote(ctx, owner, repository, branch, remote_name='destination'):
+    '''
+    Pushes the git repo in CLONE_DIR_PATH to a new remote destination.
+
+    Expects GITHUB_TOKEN to be in the environment.
+    '''
     LOGGER.info(f'Pushing cloned repository to {owner}/{repository}/{branch}')
+
+    github_token = os.environ['GITHUB_TOKEN']
+
     with ctx.cd(CLONE_DIR_PATH):
         ctx.run(f'git remote add {remote_name} {clone_url(owner, repository, github_token)}')
         ctx.run(f'git push {remote_name} {branch}')
