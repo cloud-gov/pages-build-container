@@ -1,7 +1,7 @@
 '''Main task entrypoint'''
 
 import os
-import logging
+import io
 
 from datetime import datetime
 
@@ -9,13 +9,13 @@ from invoke import task
 from dotenv import load_dotenv
 from stopit import TimeoutException, SignalTimeout as Timeout
 
-from log_utils.config import configure_logging
+from log_utils import logging
 from log_utils.remote_logs import (
     post_output_log, post_build_complete,
     post_build_error, post_build_timeout)
 
 
-# TODO: post_output_log after each main build step
+# TODO: somehow also send the logger outputs to the log callback
 
 LOGGER = logging.getLogger('MAIN')
 
@@ -24,7 +24,7 @@ DOTENV_PATH = os.path.join(BASE_DIR, '.env')
 TIMEOUT_SECONDS = 20 * 60  # 20 minutes
 
 
-def run_task(ctx, task_name, flags_dict=None):
+def run_task(ctx, task_name, log_callback_url, flags_dict=None):
     '''
     Uses `ctx.run` to call the specified `task_name` with the
     argument flags given in `flags_dict`, if specified.
@@ -35,7 +35,12 @@ def run_task(ctx, task_name, flags_dict=None):
             flag_args.append(f"{flag}='{val}'")
 
     command = f'inv {task_name} {" ".join(flag_args)}'
-    result = ctx.run(command)
+    result = ctx.run(command, echo=False)
+
+    post_output_log(log_callback_url=log_callback_url,
+                    source=task_name,
+                    output=result.stdout)
+
     return result
 
 
@@ -52,9 +57,6 @@ def main(ctx):
 
     # keep track of total time
     start_time = datetime.now()
-
-    # configure logging
-    configure_logging()
 
     LOGGER.info('Running full build process')
 
@@ -120,7 +122,7 @@ def main(ctx):
                     '--github-token': GITHUB_TOKEN,
                     '--branch': BRANCH,
                 }
-                run_task(ctx, 'clone-repo', clone_source_flags)
+                run_task(ctx, 'clone-repo', LOG_CALLBACK, clone_source_flags)
 
                 # Then push the cloned source repo up to the destination repo.
                 # Note that the destination repo must already exist but be empty.
@@ -131,7 +133,8 @@ def main(ctx):
                     '--github-token': GITHUB_TOKEN,
                     '--branch': BRANCH,
                 }
-                run_task(ctx, 'push-repo-remote', push_repo_flags)
+                run_task(ctx, 'push-repo-remote',
+                         LOG_CALLBACK, push_repo_flags)
             else:
                 # Just clone the given repository
                 clone_flags = {
@@ -140,7 +143,7 @@ def main(ctx):
                     '--github-token': GITHUB_TOKEN,
                     '--branch': BRANCH,
                 }
-                run_task(ctx, 'clone-repo', clone_flags)
+                run_task(ctx, 'clone-repo', LOG_CALLBACK, clone_flags)
 
             ##
             # BUILD
@@ -154,18 +157,18 @@ def main(ctx):
             }
 
             # Run the npm `federalist` task (if it is defined)
-            run_task(ctx, 'run-federalist-script', build_flags)
+            run_task(ctx, 'run-federalist-script', LOG_CALLBACK, build_flags)
 
             # Run the appropriate build engine based on GENERATOR
             if GENERATOR == 'jekyll':
                 build_flags['--config'] = CONFIG
-                run_task(ctx, 'build-jekyll', build_flags)
+                run_task(ctx, 'build-jekyll', LOG_CALLBACK, build_flags)
             elif GENERATOR == 'hugo':
                 # extra: --hugo-version (not yet used)
-                run_task(ctx, 'build-hugo', build_flags)
+                run_task(ctx, 'build-hugo', LOG_CALLBACK, build_flags)
             elif GENERATOR == 'static':
                 # no build arguments are needed
-                run_task(ctx, 'build-static')
+                run_task(ctx, 'build-static', LOG_CALLBACK)
             else:
                 raise ValueError(f'Invalid GENERATOR: {GENERATOR}')
 
@@ -181,7 +184,7 @@ def main(ctx):
                 '--access-key-id': AWS_ACCESS_KEY_ID,
                 '--secret-access-key': AWS_SECRET_ACCESS_KEY,
             }
-            run_task(ctx, 'publish', publish_flags)
+            run_task(ctx, 'publish', LOG_CALLBACK, publish_flags)
 
             delta = datetime.now() - start_time
             delta_mins = int(delta.total_seconds() // 60)
@@ -194,12 +197,27 @@ def main(ctx):
                                 FEDERALIST_BUILDER_CALLBACK)
 
     except TimeoutException:
-        LOGGER.exception('Build has timed out')
+        LOGGER.info('Build has timed out')
         post_build_timeout(LOG_CALLBACK,
                            STATUS_CALLBACK,
                            FEDERALIST_BUILDER_CALLBACK)
     except Exception as err:  # pylint: disable=W0703
-        LOGGER.exception(f'Exception raised during build: {err}')
+
+        # TODO: Need to make sure tokens, aws keys, etc
+        # are not exposed here
+
+        # TODO: might want a different approach with
+        # how we pass those keys to the sub-steps. Like
+        # maybe they should use env vars if present?
+
+        # TODO: also seeing this:
+        # Stderr: already printed
+        #
+        # Cloning into './tmp/site_repo'...
+        # Exit code: 128
+        # Stdout: already printed
+
+        LOGGER.info(f'Exception raised during build')
         post_build_error(LOG_CALLBACK,
                          STATUS_CALLBACK,
                          FEDERALIST_BUILDER_CALLBACK,

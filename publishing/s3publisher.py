@@ -3,12 +3,13 @@ Classes and methods for publishing a directory to S3
 '''
 
 import glob
-import logging
 
 from os import path
 from datetime import datetime
 
 import boto3
+
+from log_utils import logging
 
 from .SiteObject import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 

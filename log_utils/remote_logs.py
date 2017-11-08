@@ -1,6 +1,5 @@
 '''Functions for sending remote logs'''
 
-import json
 import base64
 import requests
 
@@ -32,10 +31,10 @@ def post_output_log(log_callback_url, source, output, limit=500000,
 
     requests.post(
         log_callback_url,
-        data=json.dumps({
+        json={
             'source': source,
             'output': b64string(output),
-        })
+        }
     )
 
 
@@ -45,10 +44,10 @@ def post_status(status_callback_url, status, output):
     '''
     requests.post(
         status_callback_url,
-        data=json.dumps({
+        json={
             'status': status,
             'message': b64string(output),
-        })
+        }
     )
 
 

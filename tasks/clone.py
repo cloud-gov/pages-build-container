@@ -1,9 +1,9 @@
 '''
 Clone tasks and helpers
 '''
-import logging
-
 from invoke import task, call
+
+from log_utils import logging
 
 from .common import (REPO_BASE_URL, CLONE_DIR_PATH,
                      SITE_BUILD_DIR_PATH, clean)
@@ -20,6 +20,8 @@ def clone_url(owner, repository, access_token):
 def _clone_repo(ctx, owner, repository, github_token, branch):
     '''Clones the GitHub repository specified by owner and repository into CLONE_DIR_PATH'''
     LOGGER.info(f'Cloning {owner}/{repository}/{branch} to {CLONE_DIR_PATH}')
+
+
     ctx.run(
         f'git clone -b {branch} --single-branch '
         f'{clone_url(owner, repository, github_token)} '

@@ -7,13 +7,14 @@ from os import path
 
 import json
 import shutil
-import logging
 
 from contextlib import ExitStack
 from pathlib import Path
 
 import requests
 from invoke import task, call
+
+from log_utils import logging
 
 from .common import (CLONE_DIR_PATH, SITE_BUILD_DIR,
                      WORKING_DIR, SITE_BUILD_DIR_PATH,
