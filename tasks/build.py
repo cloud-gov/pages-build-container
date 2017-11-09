@@ -172,10 +172,8 @@ def _build_jekyll(ctx, branch, owner, repository, site_prefix, config='', base_u
         jekyll_vers_res = ctx.run(f'{jekyll_cmd} -v')
         LOGGER.info(f'Building using Jekyll version: {jekyll_vers_res.stdout}')
 
-        destination = path.join(path.curdir, SITE_BUILD_DIR)
-
         ctx.run(
-            f'{jekyll_cmd} build --destination {destination}',
+            f'{jekyll_cmd} build --destination {SITE_BUILD_DIR_PATH}',
             env=build_env(branch, owner, repository, site_prefix, base_url)
         )
 
@@ -214,12 +212,7 @@ def build_hugo(ctx, branch, owner, repository, site_prefix, base_url='', hugo_ve
     LOGGER.info('Building site with hugo')
 
     with node_context(ctx):  # in case some hugo plugin needs node
-        # Strangely, hugo's `destination` arg is relative to the `source` path
-        # so that's why we use SITE_BUILD_DIR instead of SITE_BUILD_DIR_PATH
-        # as the `destination`.
-        # So, the following command will not work as intended if SITE_BUILD_DIR
-        # is ever moved outside of the CLONE_DIR_PATH.
-        hugo_args = f'--source {CLONE_DIR_PATH} --destination {SITE_BUILD_DIR}'
+        hugo_args = f'--source {CLONE_DIR_PATH} --destination {SITE_BUILD_DIR_PATH}'
         if base_url:
             hugo_args += f' --baseUrl {base_url}'
 

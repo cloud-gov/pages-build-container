@@ -18,6 +18,7 @@ def remove_prefix(text, prefix):
         return text[len(prefix):]
     return text
 
+
 class SiteObject():
     '''
     An abstract class for an individual object that can be uploaded to S3

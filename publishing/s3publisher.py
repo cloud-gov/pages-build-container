@@ -10,6 +10,7 @@ from datetime import datetime
 import boto3
 
 from log_utils import get_logger
+from tasks.common import delta_to_mins_secs
 from .SiteObject import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
 LOGGER = get_logger('S3_PUBLISHER')
@@ -27,10 +28,17 @@ def list_remote_objects(bucket, site_prefix, s3_client):
     remote_objects = []
 
     while results_truncated:
+        prefix = site_prefix
+        # Add a / to the end of the prefix to prevent
+        # retrieving keys for sites with site_prefixes
+        # that are substrings of others
+        if prefix[-1] != '/':
+            prefix += '/'
+
         request_kwargs = {
             'Bucket': bucket,
             'MaxKeys': 1000,
-            'Prefix': site_prefix,
+            'Prefix': prefix,
         }
 
         if continuation_token:
@@ -155,7 +163,6 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         if dry_run:
             LOGGER.info(f'Dry-run uploading {file.s3_key}')
         else:
-            LOGGER.info(f'Uploading {file.s3_key}')
             start_time = datetime.now()
 
             file.upload_to_s3(bucket, s3_client)
@@ -170,7 +177,6 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             LOGGER.info(f'Dry run deleting {file.s3_key}')
         else:
             start_time = datetime.now()
-            LOGGER.info(f'Deleting {file.s3_key}')
 
             file.delete_from_s3(bucket, s3_client)
 
@@ -178,5 +184,5 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             LOGGER.info(
                 f'Deleted {file.s3_key} in {delta.total_seconds():.2f}s')
 
-    total_delta = datetime.now() - total_start_time
-    LOGGER.info(f'Total time to publish: {total_delta.total_seconds():.2f}s')
+    delta_string = delta_to_mins_secs(datetime.now() - total_start_time)
+    LOGGER.info(f'Total time to publish: {delta_string}')

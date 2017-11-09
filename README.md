@@ -6,14 +6,9 @@
 - http://docs.pyinvoke.org/en/latest/
 
 - TODO: pytest
-- TODO: send logs after each step
-- TODO: capture errors and post logs:
-  http://alanwsmith.com/capturing-python-log-output-in-a-variable
 - TODO: use mypy?
-- TODO: gemnasium, circle, etc.
-- TODO: dockerize for both dev and deploy
 - TODO: write README. can use lots of old one.
-    - update development section
+    - update development section in particular
 
 ## Environment Variables
 

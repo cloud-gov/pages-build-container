@@ -11,7 +11,7 @@ from log_utils import get_logger
 from log_utils.remote_logs import (
     post_output_log, post_build_complete,
     post_build_error, post_build_timeout)
-from .common import load_dotenv
+from .common import load_dotenv, delta_to_mins_secs
 
 LOGGER = get_logger('MAIN')
 
@@ -241,11 +241,9 @@ def main(ctx):
                      flags_dict=publish_flags,
                      env=publish_env)
 
-            delta = datetime.now() - start_time
-            delta_mins = int(delta.total_seconds() // 60)
-            delta_leftover_secs = int(delta.total_seconds() % 60)
+            delta_string = delta_to_mins_secs(datetime.now() - start_time)
             LOGGER.info(
-                f'Total build time: {delta_mins}m {delta_leftover_secs}s')
+                f'Total build time: {delta_string}')
 
             # Finished!
             post_build_complete(STATUS_CALLBACK,
@@ -256,31 +254,9 @@ def main(ctx):
         post_build_timeout(LOG_CALLBACK,
                            STATUS_CALLBACK,
                            FEDERALIST_BUILDER_CALLBACK)
-    except UnexpectedExit as err:  # pylint: disable=W0703
-
-        # TODO: Need to make sure tokens, aws keys, etc
-        # are not exposed here
-
-        # TODO: might want a different approach with
-        # how we pass those keys to the sub-steps. Like
-        # maybe they should use env vars if present?
-
-        # TODO: also seeing this, which is not helpful:
-        #
-        # Stderr: already printed
-        #
-        # Cloning into './tmp/site_repo'...
-        # Exit code: 128
-        # Stdout: already printed
-        #
-        # ^ all of that comes from pyinvoke itself
-        #   not sure how to handle it.
-        # https://github.com/pyinvoke/invoke/blob/8d65acf06b6d9fe48e7e48d1ccca325a232bc667/invoke/exceptions.py#L69
-
-        err_string = replace_private_values(
-            err.result.stderr,
-            [GITHUB_TOKEN, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]
-        )
+    except UnexpectedExit as err:
+        err_string = replace_private_values(err.result.stderr,
+                                            private_values)
 
         LOGGER.info(f'Exception raised during build:')
         LOGGER.info(err_string)
@@ -289,4 +265,18 @@ def main(ctx):
                          STATUS_CALLBACK,
                          FEDERALIST_BUILDER_CALLBACK,
                          err_string)
+    except Exception as err:  # pylint: disable=W0703
+        err_string = str(err)
+        err_string = replace_private_values(err_string,
+                                            private_values)
+        LOGGER.info('Unexpected exception raised during build:')
+        LOGGER.info(err_string)
+
+        err_message = ('Unexpected error. Please try again and '
+                      'contact federalist-support if it persists.')
+
+        post_build_error(LOG_CALLBACK,
+                         STATUS_CALLBACK,
+                         FEDERALIST_BUILDER_CALLBACK,
+                         err_message)
 
