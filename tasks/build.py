@@ -61,23 +61,15 @@ def setup_node(ctx):
 
     with ctx.cd(CLONE_DIR_PATH):
         with ctx.prefix(f'source {NVM_SH_PATH}'):
+            npm_command = 'npm'
+
             if NVMRC_PATH.is_file():
                 LOGGER.info('Using node version specified in .nvmrc')
                 ctx.run('nvm install')
-
-            node_ver_res = ctx.run('node --version')
-            LOGGER.info(f'Node version: {node_ver_res.stdout}')
-
-            npm_ver_res = ctx.run('npm --version')
-            LOGGER.info(f'NPM version: {npm_ver_res.stdout}')
+                npm_command = f'nvm use && {npm_command}'
 
             if PACKAGE_JSON_PATH.is_file():
                 LOGGER.info('Installing production dependencies in package.json')
-                npm_command = 'npm'
-
-                if NVMRC_PATH.is_file():
-                    # prefix with `nvm use` if the .nvmrc file is present
-                    npm_command = f'nvm use && {npm_command}'
 
                 ctx.run(f'{npm_command} install --production')
 
@@ -112,6 +104,7 @@ def build_env(branch, owner, repository, site_prefix, base_url):
         'REPOSITORY': repository,
         'SITE_PREFIX': site_prefix,
         'BASEURL': base_url,
+        # TODO: i think it needs to be 'en_US.UTF-8'
         # necessary to make sure build engines use utf-8 encoding
         'LANG': 'C.UTF-8',
     }
