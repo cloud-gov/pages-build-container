@@ -20,7 +20,7 @@ The following environment variables may be accessed during a site's build. They 
 1. `OWNER`: the GitHub account that owns the repository.
 1. `REPOSITORY`: the repository name.
 1. `BRANCH`: the branch being built.
-1. `SITE_PREFIX`: the S3 bucket "path" that the site files will be published to.
+1. `SITE_PREFIX`: the S3 bucket "path" that the site files will be published to. It should **not** have a trailing or prefix slash.
   - for the live site: `site/<OWNER>/<REPOSITORY>`.
   - for the demo site: `demo/<OWNER>/<REPOSITORY>`.
   - for branch previews: `preview/<OWNER>/<REPOSITORY>/<BRANCH>`.
