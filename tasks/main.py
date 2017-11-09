@@ -80,8 +80,6 @@ def main(ctx):
     # keep track of total time
     start_time = datetime.now()
 
-    LOGGER.info('Running full build process')
-
     # Load from .env for development
     load_dotenv()
 
@@ -125,6 +123,7 @@ def main(ctx):
     try:
         # throw a timeout exception after TIMEOUT_SECONDS
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
+            LOGGER.info(f'Running build for {OWNER}/{REPOSITORY}/{BRANCH}')
 
             # Unfortunately, pyinvoke doesn't have a great way to call tasks from
             # within other tasks. If you call them directly, their pre- and post-
