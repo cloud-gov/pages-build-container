@@ -32,7 +32,7 @@ The following environment variables may be accessed during a site's build. They 
   - for a live site with a custom URL, this will be empty.
   - for anything else, it will be the same as `SITE_PREFIX` but
     with a `/` at the beginning. ex: `/site/<OWNER>/<REPOSITORY>`.
-1. `LANG`: `C.UTF-8` (necessary to avoid encoding issues in Ruby/Jekyll).
+1. `LANG`: `en_US.UTF-8` (necessary to avoid encoding issues).
 
 ### Private variables
 

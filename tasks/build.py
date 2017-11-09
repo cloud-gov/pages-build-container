@@ -104,9 +104,8 @@ def build_env(branch, owner, repository, site_prefix, base_url):
         'REPOSITORY': repository,
         'SITE_PREFIX': site_prefix,
         'BASEURL': base_url,
-        # TODO: i think it needs to be 'en_US.UTF-8'
         # necessary to make sure build engines use utf-8 encoding
-        'LANG': 'C.UTF-8',
+        'LANG': 'en_US.UTF-8',
     }
 
 def _run_federalist_script(ctx, branch, owner, repository, site_prefix, base_url=''):

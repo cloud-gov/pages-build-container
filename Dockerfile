@@ -6,6 +6,20 @@ RUN apt-get update \
       apt-utils build-essential git curl libssl-dev \
       libreadline-dev zlib1g-dev libffi-dev
 
+# Install and setup en_US.UTF-8 locale
+# This is necessary so that output from node/ruby/python
+# won't break or have weird indecipherable characters
+RUN apt-get update && \
+  apt-get install --reinstall -y locales && \
+  sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
+  locale-gen en_US.UTF-8
+
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US
+ENV LC_ALL en_US.UTF-8
+
+RUN dpkg-reconfigure --frontend noninteractive locales
+
 # Install nvm and install versions 4 and 6
 # TODO: Default to 6 LTS instead of 4
 # Ref: https://github.com/18F/federalist/issues/1209
@@ -34,9 +48,6 @@ WORKDIR /app
 
 ADD requirements.txt ./
 
-# TODO: For testing, we'll want to install requirements-dev.txt
-# So we might need separate Dockerfiles, or maybe it can be done within
-# the running testing container
 RUN pip install -r requirements.txt
 
 ADD . ./

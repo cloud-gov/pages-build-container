@@ -8,7 +8,8 @@ run:
     # of `env:` below.
     replace_env: true
     env:
-        # This needs to be set, otherwise sometimes
-        # printing strings from python will fail with a weird
-        # ascii codec encoding error.
+        # These need to be set, otherwise sometimes
+        # printing strings will fail with a weird
+        # ascii codec encoding error or will look weird.
         PYTHONIOENCODING: 'UTF-8'
+        LANG: 'en_US.UTF-8'
