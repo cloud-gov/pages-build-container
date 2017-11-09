@@ -7,22 +7,20 @@ import os
 import sys
 import logging
 
-from colorlog import ColoredFormatter
+# TODO: some npm characters are coming back as unreadable, 
+# some encoding issue for sure:
+#
+# OUT uswds@0.13.3 node_modules/uswds
+# OUT ��������� normalize.css@3.0.3
+# OUT ��������� classlist - polyfill@1.2.0
 
-LOG_FORMATTER = ColoredFormatter(
-    "%(log_color)s%(levelname)-8s%(reset)s %(blue)s[%(name)s]%(reset)s "
-    "%(asctime)s %(levelname)-8s %(message)s",
+# TODO: Might want to remove S3Publisher's log output
+# because it will list too many files
+
+
+LOG_FORMATTER = logging.Formatter(
+    "[%(name)s] %(asctime)s %(levelname)s: %(message)s",
     datefmt='%Y-%m-%d %H:%M:%S',
-    reset=True,
-    log_colors={
-        'DEBUG':    'cyan',
-        'INFO':     'green',
-        'WARNING':  'yellow',
-        'ERROR':    'red',
-        'CRITICAL': 'red,bg_white',
-    },
-    secondary_log_colors={},
-    style='%'
 )
 
 LOG_HANDLER = logging.StreamHandler(sys.stdout)
