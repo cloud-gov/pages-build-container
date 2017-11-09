@@ -7,6 +7,7 @@ import requests
 STATUS_CODE_COMPLETE = 0
 STATUS_CODE_ERROR = 1
 
+
 def b64string(text):
     '''
     Base64 encodes a string as utf-8

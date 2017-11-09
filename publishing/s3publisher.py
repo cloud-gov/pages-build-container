@@ -10,11 +10,9 @@ from datetime import datetime
 import boto3
 
 from log_utils import get_logger
-from tasks.common import delta_to_mins_secs
 from .SiteObject import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
 LOGGER = get_logger('S3_PUBLISHER')
-
 
 
 def list_remote_objects(bucket, site_prefix, s3_client):
@@ -74,9 +72,6 @@ def list_remote_objects(bucket, site_prefix, s3_client):
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
                   aws_region, access_key_id, secret_access_key, dry_run=False):
     '''Publishes the given directory to S3'''
-
-    total_start_time = datetime.now() # To report publish time
-
     # With glob, dotfiles are ignored by default
     # Note that the filenames will include the `directory` prefix
     # but we won't want that for the eventual S3 keys
@@ -168,8 +163,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             file.upload_to_s3(bucket, s3_client)
 
             delta = datetime.now() - start_time
-            LOGGER.info(f'Uploaded {file.s3_key} in {delta.total_seconds():.2f}s')
-
+            LOGGER.info(f'Uploaded {file.s3_key} in '
+                        f'{delta.total_seconds():.2f}s')
 
     # Delete files not needed any more
     for file in deletion_objects:
@@ -183,6 +178,3 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             delta = datetime.now() - start_time
             LOGGER.info(
                 f'Deleted {file.s3_key} in {delta.total_seconds():.2f}s')
-
-    delta_string = delta_to_mins_secs(datetime.now() - total_start_time)
-    LOGGER.info(f'Total time to publish: {delta_string}')

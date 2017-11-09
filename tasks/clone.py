@@ -20,7 +20,8 @@ def clone_url(owner, repository, access_token):
 
 def _clone_repo(ctx, owner, repository, branch):
     '''
-    Clones the GitHub repository specified by owner and repository into CLONE_DIR_PATH.
+    Clones the GitHub repository specified by owner and repository
+    into CLONE_DIR_PATH.
 
     Expects GITHUB_TOKEN to be in the environment.
     '''
@@ -34,6 +35,7 @@ def _clone_repo(ctx, owner, repository, branch):
         f'{clone_url(owner, repository, github_token)} '
         f'{CLONE_DIR_PATH}'
     )
+
 
 # 'Exported' clone-repo task
 clone_repo = task(
@@ -51,7 +53,8 @@ clone_repo = task(
 
 
 @task
-def push_repo_remote(ctx, owner, repository, branch, remote_name='destination'):
+def push_repo_remote(ctx, owner, repository, branch,
+                     remote_name='destination'):
     '''
     Pushes the git repo in CLONE_DIR_PATH to a new remote destination.
 
@@ -62,5 +65,6 @@ def push_repo_remote(ctx, owner, repository, branch, remote_name='destination'):
     github_token = os.environ['GITHUB_TOKEN']
 
     with ctx.cd(CLONE_DIR_PATH):
-        ctx.run(f'git remote add {remote_name} {clone_url(owner, repository, github_token)}')
+        ctx.run(f'git remote add {remote_name} '
+                f'{clone_url(owner, repository, github_token)}')
         ctx.run(f'git push {remote_name} {branch}')

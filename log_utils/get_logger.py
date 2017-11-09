@@ -16,6 +16,7 @@ LOG_FORMATTER = logging.Formatter(
 LOG_HANDLER = logging.StreamHandler(sys.stdout)
 LOG_HANDLER.setFormatter(LOG_FORMATTER)
 
+
 def get_logger(name):
     '''
     Gets a logger instance configured with our formatter and handler

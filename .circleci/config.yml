@@ -16,8 +16,7 @@ jobs:
           name: Docker bandit
           command: |
             docker run --rm -i -t federalist-garden-build-py:$CIRCLE_BRANCH bandit -r .
-      # TODO: once the code is cleaned up, enable this step
-      # - run:
-      #     name: Docker flake8
-      #     command: |
-      #       docker run --rm -i -t federalist-garden-build-py:$CIRCLE_BRANCH flake8
+      - run:
+          name: Docker flake8
+          command: |
+            docker run --rm -i -t federalist-garden-build-py:$CIRCLE_BRANCH flake8

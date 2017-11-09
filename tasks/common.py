@@ -5,7 +5,7 @@ Common variables, tasks, and functions
 import shutil
 
 from os import path
-from datetime import timedelta  # pylint: disable=W0611
+from datetime import timedelta  # noqa pylint: disable=W0611
 
 from invoke import task
 from dotenv import load_dotenv as _load_dotenv
@@ -26,6 +26,7 @@ DOTENV_PATH = path.join(BASE_DIR, '.env')
 SITE_BUILD_DIR_PATH = path.join(CLONE_DIR_PATH, SITE_BUILD_DIR)
 
 LOGGER = get_logger('COMMON')
+
 
 def load_dotenv():
     '''Loads environment from a .env file'''
@@ -53,6 +54,7 @@ def delta_to_mins_secs(delta):
         return f'{mins}m {secs}s'
     # else
     return f'{secs}s'
+
 
 @task
 def clean(ctx, which=None):

@@ -125,9 +125,9 @@ def main(ctx):
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
             LOGGER.info(f'Running build for {OWNER}/{REPOSITORY}/{BRANCH}')
 
-            # Unfortunately, pyinvoke doesn't have a great way to call tasks from
-            # within other tasks. If you call them directly, their pre- and post-
-            # dependencies are not executed.
+            # Unfortunately, pyinvoke doesn't have a great way to call tasks
+            # from within other tasks. If you call them directly,
+            # their pre- and post-dependencies are not executed.
             #
             # Here's the GitHub issue about this:
             # https://github.com/pyinvoke/invoke/issues/170
@@ -154,7 +154,7 @@ def main(ctx):
                          env={'GITHUB_TOKEN': GITHUB_TOKEN})
 
                 # Then push the cloned source repo up to the destination repo.
-                # Note that the destination repo must already exist but be empty.
+                # Note that the dest repo must already exist but be empty.
                 # The Federalist web app takes care of that operation.
                 push_repo_flags = {
                     '--owner': OWNER,
@@ -273,10 +273,9 @@ def main(ctx):
         LOGGER.info(err_string)
 
         err_message = ('Unexpected error. Please try again and '
-                      'contact federalist-support if it persists.')
+                       'contact federalist-support if it persists.')
 
         post_build_error(LOG_CALLBACK,
                          STATUS_CALLBACK,
                          FEDERALIST_BUILDER_CALLBACK,
                          err_message)
-

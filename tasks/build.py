@@ -69,9 +69,11 @@ def setup_node(ctx):
                 npm_command = f'nvm use && {npm_command}'
 
             if PACKAGE_JSON_PATH.is_file():
-                LOGGER.info('Installing production dependencies in package.json')
+                LOGGER.info('Installing production dependencies '
+                            'in package.json')
 
                 ctx.run(f'{npm_command} install --production')
+
 
 def node_context(ctx, *more_contexts):
     '''
@@ -96,6 +98,7 @@ def node_context(ctx, *more_contexts):
         stack.enter_context(context)
     return stack
 
+
 def build_env(branch, owner, repository, site_prefix, base_url):
     '''Creats a dict of environment variables to pass into a build context'''
     return {
@@ -108,19 +111,26 @@ def build_env(branch, owner, repository, site_prefix, base_url):
         'LANG': 'en_US.UTF-8',
     }
 
-def _run_federalist_script(ctx, branch, owner, repository, site_prefix, base_url=''):
+
+def _run_federalist_script(ctx, branch, owner, repository,
+                           site_prefix, base_url=''):
     '''
     Runs the npm "federalist" script if it is defined
     '''
     if PACKAGE_JSON_PATH.is_file() and has_federalist_script():
         with node_context(ctx, ctx.cd(CLONE_DIR_PATH)):
             LOGGER.info('Running federalist build script in package.json')
-            ctx.run('npm run federalist',
-                    env=build_env(branch, owner, repository, site_prefix, base_url))
+            ctx.run(
+                'npm run federalist',
+                env=build_env(branch, owner, repository,
+                              site_prefix, base_url)
+            )
+
 
 # 'Exported' run_federalist_script task
 run_federalist_script = task(
     pre=[setup_node], name='run-federalist-script')(_run_federalist_script)
+
 
 @task
 def setup_ruby(ctx):
@@ -141,7 +151,8 @@ def setup_ruby(ctx):
         LOGGER.info(f'Ruby version: {ruby_ver_res.stdout}')
 
 
-def _build_jekyll(ctx, branch, owner, repository, site_prefix, config='', base_url=''):
+def _build_jekyll(ctx, branch, owner, repository, site_prefix,
+                  config='', base_url=''):
     '''
     Builds the cloned site with Jekyll
     '''
@@ -177,8 +188,10 @@ def _build_jekyll(ctx, branch, owner, repository, site_prefix, config='', base_u
             env=build_env(branch, owner, repository, site_prefix, base_url)
         )
 
+
 # 'Exported' build_jekyll task
 build_jekyll = task(pre=[setup_ruby], name='build-jekyll')(_build_jekyll)
+
 
 @task
 def download_hugo(ctx, version='0.23'):
@@ -199,7 +212,8 @@ def download_hugo(ctx, version='0.23'):
 
 
 @task
-def build_hugo(ctx, branch, owner, repository, site_prefix, base_url='', hugo_version='0.23'):
+def build_hugo(ctx, branch, owner, repository, site_prefix,
+               base_url='', hugo_version='0.23'):
     '''
     Builds the cloned site with Hugo
     '''
@@ -212,14 +226,17 @@ def build_hugo(ctx, branch, owner, repository, site_prefix, base_url='', hugo_ve
     LOGGER.info('Building site with hugo')
 
     with node_context(ctx):  # in case some hugo plugin needs node
-        hugo_args = f'--source {CLONE_DIR_PATH} --destination {SITE_BUILD_DIR_PATH}'
+        hugo_args = (f'--source {CLONE_DIR_PATH} '
+                     f'--destination {SITE_BUILD_DIR_PATH}')
         if base_url:
             hugo_args += f' --baseUrl {base_url}'
 
         ctx.run(
             f'{HUGO_BIN_PATH} {hugo_args}',
-            env=build_env(branch, owner, repository, site_prefix, base_url)
+            env=build_env(branch, owner, repository,
+                          site_prefix, base_url)
         )
+
 
 def _build_static(ctx):
     '''Moves all files from CLONE_DIR into SITE_BUILD_DIR'''
@@ -232,6 +249,7 @@ def _build_static(ctx):
         if file is not SITE_BUILD_DIR:
             shutil.move(path.join(CLONE_DIR_PATH, file),
                         SITE_BUILD_DIR_PATH)
+
 
 # 'Exported' build-static task
 build_static = task(
