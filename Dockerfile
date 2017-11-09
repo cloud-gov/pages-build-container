@@ -1,30 +1,47 @@
-FROM 18fgsa/docker-ruby-ubuntu
-RUN apt-get update
+FROM python:3.6
 
-# Defaults for ENV vairables
-ENV AWS_DEFAULT_REGION "us-east-1"
+# Install general dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+      apt-utils build-essential git curl libssl-dev \
+      libreadline-dev zlib1g-dev libffi-dev
+
+# Install nvm and install versions 4 and 6
+# TODO: Default to 6 LTS instead of 4
+# Ref: https://github.com/18F/federalist/issues/1209
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_DEFAULT_VERSION 4
+RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.31.3/install.sh | bash \
+  && . "$NVM_DIR/nvm.sh" \
+  && nvm install $NODE_DEFAULT_VERSION \
+  && nvm install 6 \
+  && nvm use $NODE_DEFAULT_VERSION \
+  && echo 'export OLD_PREFIX=$PREFIX && unset PREFIX' > $HOME/.profile \
+  && echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> $HOME/.profile \
+  && echo 'export PREFIX=$OLD_PREFIX && unset OLD_PREFIX' >> $HOME/.profile
+
+# Install ruby via rvm
+ENV RUBY_VERSION 2.3.1
+RUN gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB
+RUN \curl -sSL https://get.rvm.io | bash -s stable
+RUN /bin/bash -l -c 'rvm install $RUBY_VERSION && rvm use --default $RUBY_VERSION'
+RUN echo rvm_silence_path_mismatch_check_flag=1 >> /etc/rvmrc
 
 # skip installing gem documentation
 RUN echo 'install: --no-document\nupdate: --no-document' >> "/etc/.gemrc"
 
-# Install the AWS SDK and MIME for publishing
-RUN bin/bash -l -c "gem install aws-sdk mime-types"
+WORKDIR /app
 
-# node-gyp needs Python 2.7
-RUN apt-get install -y python2.7
-ENV PYTHON /usr/bin/python2.7
+ADD requirements.txt ./
 
-# install hugo
-ENV HUGO_VERSION 0.23
-RUN curl -sSL https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_Linux-64bit.deb -o hugo.deb \
-  && dpkg -i hugo.deb
+# TODO: For testing, we'll want to install requirements-dev.txt
+# So we might need separate Dockerfiles, or maybe it can be done within
+# the running testing container
+RUN pip install -r requirements.txt
 
-# Copy the script files
-COPY *.sh /app/
-COPY *.rb /app/
+ADD . ./
 
-# Add the working directory
-WORKDIR /src
+ARG is_testing
+RUN if [ "$is_testing" ]; then pip install -r requirements-dev.txt; fi;
 
-# Run the build script when container starts
-CMD ["bash", "/app/run.sh"]
+CMD inv main
