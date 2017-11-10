@@ -1,0 +1,11 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      args:
+        is_testing: 1
+    volumes:
+      # Create a volume to store the coverage.xml output
+      # from pytest-cov.
+       - ./coverage:/app/coverage
