@@ -1,6 +1,11 @@
 [![CircleCI](https://circleci.com/gh/18F/federalist-garden-build-py.svg?style=svg)](https://circleci.com/gh/18F/federalist-garden-build-py)
 [![Dependency Status](https://gemnasium.com/badges/github.com/18F/federalist-garden-build-py.svg)](https://gemnasium.com/github.com/18F/federalist-garden-build-py)
 [![Maintainability](https://api.codeclimate.com/v1/badges/322b89a24f0efc284dee/maintainability)](https://codeclimate.com/github/18F/federalist-garden-build-py/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/322b89a24f0efc284dee/test_coverage)](https://codeclimate.com/github/18F/federalist-garden-build-py/test_coverage)
+
+# federalist-garden-build-py
+
+Docker image for building sites as part of the [Federalist][] platform. Build steps are written using the [PyInvoke][] task running framework.
 
 ### Notes
 
@@ -66,3 +71,5 @@ For testing:
 ```sh
 docker-compose run app pytest
 ```
+[PyInvoke]: http://www.pyinvoke.org/
+[Federalist]: https://federalist.18f.gov
