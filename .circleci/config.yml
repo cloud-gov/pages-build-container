@@ -7,16 +7,16 @@ jobs:
       - run:
           name: Build docker image
           command: |
-            docker build -t federalist-garden-build-py:$CIRCLE_BRANCH --build-arg is_testing=1 .
+            docker build -t test-image --build-arg is_testing=1 .
       - run:
           name: Docker pytest
           command: |
-            docker run --rm -i -t federalist-garden-build-py:$CIRCLE_BRANCH pytest
+            docker run --rm -i -t test-image pytest
       - run:
           name: Docker bandit
           command: |
-            docker run --rm -i -t federalist-garden-build-py:$CIRCLE_BRANCH bandit -r .
+            docker run --rm -i -t test-image bandit -r .
       - run:
           name: Docker flake8
           command: |
-            docker run --rm -i -t federalist-garden-build-py:$CIRCLE_BRANCH flake8
+            docker run --rm -i -t test-image flake8
