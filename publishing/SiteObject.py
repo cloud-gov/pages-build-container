@@ -1,9 +1,9 @@
 '''Classes for files published to S3'''
 
-import mimetypes
-import hashlib
-import gzip
 import binascii
+import gzip
+import hashlib
+import mimetypes
 
 from os import path
 from datetime import datetime

@@ -8,7 +8,6 @@ from datetime import datetime
 from invoke import task
 
 from publishing.s3publisher import publish_to_s3
-
 from log_utils import get_logger
 from .common import SITE_BUILD_DIR_PATH, delta_to_mins_secs
 

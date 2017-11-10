@@ -18,17 +18,45 @@ def b64string(text):
     return base64.b64encode(text.encode('utf-8')).decode('utf-8')
 
 
-def post_output_log(log_callback_url, source, output, limit=500000,
-                    limit_msg='output suppressed due to length'):
+def truncate_text(text, limit=50000):
+    '''
+    Truncates the given `text` to the specified `limit` so
+    that at most, `limit` number of characters will be in the
+    returned value.
+
+    >>> text = 'boop'
+    >>> truncate_text(text, limit=3)
+    'boo'
+
+    A truncation message is appended if there is room within
+    the `limit`.
+
+    >>> text = ''.join('x' for i in range(0, 100))
+    >>> truncate_text(text, limit=50)
+    'xxxxxxxxxxxxxxxxxx\\nOutput truncated due to length.'
+
+    >>> text = 'federalist is c00l'
+    >>> truncate_text(text, limit=20)
+    'federalist is c00l'
+    '''
+    trunc_msg = f'\nOutput truncated due to length.'
+    if len(trunc_msg) > limit:
+        return text[:limit]
+
+    if len(text + trunc_msg) > limit:
+        cutoff = limit - len(trunc_msg)
+        text = text[:cutoff] + trunc_msg
+    return text
+
+
+def post_output_log(log_callback_url, source, output, limit=500000):
     '''
     POSTs an `output` log from `source` to the `log_callback_url`.
 
-    If the `output` length is greater than `limit`, then instead
-    `limit_msg` is sent.
+    If the output length is greater than the limit, then it is truncated
+    to that limit (see `truncate_text` function).
     '''
-    # Replicates log_output() function in main.sh
-    if len(output) > limit:
-        output = limit_msg
+    output = truncate_text(output, limit)
 
     requests.post(
         log_callback_url,

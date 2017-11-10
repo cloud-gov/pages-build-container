@@ -142,10 +142,10 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             modified_objects.append(local_obj)
 
     # Create a list of the remote objects that should be deleted
-    deletion_objects = []
-    for remote_filename, remote_obj in remote_objects_by_filename.items():
-        if not local_objects_by_filename.get(remote_filename):
-            deletion_objects.append(remote_obj)
+    deletion_objects = [
+        obj for filename, obj in remote_objects_by_filename.items()
+        if not local_objects_by_filename.get(filename)
+    ]
 
     LOGGER.info('Preparing to upload')
     LOGGER.info(f'New: {len(new_objects)}')
