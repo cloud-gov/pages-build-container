@@ -102,14 +102,22 @@ def main(ctx):
 
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
     AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
-    GITHUB_TOKEN = os.environ['GITHUB_TOKEN']
 
     # List of private strings to be removed from any posted logs
-    private_values = [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, GITHUB_TOKEN]
+    private_values = [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]
 
     # Optional environment variables
-    SOURCE_REPO = os.getenv('SOURCE_REPO')
-    SOURCE_OWNER = os.getenv('SOURCE_OWNER')
+    SOURCE_REPO = os.getenv('SOURCE_REPO', '')
+    SOURCE_OWNER = os.getenv('SOURCE_OWNER', '')
+
+    # GITHUB_TOKEN can be empty if a non-Federalist user
+    # makes a commit to a repo and thus initiates a build for a
+    # Federalist site
+    GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
+    if GITHUB_TOKEN:
+        # only include it in list of values to strip from log output
+        # if it exists
+        private_values.append(GITHUB_TOKEN)
 
     # Ex: https://federalist-builder.fr.cloud.gov/builds/<token>/callback
     FEDERALIST_BUILDER_CALLBACK = os.environ['FEDERALIST_BUILDER_CALLBACK']

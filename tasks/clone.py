@@ -13,9 +13,23 @@ from .common import (REPO_BASE_URL, CLONE_DIR_PATH,
 LOGGER = get_logger('CLONE')
 
 
-def clone_url(owner, repository, access_token):
-    '''Creates a URL to a remote git repository'''
-    return f'https://{access_token}@{REPO_BASE_URL}/{owner}/{repository}.git'
+def clone_url(owner, repository, access_token=''):
+    '''
+    Creates a URL to a remote git repository.
+    If `access_token` is specified, it will be included in the authentication
+    section of the returned URL.
+
+    >>> clone_url('owner', 'repo')
+    'https://github.com/owner/repo.git'
+
+    >>> clone_url('owner2', 'repo2', 'secret-token')
+    'https://secret-token@github.com/owner2/repo2.git'
+    '''
+    repo_url = f'{REPO_BASE_URL}/{owner}/{repository}.git'
+    if access_token:
+        repo_url = f'{access_token}@{repo_url}'
+
+    return f'https://{repo_url}'
 
 
 def _clone_repo(ctx, owner, repository, branch):
