@@ -37,6 +37,32 @@ def replace_private_values(text, private_values,
     return text
 
 
+def find_custom_error_message(err_string):
+    '''
+    Returns a custom error message based on the current
+    contents of `err_string`, if one exists.
+
+    Otherwise, just return the supplied `err_string`.
+
+    >>> msg = find_custom_error_message('boop InvalidAccessKeyId')
+    >>> 'S3 keys were rotated' in msg
+    True
+
+    >>> find_custom_error_message('boop')
+    'boop'
+    '''
+    if "InvalidAccessKeyId" in err_string:
+        err_string = (
+            'Whoops, our S3 keys were rotated during your '
+            'build and became out of date. This was not a '
+            'problem with your site build, but if you restart '
+            'the failed build it should work on the next try. '
+            'Sorry for the inconvenience!'
+        )
+
+    return err_string
+
+
 def run_task(ctx, task_name, private_values, log_callback,
              flags_dict=None, env=None):
     '''
@@ -263,11 +289,16 @@ def main(ctx):
                            STATUS_CALLBACK,
                            FEDERALIST_BUILDER_CALLBACK)
     except UnexpectedExit as err:
+        # replace any private values that might be in the error message
         err_string = replace_private_values(err.result.stderr,
                                             private_values)
 
+        # log the original exception
         LOGGER.info(f'Exception raised during build:')
         LOGGER.info(err_string)
+
+        # replace the message with a custom one, if it exists
+        err_string = find_custom_error_message(err_string)
 
         post_build_error(LOG_CALLBACK,
                          STATUS_CALLBACK,
@@ -277,6 +308,7 @@ def main(ctx):
         err_string = str(err)
         err_string = replace_private_values(err_string,
                                             private_values)
+
         LOGGER.info('Unexpected exception raised during build:')
         LOGGER.info(err_string)
 
