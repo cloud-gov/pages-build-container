@@ -1,7 +1,7 @@
 [![CircleCI](https://circleci.com/gh/18F/federalist-garden-build.svg?style=svg)](https://circleci.com/gh/18F/federalist-garden-build)
 [![Dependency Status](https://gemnasium.com/badges/github.com/18F/federalist-garden-build.svg)](https://gemnasium.com/github.com/18F/federalist-garden-build)
-[![Maintainability](https://api.codeclimate.com/v1/badges/322b89a24f0efc284dee/maintainability)](https://codeclimate.com/github/18F/federalist-garden-build/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/322b89a24f0efc284dee/test_coverage)](https://codeclimate.com/github/18F/federalist-garden-build/test_coverage)
+[![Maintainability](https://api.codeclimate.com/v1/badges/b7ddc95a6745610b685b/maintainability)](https://codeclimate.com/github/18F/federalist-garden-build/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/b7ddc95a6745610b685b/test_coverage)](https://codeclimate.com/github/18F/federalist-garden-build/test_coverage)
 
 # federalist-garden-build
 
