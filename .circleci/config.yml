@@ -1,0 +1,58 @@
+version: 2
+jobs:
+  build:
+    machine: true
+    steps:
+      - checkout
+      - run:
+          name: Install Docker Compose
+          command: |
+            set -x
+            curl -L https://github.com/docker/compose/releases/download/1.16.1/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
+            chmod +x ~/docker-compose
+            sudo mv ~/docker-compose /usr/local/bin/docker-compose
+
+      - run:
+          name: Build docker image
+          command: |
+            docker-compose -f docker-compose.test.yml build
+
+      - run:
+          name: Flake8
+          command: |
+            docker-compose -f docker-compose.test.yml run app flake8
+
+      - run:
+          name: Bandit
+          command: |
+            docker-compose -f docker-compose.test.yml run app bandit -r .
+
+      - run:
+          name: Install cc-test-reporter
+          command: |
+            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+            chmod +x ./cc-test-reporter
+
+      - run:
+          name: CodeClimate before-build
+          command: ./cc-test-reporter before-build
+
+      - run:
+          name: Pytest
+          command: |
+            docker-compose -f docker-compose.test.yml run app pytest
+
+      - run:
+          name: CodeClimate after-build
+          command: |
+            # for whatever reason the current user doesn't have access
+            # to the directory that gets created for the docker-compose 
+            # `coverage/` volume, so `chown` it
+            sudo chown -R $(whoami) ./coverage
+            ./cc-test-reporter format-coverage -t coverage.py ./coverage/coverage.xml
+            ./cc-test-reporter upload-coverage || true
+      
+      - store_artifacts:
+          path: ./coverage/coverage.xml
+
+        

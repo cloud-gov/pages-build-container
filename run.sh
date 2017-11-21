@@ -1,2 +1,2 @@
-timeout $((20 * 60)) /bin/bash -l /app/main.sh
+invoke main
 sleep infinity

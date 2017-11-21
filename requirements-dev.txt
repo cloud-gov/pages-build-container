@@ -1,0 +1,13 @@
+# Include the production dependencies
+-r requirements.txt
+
+# Testing and development dependencies
+bandit>=1.0,<2.0
+flake8==3.5.0
+moto==1.1.25
+pyfakefs==3.3
+pyflakes==1.6.0
+pylint==1.7.4
+pytest-cov==2.5.1
+pytest==3.2.3
+requests-mock==1.3.0
