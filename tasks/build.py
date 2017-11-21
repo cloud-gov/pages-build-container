@@ -33,7 +33,7 @@ PACKAGE_JSON_PATH = Path(path.join(CLONE_DIR_PATH, 'package.json'))
 NVMRC_PATH = Path(path.join(CLONE_DIR_PATH, '.nvmrc'))
 RUBY_VERSION_PATH = Path(path.join(CLONE_DIR_PATH), '.ruby-version')
 GEMFILE_PATH = Path(path.join(CLONE_DIR_PATH), 'Gemfile')
-JEKYLL_CONF_YML_PATH = path.join(CLONE_DIR_PATH, '_config.yml')
+JEKYLL_CONF_YML_PATH = Path(path.join(CLONE_DIR_PATH, '_config.yml'))
 
 
 def has_federalist_script():
@@ -157,13 +157,14 @@ def _build_jekyll(ctx, branch, owner, repository, site_prefix,
     Builds the cloned site with Jekyll
     '''
     # Add baseurl, branch, and the custom config to _config.yml
-    with open(JEKYLL_CONF_YML_PATH, 'a') as jekyll_conf_file:
-        jekyll_conf_file.writelines([
-            '\n'
-            f'baseurl: {base_url}\n',
-            f'branch: {branch}\n',
-            config,
-        ])
+    if JEKYLL_CONF_YML_PATH.is_file():
+        with open(JEKYLL_CONF_YML_PATH, 'a') as jekyll_conf_file:
+            jekyll_conf_file.writelines([
+                '\n'
+                f'baseurl: {base_url}\n',
+                f'branch: {branch}\n',
+                config,
+            ])
 
     source_rvm = ctx.prefix(f'source {RVM_PATH}')
     with node_context(ctx, source_rvm, ctx.cd(CLONE_DIR_PATH)):
@@ -241,7 +242,7 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
 def _build_static(ctx):
     '''Moves all files from CLONE_DIR into SITE_BUILD_DIR'''
     LOGGER.info(f'Moving files to {SITE_BUILD_DIR}')
-    os.makedirs(SITE_BUILD_DIR_PATH)
+    os.makedirs(SITE_BUILD_DIR_PATH, exist_ok=True)
     files = os.listdir(CLONE_DIR_PATH)
 
     for file in files:
