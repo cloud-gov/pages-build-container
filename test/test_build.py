@@ -15,7 +15,11 @@ from tasks.build import node_context
 
 class TestSetupNode():
     def test_it_is_callable(self):
-        ctx = MockContext(run=Result(''))
+        ctx = MockContext(run=[
+            Result('node version result'),
+            Result('npm version result'),
+            Result('npm install result'),
+        ])
         setup_node(ctx)
 
 
