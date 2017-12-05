@@ -164,6 +164,7 @@ def _build_jekyll(ctx, branch, owner, repository, site_prefix,
                 f'baseurl: {base_url}\n',
                 f'branch: {branch}\n',
                 config,
+                '\n',
             ])
 
     source_rvm = ctx.prefix(f'source {RVM_PATH}')
