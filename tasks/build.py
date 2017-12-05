@@ -64,9 +64,17 @@ def setup_node(ctx):
             npm_command = 'npm'
 
             if NVMRC_PATH.is_file():
+                # nvm will output the node and npm versions used
                 LOGGER.info('Using node version specified in .nvmrc')
                 ctx.run('nvm install')
                 npm_command = f'nvm use && {npm_command}'
+            else:
+                # output node and npm versions if the defaults are used
+                node_version_res = ctx.run(f'node --version', hide=True)
+                LOGGER.info(f'Node version: {node_version_res.stdout}')
+                npm_version_res = ctx.run(f'{npm_command} --version',
+                                          hide=True)
+                LOGGER.info(f'NPM version: {npm_version_res.stdout}')
 
             if PACKAGE_JSON_PATH.is_file():
                 LOGGER.info('Installing production dependencies '

@@ -21,10 +21,8 @@ ENV LC_ALL en_US.UTF-8
 RUN dpkg-reconfigure --frontend noninteractive locales
 
 # Install nvm and install versions 4 and 6
-# TODO: Default to 6 LTS instead of 4
-# Ref: https://github.com/18F/federalist/issues/1209
 ENV NVM_DIR /usr/local/nvm
-ENV NODE_DEFAULT_VERSION 4
+ENV NODE_DEFAULT_VERSION 8
 RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.31.3/install.sh | bash \
   && . "$NVM_DIR/nvm.sh" \
   && nvm install $NODE_DEFAULT_VERSION \
