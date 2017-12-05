@@ -1,6 +1,7 @@
 '''Main task entrypoint'''
 
 import os
+import shlex
 
 from datetime import datetime
 
@@ -75,7 +76,9 @@ def run_task(ctx, task_name, private_values, log_callback,
     flag_args = []
     if flags_dict:
         for flag, val in flags_dict.items():
-            flag_args.append(f"{flag}='{val}'")
+            # quote val to prevent bash-breaking characters like '
+            quoted_val = shlex.quote(val)
+            flag_args.append(f"{flag}={quoted_val}")
 
     command = f'inv {task_name} {" ".join(flag_args)}'
 
