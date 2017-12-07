@@ -157,14 +157,14 @@ def _build_jekyll(ctx, branch, owner, repository, site_prefix,
     Builds the cloned site with Jekyll
     '''
     # Add baseurl, branch, and the custom config to _config.yml
-    if JEKYLL_CONF_YML_PATH.is_file():
-        with open(JEKYLL_CONF_YML_PATH, 'a') as jekyll_conf_file:
-            jekyll_conf_file.writelines([
-                '\n'
-                f'baseurl: {base_url}\n',
-                f'branch: {branch}\n',
-                config,
-            ])
+    with open(JEKYLL_CONF_YML_PATH, 'a') as jekyll_conf_file:
+        jekyll_conf_file.writelines([
+            '\n'
+            f'baseurl: {base_url}\n',
+            f'branch: {branch}\n',
+            config,
+            '\n',
+        ])
 
     source_rvm = ctx.prefix(f'source {RVM_PATH}')
     with node_context(ctx, source_rvm, ctx.cd(CLONE_DIR_PATH)):
