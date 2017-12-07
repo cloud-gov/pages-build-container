@@ -156,7 +156,8 @@ def _build_jekyll(ctx, branch, owner, repository, site_prefix,
     '''
     Builds the cloned site with Jekyll
     '''
-    # Add baseurl, branch, and the custom config to _config.yml
+    # Add baseurl, branch, and the custom config to _config.yml.
+    # Use the 'a' option to create or append to an existing config file.
     with open(JEKYLL_CONF_YML_PATH, 'a') as jekyll_conf_file:
         jekyll_conf_file.writelines([
             '\n'
