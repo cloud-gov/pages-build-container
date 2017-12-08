@@ -2,6 +2,7 @@ import requests_mock
 
 from contextlib import ExitStack
 
+from pyfakefs.fake_filesystem_unittest import Patcher
 from invoke import MockContext, Result
 
 from tasks import (setup_node, run_federalist_script, setup_ruby,
@@ -52,15 +53,20 @@ class TestSetupRuby():
 
 
 class TestBuildJekyll():
-    def test_it_is_callable(self):
+    def test_it_is_callable(self, fs):
         ctx = MockContext(run=[
             Result('gem install jekyll result'),
             Result('jekyll version result'),
             Result('jekyll build result'),
         ])
-        build_jekyll(ctx, branch='branch', owner='owner',
-                     repository='repo', site_prefix='site/prefix',
-                     config='boop: beep', base_url='/site/prefix')
+
+        with Patcher() as patcher:
+            patcher.fs.CreateFile('/tmp/site_repo/_config.yml',
+                                  contents='hi: test')
+
+            build_jekyll(ctx, branch='branch', owner='owner',
+                         repository='repo', site_prefix='site/prefix',
+                         config='boop: beep', base_url='/site/prefix')
 
 
 class TestDownloadHugo():
