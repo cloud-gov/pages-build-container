@@ -6,9 +6,9 @@ from log_utils.remote_logs import (
     post_build_error, post_build_timeout)
 
 
-MOCK_LOG_URL = 'http://log.com'
-MOCK_STATUS_URL = 'http://status.com'
-MOCK_BUILDER_URL = 'http://builder.com'
+MOCK_LOG_URL = 'https://log.example.com'
+MOCK_STATUS_URL = 'https://status.example.com'
+MOCK_BUILDER_URL = 'https://builder.example.com'
 
 
 class TestPostOutputLog():
