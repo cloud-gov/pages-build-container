@@ -160,11 +160,12 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         else:
             start_time = datetime.now()
 
+            LOGGER.info(f'Uploading {file.s3_key}')
+
             file.upload_to_s3(bucket, s3_client)
 
             delta = datetime.now() - start_time
-            LOGGER.info(f'Uploaded {file.s3_key} in '
-                        f'{delta.total_seconds():.2f}s')
+            LOGGER.info(f'... done in {delta.total_seconds():.2f}s')
 
     # Delete files not needed any more
     for file in deletion_objects:
@@ -173,8 +174,9 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         else:
             start_time = datetime.now()
 
+            LOGGER.info(f'Deleting {file.s3_key}')
+
             file.delete_from_s3(bucket, s3_client)
 
             delta = datetime.now() - start_time
-            LOGGER.info(
-                f'Deleted {file.s3_key} in {delta.total_seconds():.2f}s')
+            LOGGER.info(f'... done in {delta.total_seconds():.2f}s')
