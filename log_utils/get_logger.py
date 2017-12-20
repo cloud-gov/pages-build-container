@@ -8,15 +8,7 @@ import sys
 import logging
 
 
-class AsciiEncodingFormatter(logging.Formatter):
-    def format(self, record):
-        result = logging.Formatter.format(self, record)
-        # remove any invalid ascii characters
-        result = result.encode('ascii', 'replace').decode('ascii')
-        return result
-
-
-LOG_FORMATTER = AsciiEncodingFormatter(
+LOG_FORMATTER = logging.Formatter(
     "[%(name)s] %(asctime)s %(levelname)s: %(message)s",
     datefmt='%Y-%m-%d %H:%M:%S',
 )
