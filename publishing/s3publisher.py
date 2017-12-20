@@ -10,7 +10,7 @@ from datetime import datetime
 import boto3
 
 from log_utils import get_logger
-from .SiteObject import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
+from .SiteObject import remove_prefix, SiteObject, SiteFile, SiteRedirect
 
 LOGGER = get_logger('S3_PUBLISHER')
 
@@ -135,6 +135,12 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     new_objects = []
     modified_objects = []
     for local_filename, local_obj in local_objects_by_filename.items():
+
+        # TODO: there is a mismatch between localfilenames and the filenames (keys)
+        # coming back from S3 if there are escaped surrogates in the remote files.
+        # This prevents us from properly matching local files against the remote files
+        # and results in incorrect deletions.
+
         matching_remote_obj = remote_objects_by_filename.get(local_filename)
         if not matching_remote_obj:
             new_objects.append(local_obj)
