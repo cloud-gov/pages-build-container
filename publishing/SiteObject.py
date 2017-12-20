@@ -12,6 +12,18 @@ from datetime import datetime
 mimetypes.init()  # must initialize mimetypes
 
 
+def escape_surrogates(text):
+    '''
+    Escapes invalid surrogates in a unicode string.
+
+    >>> escape_surrogates('agency’s.html')
+    'agency’s.html'
+
+    from http://lucumr.pocoo.org/2013/7/2/the-updated-guide-to-unicode/
+    '''
+    return text.encode('utf-8', 'surrogateescape').decode('utf-8')
+
+
 def remove_prefix(text, prefix):
     '''Returns a copy of text with the given prefix removed'''
     if text.startswith(prefix):
@@ -37,7 +49,8 @@ class SiteObject():
         if self.dir_prefix:
             filename = remove_prefix(filename,
                                      path.join(self.dir_prefix, ''))
-        return f'{self.site_prefix}/{filename}'
+
+        return escape_surrogates(f'{self.site_prefix}/{filename}')
 
     def upload_to_s3(self, bucket, s3_client):
         '''Upload this object to S3'''
@@ -179,12 +192,12 @@ class SiteRedirect(SiteObject):
             if filename == self.dir_prefix:
                 # then this is 'root' site redirect object
                 # (ie, the main index.html file)
-                return self.site_prefix
+                return escape_surrogates(self.site_prefix)
 
             filename = remove_prefix(filename,
                                      path.join(self.dir_prefix, ''))
 
-        return f'{self.site_prefix}/{filename}'
+        return escape_surrogates(f'{self.site_prefix}/{filename}')
 
     def upload_to_s3(self, bucket, s3_client):
         '''Uploads the redirect object to S3'''

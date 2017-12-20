@@ -18,7 +18,7 @@ LOGGER = get_logger('S3_PUBLISHER')
 def list_remote_objects(bucket, site_prefix, s3_client):
     '''
     Generates a list of remote S3 objects that have keys starting with
-    site_preix in the given bucket.
+    site_prefix in the given bucket.
     '''
     results_truncated = True
     continuation_token = None
