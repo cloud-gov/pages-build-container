@@ -3,6 +3,7 @@ Build tasks and helpers
 '''
 
 import os
+import shlex
 
 from os import path
 
@@ -151,6 +152,9 @@ def setup_ruby(ctx):
             ruby_version = ''
             with open(RUBY_VERSION_PATH, 'r') as ruby_vers_file:
                 ruby_version = ruby_vers_file.readline().strip()
+                # escape-quote the value in case there's anything weird
+                # in the .ruby-version file
+                ruby_version = shlex.quote(ruby_version)
             if ruby_version:
                 LOGGER.info('Using ruby version in .ruby-version')
                 ctx.run(f'rvm install {ruby_version}')
