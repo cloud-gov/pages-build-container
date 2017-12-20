@@ -158,9 +158,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         if dry_run:
             LOGGER.info(f'Dry-run uploading {file.s3_key}')
         else:
-            start_time = datetime.now()
-
             LOGGER.info(f'Uploading {file.s3_key}')
+            start_time = datetime.now()
 
             file.upload_to_s3(bucket, s3_client)
 
@@ -172,9 +171,9 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         if dry_run:
             LOGGER.info(f'Dry run deleting {file.s3_key}')
         else:
-            start_time = datetime.now()
-
             LOGGER.info(f'Deleting {file.s3_key}')
+
+            start_time = datetime.now()
 
             file.delete_from_s3(bucket, s3_client)
 
