@@ -81,4 +81,4 @@ def push_repo_remote(ctx, owner, repository, branch,
     with ctx.cd(CLONE_DIR_PATH):
         ctx.run(f'git remote add {remote_name} '
                 f'{clone_url(owner, repository, github_token)}')
-        ctx.run(f'git push {remote_name} {branch}')
+        ctx.run(f'git push {remote_name} {branch}:master')
