@@ -37,6 +37,7 @@ Each site build is configured using a number of environment variables, as descri
   * for a live site with a custom URL, this will be empty.
   * for anything else, it will be the same as `SITE_PREFIX` but
     with a `/` at the beginning. ex: `/site/<OWNER>/<REPOSITORY>`.
+* `SKIP_LOGGING`: if true-like, skip posting logs and status callbacks. This is used when launching builds from local development instances of the Federalist web application, which cannot be reached from the cloud.gov-hosted build containers. By skipping posting logs and status callbacks, the builds will be able to finish without throwing errors due to unreachable callback endpoints.
 
 ### Variables exposed during builds
 
