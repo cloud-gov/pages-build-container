@@ -1,11 +1,20 @@
 '''Functions for sending remote logs'''
 
+import os
 import base64
 import requests
 
 
 STATUS_CODE_COMPLETE = 0
 STATUS_CODE_ERROR = 1
+
+
+def should_skip_logging():
+    '''
+    Reads SKIP_LOGGING env var to determine if logging
+    and status callbacks should be called.
+    '''
+    return os.getenv('SKIP_LOGGING', False) in ('true', 'True')
 
 
 def b64string(text):
@@ -58,26 +67,28 @@ def post_output_log(log_callback_url, source, output, limit=500000):
     '''
     output = truncate_text(output, limit)
 
-    requests.post(
-        log_callback_url,
-        json={
-            'source': source,
-            'output': b64string(output),
-        }
-    )
+    if not should_skip_logging():
+        requests.post(
+            log_callback_url,
+            json={
+                'source': source,
+                'output': b64string(output),
+            }
+        )
 
 
 def post_status(status_callback_url, status, output):
     '''
     POSTs `status` and `output` to the `status_callback_url`
     '''
-    requests.post(
-        status_callback_url,
-        json={
-            'status': status,
-            'message': b64string(output),
-        }
-    )
+    if not should_skip_logging():
+        requests.post(
+            status_callback_url,
+            json={
+                'status': status,
+                'message': b64string(output),
+            }
+        )
 
 
 def post_build_complete(status_callback_url, builder_callback_url):
@@ -85,10 +96,11 @@ def post_build_complete(status_callback_url, builder_callback_url):
     POSTs a STATUS_CODE_COMPLETE status to the status_callback_url
     and issues a DELETE to the builder_callback_url.
     '''
-    post_status(
-        status_callback_url,
-        status=STATUS_CODE_COMPLETE,
-        output='')
+    if not should_skip_logging():
+        post_status(
+            status_callback_url,
+            status=STATUS_CODE_COMPLETE,
+            output='')
 
     # Send a DELETE to the Federalist build scheduler to alert that the
     # container is available
@@ -102,15 +114,17 @@ def post_build_error(log_callback_url, status_callback_url,
     '''
     output = error_output
 
-    post_output_log(
-        log_callback_url,
-        source='ERROR',
-        output=output)
+    if not should_skip_logging():
+        post_output_log(
+            log_callback_url,
+            source='ERROR',
+            output=output)
 
-    # Post to the Federalist web application endpoint with status and output
-    post_status(status_callback_url,
-                status=STATUS_CODE_ERROR,
-                output=output)
+        # Post to the Federalist web application endpoint with status
+        # and output
+        post_status(status_callback_url,
+                    status=STATUS_CODE_ERROR,
+                    output=output)
 
     # Send a DELETE to the Federalist build scheduler to alert that
     # the container is available
@@ -124,16 +138,17 @@ def post_build_timeout(log_callback_url, status_callback_url,
     '''
     output = 'The build did not complete. It may have timed out.'
 
-    post_output_log(
-        log_callback_url,
-        source='ERROR',
-        output=output)
+    if not should_skip_logging():
+        post_output_log(
+            log_callback_url,
+            source='ERROR',
+            output=output)
 
-    # Post to the Federalist web application endpoint with status
-    # and output
-    post_status(status_callback_url,
-                status=STATUS_CODE_ERROR,
-                output=output)
+        # Post to the Federalist web application endpoint with status
+        # and output
+        post_status(status_callback_url,
+                    status=STATUS_CODE_ERROR,
+                    output=output)
 
     # Send a DELETE to the Federalist build scheduler to alert that the
     # container is available
