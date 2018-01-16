@@ -2,6 +2,7 @@
 Clone tasks and helpers
 '''
 import os
+import shlex
 
 from invoke import task, call
 
@@ -43,6 +44,9 @@ def _clone_repo(ctx, owner, repository, branch):
     LOGGER.info(f'Cloning {owner}/{repository}/{branch} to {CLONE_DIR_PATH}')
 
     github_token = os.environ['GITHUB_TOKEN']
+
+    # escape-quote the value in case there's anything weird
+    branch = shlex.quote(branch)
 
     ctx.run(
         f'git clone -b {branch} --single-branch '
