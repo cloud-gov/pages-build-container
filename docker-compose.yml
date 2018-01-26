@@ -9,16 +9,22 @@ services:
     volumes:
       - .:/app
     links:
-      - httpecho
+      - echoserver
     depends_on:
-      - httpecho
+      - echoserver
     environment:
-      FEDERALIST_BUILDER_CALLBACK: http://httpecho:8080/delete
-      STATUS_CALLBACK: http://httpecho:8080/post
-      LOG_CALLBACK: http://httpecho:8080/post
+      FEDERALIST_BUILDER_CALLBACK: http://echoserver:8989/builder
+      STATUS_CALLBACK: http://echoserver:8989/status
+      LOG_CALLBACK: http://echoserver:8989/log
 
-  httpecho:
-    # TODO: probably not necessary actually?
-    image: solsson/http-echo:latest
+  echoserver:
+    # simple python server to log requests during development
+    build:
+      context: ./echo-server
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./echo-server:/code
     environment:
-      PORT: 8080
+      PORT: 8989
+    ports:
+      - "8989:8989"

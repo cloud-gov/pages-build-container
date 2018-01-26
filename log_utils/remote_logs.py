@@ -27,54 +27,23 @@ def b64string(text):
     return base64.b64encode(text.encode('utf-8')).decode('utf-8')
 
 
-def truncate_text(text, limit=50000):
+def post_output_log(log_callback_url, source, output, chunk_size=500000):
     '''
-    Truncates the given `text` to the specified `limit` so
-    that at most, `limit` number of characters will be in the
-    returned value.
-
-    >>> text = 'boop'
-    >>> truncate_text(text, limit=3)
-    'boo'
-
-    A truncation message is appended if there is room within
-    the `limit`.
-
-    >>> text = ''.join('x' for i in range(0, 100))
-    >>> truncate_text(text, limit=50)
-    'xxxxxxxxxxxxxxxxxx\\nOutput truncated due to length.'
-
-    >>> text = 'federalist is c00l'
-    >>> truncate_text(text, limit=20)
-    'federalist is c00l'
+    POSTs `output` logs from `source` to the `log_callback_url` in chunks
+    of length `chunk_size`.
     '''
-    trunc_msg = f'\nOutput truncated due to length.'
-    if len(trunc_msg) > limit:
-        return text[:limit]
-
-    if len(text + trunc_msg) > limit:
-        cutoff = limit - len(trunc_msg)
-        text = text[:cutoff] + trunc_msg
-    return text
-
-
-def post_output_log(log_callback_url, source, output, limit=500000):
-    '''
-    POSTs an `output` log from `source` to the `log_callback_url`.
-
-    If the output length is greater than the limit, then it is truncated
-    to that limit (see `truncate_text` function).
-    '''
-    output = truncate_text(output, limit)
+    n = chunk_size
+    output_chunks = [output[i:i+n] for i in range(0, len(output), n)]
 
     if not should_skip_logging():
-        requests.post(
-            log_callback_url,
-            json={
-                'source': source,
-                'output': b64string(output),
-            }
-        )
+        for chunk in output_chunks:
+            requests.post(
+                log_callback_url,
+                json={
+                    'source': source,
+                    'output': b64string(chunk),
+                }
+            )
 
 
 def post_status(status_callback_url, status, output):
