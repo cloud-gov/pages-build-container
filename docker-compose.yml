@@ -7,7 +7,7 @@ services:
       args:
         is_testing: 1
     volumes:
-      - .:/app
+      - .:/app:delegated
     links:
       - echoserver
     depends_on:

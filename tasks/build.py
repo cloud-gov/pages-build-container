@@ -197,9 +197,14 @@ def _build_jekyll(ctx, branch, owner, repository, site_prefix,
         jekyll_vers_res = ctx.run(f'{jekyll_cmd} -v')
         LOGGER.info(f'Building using Jekyll version: {jekyll_vers_res.stdout}')
 
+        jekyll_build_env = build_env(branch, owner, repository, site_prefix,
+                                     base_url)
+        # Use JEKYLL_ENV to tell jekyll to run in production mode
+        jekyll_build_env['JEKYLL_ENV'] = 'production'
+
         ctx.run(
             f'{jekyll_cmd} build --destination {SITE_BUILD_DIR_PATH}',
-            env=build_env(branch, owner, repository, site_prefix, base_url)
+            env=jekyll_build_env
         )
 
 
