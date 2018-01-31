@@ -36,12 +36,27 @@ class TestPostOutputLog():
         })
 
     @patch('requests.post')
-    def test_log_is_truncated(self, mock_post):
-        post_output_log(MOCK_LOG_URL, 'test', 'boopboop', limit=4)
-        mock_post.assert_called_once_with(MOCK_LOG_URL, json={
-            'source': 'test',
-            'output': b64string('boop'),
-        })
+    def test_logs_are_chunked(self, mock_post):
+        post_output_log(MOCK_LOG_URL, 'test', 'abcdefg', chunk_size=2)
+
+        assert mock_post.call_count == 4
+
+        mock_post.assert_any_call(
+            MOCK_LOG_URL,
+            json={'source': 'test', 'output': b64string('ab')}
+        )
+        mock_post.assert_any_call(
+            MOCK_LOG_URL,
+            json={'source': 'test', 'output': b64string('cd')}
+        )
+        mock_post.assert_any_call(
+            MOCK_LOG_URL,
+            json={'source': 'test', 'output': b64string('ef')}
+        )
+        mock_post.assert_any_call(
+            MOCK_LOG_URL,
+            json={'source': 'test', 'output': b64string('g')}
+        )
 
     @patch('requests.post')
     def test_it_does_not_post_if_SKIP_LOGGING(self, mock_post, monkeypatch):
