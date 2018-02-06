@@ -19,6 +19,22 @@ LOGGER = get_logger('MAIN')
 TIMEOUT_SECONDS = 20 * 60  # 20 minutes
 
 
+def format_output(stdout_str, stderr_str):
+    '''
+    Convenience method for combining strings of stdout and stderr.
+
+    >>> format_output('stdout', 'stderr')
+    '>> STDOUT:\\nstdout\\n---------------------------\\n>> STDERR:\\nstderr'
+
+    >>> format_output('abc', 'def')
+    '>> STDOUT:\\nabc\\n---------------------------\\n>> STDERR:\\ndef'
+    '''
+    output = f'>> STDOUT:\n{stdout_str}'
+    output += '\n---------------------------\n'
+    output += f'>> STDERR:\n{stderr_str}'
+    return output
+
+
 def replace_private_values(text, private_values,
                            replace_string='[PRIVATE VALUE HIDDEN]'):
     '''
@@ -88,7 +104,11 @@ def run_task(ctx, task_name, private_values, log_callback,
 
     result = ctx.run(command, **run_kwargs)
 
-    output = replace_private_values(result.stdout, private_values)
+    # Add both STDOUT and STDERR to the output logs
+    output = format_output(result.stdout, result.stderr)
+
+    # Replace instances of any private_values that may be present
+    output = replace_private_values(output, private_values)
 
     post_output_log(log_callback, source=task_name, output=output)
 
@@ -292,8 +312,11 @@ def main(ctx):
                            STATUS_CALLBACK,
                            FEDERALIST_BUILDER_CALLBACK)
     except UnexpectedExit as err:
+        # Combine the error's stdout and stderr into one string
+        err_string = format_output(err.result.stdout, err.result.stderr)
+
         # replace any private values that might be in the error message
-        err_string = replace_private_values(err.result.stderr,
+        err_string = replace_private_values(err_string,
                                             private_values)
 
         # log the original exception
@@ -308,10 +331,14 @@ def main(ctx):
                          FEDERALIST_BUILDER_CALLBACK,
                          err_string)
     except Exception as err:  # pylint: disable=W0703
+        # Getting here means something really weird has happened
+        # since all errors caught during tasks should be caught
+        # in the previous block as `UnexpectedExit` exceptions.
         err_string = str(err)
         err_string = replace_private_values(err_string,
                                             private_values)
 
+        # log the original exception
         LOGGER.info('Unexpected exception raised during build:')
         LOGGER.info(err_string)
 

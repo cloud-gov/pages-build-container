@@ -1,5 +1,6 @@
 import requests_mock
 
+from unittest.mock import Mock
 from contextlib import ExitStack
 
 from pyfakefs.fake_filesystem_unittest import Patcher
@@ -67,6 +68,40 @@ class TestBuildJekyll():
             build_jekyll(ctx, branch='branch', owner='owner',
                          repository='repo', site_prefix='site/prefix',
                          config='boop: beep', base_url='/site/prefix')
+
+    def test_jekyll_build_is_called_correctly(self, fs):
+        ctx = MockContext(run=[
+            Result('gem install jekyll result'),
+            Result('jekyll version result'),
+            Result('jekyll build result'),
+        ])
+
+        ctx.run = Mock()
+
+        with Patcher() as patcher:
+            patcher.fs.CreateFile('/tmp/site_repo/_config.yml',
+                                  contents='hi: test')
+
+            build_jekyll(ctx, branch='branch', owner='owner',
+                         repository='repo', site_prefix='site/prefix',
+                         config='boop: beep', base_url='/site/prefix')
+
+            assert ctx.run.call_count == 3
+
+            jekyll_build_call_args = ctx.run.call_args_list[2]
+            args, kwargs = jekyll_build_call_args
+
+            # Make sure the call to jekyll build is correct
+            assert args[0] == 'jekyll build --destination /tmp/site_repo/_site'
+
+            # Make sure the env is as expected
+            assert kwargs['env'] == {'BRANCH': 'branch',
+                                     'OWNER': 'owner',
+                                     'REPOSITORY': 'repo',
+                                     'SITE_PREFIX': 'site/prefix',
+                                     'BASEURL': '/site/prefix',
+                                     'LANG': 'en_US.UTF-8',
+                                     'JEKYLL_ENV': 'production'}
 
 
 class TestDownloadHugo():
