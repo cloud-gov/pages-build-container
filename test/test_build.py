@@ -100,8 +100,7 @@ class TestBuildJekyll():
                                      'REPOSITORY': 'repo',
                                      'SITE_PREFIX': 'site/prefix',
                                      'BASEURL': '/site/prefix',
-                                     'LANG': 'en_US.UTF-8',
-                                     'JEKYLL_ENV': 'production'}
+                                     'LANG': 'en_US.UTF-8',}
 
 
 class TestDownloadHugo():
