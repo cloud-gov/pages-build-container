@@ -1,18 +1,18 @@
-import os
-
 import boto3
 
 from moto import mock_s3
+
 from invoke import MockContext
 
 from tasks import publish
 
 
-class TestPublish():
+class TestPublishOld():
     @mock_s3
-    def test_it_is_callable(self):
-        os.environ['AWS_ACCESS_KEY_ID'] = 'fake_access_key'
-        os.environ['AWS_SECRET_ACCESS_KEY'] = 'fake_secret_key'
+    def test_it_is_callable(self, monkeypatch):
+        monkeypatch.setenv('AWS_ACCESS_KEY_ID', 'fake-access-key')
+        monkeypatch.setenv('AWS_SECRET_ACCESS_KEY', 'fake-secret-key')
+        
         ctx = MockContext()
 
         aws_region = 'region'
