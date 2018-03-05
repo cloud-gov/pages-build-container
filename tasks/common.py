@@ -5,6 +5,7 @@ Common variables, tasks, and functions
 import shutil
 
 from os import path
+from pathlib import Path
 from datetime import timedelta  # noqa pylint: disable=W0611
 
 from invoke import task
@@ -13,22 +14,22 @@ from dotenv import load_dotenv as _load_dotenv
 from log_utils import get_logger
 
 REPO_BASE_URL = 'github.com'
-WORKING_DIR = path.join(path.sep, 'tmp')
+WORKING_DIR_PATH = Path('/tmp')
 
 CLONE_DIR = 'site_repo'
-CLONE_DIR_PATH = path.join(WORKING_DIR, CLONE_DIR)
+CLONE_DIR_PATH = WORKING_DIR_PATH / CLONE_DIR
 
 SITE_BUILD_DIR = '_site'
 
-BASE_DIR = path.dirname(path.dirname(__file__))
-DOTENV_PATH = path.join(BASE_DIR, '.env')
+BASE_DIR = Path(path.dirname(path.dirname(__file__)))
+DOTENV_PATH = BASE_DIR / '.env'
 
-SITE_BUILD_DIR_PATH = path.join(CLONE_DIR_PATH, SITE_BUILD_DIR)
+SITE_BUILD_DIR_PATH = CLONE_DIR_PATH / SITE_BUILD_DIR
 
 LOGGER = get_logger('COMMON')
 
 
-def load_dotenv():
+def load_dotenv():  # pragma: no cover
     '''Loads environment from a .env file'''
     if path.exists(DOTENV_PATH):
         LOGGER.info('Loading environment from .env file')
