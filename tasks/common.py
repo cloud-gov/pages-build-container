@@ -14,7 +14,13 @@ from dotenv import load_dotenv as _load_dotenv
 from log_utils import get_logger
 
 REPO_BASE_URL = 'github.com'
-WORKING_DIR_PATH = Path('/tmp')
+
+# We use the `/tmp` folder to hold the cloned, and later the built,
+# client site and repository. Using a predictable path in our
+# ephemeral build containers is ok and does not present any
+# security issues because no sensitive information is stored there;
+# it only holds the client site code. Thus, marked as nosec.
+WORKING_DIR_PATH = Path('/tmp')  # nosec
 
 CLONE_DIR = 'site_repo'
 CLONE_DIR_PATH = WORKING_DIR_PATH / CLONE_DIR
