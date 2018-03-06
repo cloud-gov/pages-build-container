@@ -80,9 +80,6 @@ def setup_node(ctx):
             if PACKAGE_JSON_PATH.is_file():
                 LOGGER.info('Installing production dependencies '
                             'in package.json')
-                # node-gyp requires python 2, which we have installed
-                # so set npm to use it when necessary
-                ctx.run(f'{npm_command} config set python python2.7')
                 ctx.run(f'{npm_command} install --production')
 
 

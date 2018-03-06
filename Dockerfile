@@ -1,11 +1,10 @@
-FROM python:3.6-slim
+FROM python:3.6
 
 # Install general dependencies
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       apt-utils build-essential git curl libssl-dev \
-      libreadline-dev zlib1g-dev libffi-dev \
-      python2.7
+      libreadline-dev zlib1g-dev libffi-dev
 
 # Install and setup en_US.UTF-8 locale
 # This is necessary so that output from node/ruby/python
