@@ -2,25 +2,20 @@
 Build tasks and helpers
 '''
 
+import json
 import os
 import shlex
-
-from os import path
-
-import json
 import shutil
-
 from contextlib import ExitStack
+from os import path
 from pathlib import Path
 
 import requests
-from invoke import task, call
+from invoke import call, task
 
-from tasks.common import (
-    clean, CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH,
-    WORKING_DIR_PATH)
 from log_utils import get_logger
-
+from tasks.common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH,
+                          WORKING_DIR_PATH, clean)
 
 LOGGER = get_logger('BUILD')
 
@@ -265,7 +260,10 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
 def build_static(ctx):
     '''Moves all files from CLONE_DIR into SITE_BUILD_DIR'''
     LOGGER.info(f'Moving files to {SITE_BUILD_DIR}')
-    os.makedirs(SITE_BUILD_DIR_PATH, exist_ok=True)
+
+    # Make the site build directory first
+    SITE_BUILD_DIR_PATH.mkdir(exist_ok=True)
+
     files = os.listdir(CLONE_DIR_PATH)
 
     for file in files:

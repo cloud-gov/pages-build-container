@@ -15,12 +15,10 @@ from log_utils import get_logger
 
 REPO_BASE_URL = 'github.com'
 
-# We use the `/tmp` folder to hold the cloned, and later the built,
-# client site and repository. Using a predictable path in our
-# ephemeral build containers is ok and does not present any
-# security issues because no sensitive information is stored there;
-# it only holds the client site code. Thus, marked as nosec.
-WORKING_DIR_PATH = Path('/tmp')  # nosec
+WORKING_DIR_PATH = Path('/work')
+
+# Make the working directory if it doesn't exist
+WORKING_DIR_PATH.mkdir(exist_ok=True)
 
 CLONE_DIR = 'site_repo'
 CLONE_DIR_PATH = WORKING_DIR_PATH / CLONE_DIR

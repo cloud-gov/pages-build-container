@@ -152,7 +152,7 @@ class TestBuildJekyll():
         args, kwargs = jekyll_build_call_args
 
         # Make sure the call to jekyll build is correct
-        assert args[0] == 'jekyll build --destination /tmp/site_repo/_site'
+        assert args[0] == 'jekyll build --destination /work/site_repo/_site'
 
         # Make sure the env is as expected
         assert kwargs['env'] == {'BRANCH': 'branch',
@@ -206,7 +206,8 @@ class TestDownloadHugo():
         with requests_mock.Mocker() as m:
             m.get(
                 'https://github.com/gohugoio/hugo/releases/download'
-                f'/v{version}/hugo_{version}_Linux-64bit.tar.gz')
+                f'/v{version}/hugo_{version}_Linux-64bit.tar.gz',
+                text='fake-data')
             tasks.download_hugo(ctx, version=version)
 
 
@@ -217,8 +218,8 @@ class TestBuildHugo():
 
         monkeypatch.setattr(tasks.build, 'download_hugo', mock_download)
         hugo_path = patch_working_dir / HUGO_BIN
-        hugo_call = (f'{hugo_path} --source /tmp/site_repo '
-                     f'--destination /tmp/site_repo/_site')
+        hugo_call = (f'{hugo_path} --source /work/site_repo '
+                     f'--destination /work/site_repo/_site')
         ctx = MockContext(run={
             f'{hugo_path} version': Result(),
             hugo_call: Result(),
