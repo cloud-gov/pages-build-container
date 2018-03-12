@@ -2,25 +2,20 @@
 Build tasks and helpers
 '''
 
+import json
 import os
 import shlex
-
-from os import path
-
-import json
 import shutil
-
 from contextlib import ExitStack
+from os import path
 from pathlib import Path
 
 import requests
-from invoke import task, call
+from invoke import call, task
 
 from log_utils import get_logger
-from .common import (CLONE_DIR_PATH, SITE_BUILD_DIR,
-                     WORKING_DIR, SITE_BUILD_DIR_PATH,
-                     clean)
-
+from tasks.common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH,
+                          WORKING_DIR_PATH, clean)
 
 LOGGER = get_logger('BUILD')
 
@@ -28,13 +23,11 @@ NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
 
 HUGO_BIN = 'hugo'
-HUGO_BIN_PATH = Path(path.join(WORKING_DIR), HUGO_BIN)
-
-PACKAGE_JSON_PATH = Path(path.join(CLONE_DIR_PATH, 'package.json'))
-NVMRC_PATH = Path(path.join(CLONE_DIR_PATH, '.nvmrc'))
-RUBY_VERSION_PATH = Path(path.join(CLONE_DIR_PATH), '.ruby-version')
-GEMFILE_PATH = Path(path.join(CLONE_DIR_PATH), 'Gemfile')
-JEKYLL_CONF_YML_PATH = Path(path.join(CLONE_DIR_PATH, '_config.yml'))
+NVMRC = '.nvmrc'
+PACKAGE_JSON = 'package.json'
+RUBY_VERSION = '.ruby-version'
+GEMFILE = 'Gemfile'
+JEKYLL_CONFIG_YML = '_config.yml'
 
 
 def has_federalist_script():
@@ -42,9 +35,9 @@ def has_federalist_script():
     Checks for existence of the "federalist" script in the
     cloned repo's package.json.
     '''
-
+    PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
     if PACKAGE_JSON_PATH.is_file():
-        with open(PACKAGE_JSON_PATH) as json_file:
+        with PACKAGE_JSON_PATH.open() as json_file:
             package_json = json.load(json_file)
             return 'federalist' in package_json.get('scripts', {})
 
@@ -59,10 +52,11 @@ def setup_node(ctx):
     Uses the node version specified in the cloned repo's .nvmrc
     file if it is present.
     '''
-
-    with ctx.cd(CLONE_DIR_PATH):
+    with ctx.cd(str(CLONE_DIR_PATH)):
         with ctx.prefix(f'source {NVM_SH_PATH}'):
             npm_command = 'npm'
+
+            NVMRC_PATH = CLONE_DIR_PATH / NVMRC
 
             if NVMRC_PATH.is_file():
                 # nvm will output the node and npm versions used
@@ -77,6 +71,7 @@ def setup_node(ctx):
                                           hide=True)
                 LOGGER.info(f'NPM version: {npm_version_res.stdout}')
 
+            PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
             if PACKAGE_JSON_PATH.is_file():
                 LOGGER.info('Installing production dependencies '
                             'in package.json')
@@ -97,6 +92,7 @@ def node_context(ctx, *more_contexts):
 
     # Only use `nvm use` if `.nvmrc` exists.
     # The default node version will be used if `.nvmrc` is not present.
+    NVMRC_PATH = CLONE_DIR_PATH / NVMRC
     if NVMRC_PATH.is_file():
         contexts.append(ctx.prefix('nvm use'))
 
@@ -120,24 +116,18 @@ def build_env(branch, owner, repository, site_prefix, base_url):
     }
 
 
-def _run_federalist_script(ctx, branch, owner, repository,
-                           site_prefix, base_url=''):
+@task(pre=[setup_node])
+def run_federalist_script(ctx, branch, owner, repository, site_prefix,
+                          base_url=''):
     '''
     Runs the npm "federalist" script if it is defined
     '''
-    if PACKAGE_JSON_PATH.is_file() and has_federalist_script():
-        with node_context(ctx, ctx.cd(CLONE_DIR_PATH)):
+    if has_federalist_script():
+        with node_context(ctx, ctx.cd(str(CLONE_DIR_PATH))):
             LOGGER.info('Running federalist build script in package.json')
-            ctx.run(
-                'npm run federalist',
-                env=build_env(branch, owner, repository,
-                              site_prefix, base_url)
-            )
-
-
-# 'Exported' run_federalist_script task
-run_federalist_script = task(
-    pre=[setup_node], name='run-federalist-script')(_run_federalist_script)
+            ctx.run('npm run federalist',
+                    env=build_env(branch, owner, repository, site_prefix,
+                                  base_url))
 
 
 @task
@@ -147,9 +137,10 @@ def setup_ruby(ctx):
     Uses the ruby version specified in .ruby-version if present
     '''
     with ctx.prefix(f'source {RVM_PATH}'):
+        RUBY_VERSION_PATH = CLONE_DIR_PATH / RUBY_VERSION
         if RUBY_VERSION_PATH.is_file():
             ruby_version = ''
-            with open(RUBY_VERSION_PATH, 'r') as ruby_vers_file:
+            with RUBY_VERSION_PATH.open() as ruby_vers_file:
                 ruby_version = ruby_vers_file.readline().strip()
                 # escape-quote the value in case there's anything weird
                 # in the .ruby-version file
@@ -162,14 +153,17 @@ def setup_ruby(ctx):
         LOGGER.info(f'Ruby version: {ruby_ver_res.stdout}')
 
 
-def _build_jekyll(ctx, branch, owner, repository, site_prefix,
-                  config='', base_url=''):
+@task(pre=[setup_ruby])
+def build_jekyll(ctx, branch, owner, repository, site_prefix,
+                 config='', base_url=''):
     '''
     Builds the cloned site with Jekyll
     '''
+    JEKYLL_CONF_YML_PATH = CLONE_DIR_PATH / JEKYLL_CONFIG_YML
+
     # Add baseurl, branch, and the custom config to _config.yml.
     # Use the 'a' option to create or append to an existing config file.
-    with open(JEKYLL_CONF_YML_PATH, 'a') as jekyll_conf_file:
+    with JEKYLL_CONF_YML_PATH.open('a') as jekyll_conf_file:
         jekyll_conf_file.writelines([
             '\n'
             f'baseurl: {base_url}\n',
@@ -179,9 +173,10 @@ def _build_jekyll(ctx, branch, owner, repository, site_prefix,
         ])
 
     source_rvm = ctx.prefix(f'source {RVM_PATH}')
-    with node_context(ctx, source_rvm, ctx.cd(CLONE_DIR_PATH)):
+    with node_context(ctx, source_rvm, ctx.cd(str(CLONE_DIR_PATH))):
         jekyll_cmd = 'jekyll'
 
+        GEMFILE_PATH = CLONE_DIR_PATH / GEMFILE
         if GEMFILE_PATH.is_file():
             LOGGER.info('Setting up bundler')
             ctx.run('gem install bundler')
@@ -207,10 +202,6 @@ def _build_jekyll(ctx, branch, owner, repository, site_prefix,
         )
 
 
-# 'Exported' build_jekyll task
-build_jekyll = task(pre=[setup_ruby], name='build-jekyll')(_build_jekyll)
-
-
 @task
 def download_hugo(ctx, version='0.23'):
     '''
@@ -220,12 +211,15 @@ def download_hugo(ctx, version='0.23'):
     dl_url = (f'https://github.com/gohugoio/hugo/releases/download/'
               f'v{version}/hugo_{version}_Linux-64bit.tar.gz')
     response = requests.get(dl_url)
-    hugo_tar_path = path.join(WORKING_DIR, 'hugo.tar.gz')
-    with open(hugo_tar_path, 'wb') as hugo_tar:
+
+    hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
+    with hugo_tar_path.open('wb') as hugo_tar:
         for chunk in response.iter_content(chunk_size=128):
             hugo_tar.write(chunk)
 
-    ctx.run(f'tar -xzf {hugo_tar_path} -C {WORKING_DIR}')
+    HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
+
+    ctx.run(f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}')
     ctx.run(f'chmod +x {HUGO_BIN_PATH}')
 
 
@@ -238,6 +232,8 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
     # Note that no pre- or post-tasks will be called when calling
     # the download_hugo task this way
     download_hugo(ctx, hugo_version)
+
+    HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
 
     hugo_vers_res = ctx.run(f'{HUGO_BIN_PATH} version')
     LOGGER.info(f'hugo version: {hugo_vers_res.stdout}')
@@ -256,22 +252,21 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
         )
 
 
-def _build_static(ctx):
+@task(pre=[
+    # Remove cloned repo's .git directory
+    call(clean, which=path.join(CLONE_DIR_PATH, '.git')),
+])
+def build_static(ctx):
     '''Moves all files from CLONE_DIR into SITE_BUILD_DIR'''
     LOGGER.info(f'Moving files to {SITE_BUILD_DIR}')
-    os.makedirs(SITE_BUILD_DIR_PATH, exist_ok=True)
+
+    # Make the site build directory first
+    SITE_BUILD_DIR_PATH.mkdir(exist_ok=True)
+
     files = os.listdir(CLONE_DIR_PATH)
 
     for file in files:
         # don't move the SITE_BUILD_DIR dir into itself
         if file is not SITE_BUILD_DIR:
-            shutil.move(path.join(CLONE_DIR_PATH, file),
-                        SITE_BUILD_DIR_PATH)
-
-
-# 'Exported' build-static task
-build_static = task(
-    pre=[
-        # Remove cloned repo's .git directory
-        call(clean, which=path.join(CLONE_DIR_PATH, '.git')),
-    ], name='build-static')(_build_static)
+            shutil.move(str(CLONE_DIR_PATH / file),
+                        str(SITE_BUILD_DIR_PATH))

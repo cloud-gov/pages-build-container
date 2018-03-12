@@ -96,7 +96,7 @@ class SiteFile(SiteObject):
         '''Generates an md5 hash of the file contents'''
         hash_md5 = hashlib.md5()  # nosec
 
-        with open(self.filename, "rb") as file:
+        with open(self.filename, 'rb') as file:
             for chunk in iter(lambda: file.read(4096), b""):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
