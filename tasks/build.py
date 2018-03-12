@@ -80,7 +80,6 @@ def setup_node(ctx):
             if PACKAGE_JSON_PATH.is_file():
                 LOGGER.info('Installing production dependencies '
                             'in package.json')
-
                 ctx.run(f'{npm_command} install --production')
 
 
