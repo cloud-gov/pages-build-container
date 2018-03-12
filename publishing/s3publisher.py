@@ -10,7 +10,7 @@ from datetime import datetime
 import boto3
 
 from log_utils import get_logger
-from .SiteObject import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
+from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
 LOGGER = get_logger('S3_PUBLISHER')
 

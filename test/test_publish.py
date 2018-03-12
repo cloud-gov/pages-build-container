@@ -21,7 +21,7 @@ class TestPublish():
         conn = boto3.resource('s3', region_name=aws_region)
 
         # We need to create the bucket since this is all in
-        # Boto's 'virtual' AWS account
+        # Moto's 'virtual' AWS account
         conn.create_bucket(Bucket=bucket)
 
         publish(ctx, base_url='/site/prefix', site_prefix='site/prefix',
