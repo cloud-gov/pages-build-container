@@ -5,6 +5,7 @@ import os
 
 from datetime import datetime
 
+import boto3
 from invoke import task
 
 from publishing import s3publisher
@@ -32,15 +33,19 @@ def publish(ctx, base_url, site_prefix, bucket, cache_control,
 
     start_time = datetime.now()
 
+    s3_client = boto3.client(
+        service_name='s3',
+        region_name=aws_region,
+        aws_access_key_id=access_key_id,
+        aws_secret_access_key=secret_access_key)
+
     s3publisher.publish_to_s3(
         directory=str(SITE_BUILD_DIR_PATH),
         base_url=base_url,
         site_prefix=site_prefix,
         bucket=bucket,
         cache_control=cache_control,
-        aws_region=aws_region,
-        access_key_id=access_key_id,
-        secret_access_key=secret_access_key,
+        s3_client=s3_client,
         dry_run=dry_run
     )
 
