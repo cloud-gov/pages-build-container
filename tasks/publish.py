@@ -7,7 +7,8 @@ from datetime import datetime
 
 from invoke import task
 
-from publishing.s3publisher import publish_to_s3
+from publishing import s3publisher
+
 from log_utils import get_logger
 from .common import SITE_BUILD_DIR_PATH, delta_to_mins_secs
 
@@ -31,8 +32,8 @@ def publish(ctx, base_url, site_prefix, bucket, cache_control,
 
     start_time = datetime.now()
 
-    publish_to_s3(
-        directory=SITE_BUILD_DIR_PATH,
+    s3publisher.publish_to_s3(
+        directory=str(SITE_BUILD_DIR_PATH),
         base_url=base_url,
         site_prefix=site_prefix,
         bucket=bucket,
