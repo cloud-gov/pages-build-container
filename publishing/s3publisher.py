@@ -7,12 +7,12 @@ import glob
 from os import path
 from datetime import datetime
 
-import boto3
-
 from log_utils import get_logger
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
 LOGGER = get_logger('S3_PUBLISHER')
+
+MAX_S3_KEYS_PER_REQUEST = 1000
 
 
 def list_remote_objects(bucket, site_prefix, s3_client):
@@ -35,7 +35,7 @@ def list_remote_objects(bucket, site_prefix, s3_client):
 
         request_kwargs = {
             'Bucket': bucket,
-            'MaxKeys': 1000,
+            'MaxKeys': MAX_S3_KEYS_PER_REQUEST,
             'Prefix': prefix,
         }
 
@@ -70,7 +70,7 @@ def list_remote_objects(bucket, site_prefix, s3_client):
 
 
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
-                  aws_region, access_key_id, secret_access_key, dry_run=False):
+                  s3_client, dry_run=False):
     '''Publishes the given directory to S3'''
     # With glob, dotfiles are ignored by default
     # Note that the filenames will include the `directory` prefix
@@ -102,13 +102,6 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     # Combined list of local objects
     local_objects = local_files + local_redirects
 
-    # Create an S3 client
-    s3_client = boto3.client(
-        service_name='s3',
-        region_name=aws_region,
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key)
-
     # Get list of remote files
     remote_objects = list_remote_objects(bucket=bucket,
                                          site_prefix=site_prefix,
@@ -120,11 +113,6 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         # These will not have the `directory` prefix that our local
         # files do, so add it so we can more easily compare them.
         filename = path.join(directory, obj.filename)
-        if not obj.filename:
-            # Special case where a blank remote filename is the site "root"
-            # redirect object, which we don't want to have a trailing slash.
-            # Instead, it will just have an S3 key name of `directory`.
-            filename = directory
         remote_objects_by_filename[filename] = obj
 
     local_objects_by_filename = {}
@@ -155,7 +143,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     # Upload new and modified files
     upload_objects = new_objects + modified_objects
     for file in upload_objects:
-        if dry_run:
+        if dry_run:  # pragma: no cover
             LOGGER.info(f'Dry-run uploading {file.s3_key}')
         else:
             LOGGER.info(f'Uploading {file.s3_key}')
@@ -175,7 +163,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
 
     # Delete files not needed any more
     for file in deletion_objects:
-        if dry_run:
+        if dry_run:  # pragma: no cover
             LOGGER.info(f'Dry run deleting {file.s3_key}')
         else:
             LOGGER.info(f'Deleting {file.s3_key}')
