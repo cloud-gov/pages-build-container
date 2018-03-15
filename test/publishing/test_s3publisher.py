@@ -1,0 +1,136 @@
+import boto3
+import pytest
+
+from moto import mock_s3
+
+from publishing.s3publisher import list_remote_objects, publish_to_s3
+from publishing.models import SiteObject
+
+TEST_BUCKET = 'test-bucket'
+TEST_REGION = 'test-region'
+TEST_ACCESS_KEY = 'fake-access-key'
+TEST_SECRET_KEY = 'fake-secret-key'
+
+
+@pytest.fixture
+def s3_client(monkeypatch):
+    monkeypatch.setenv('AWS_ACCESS_KEY_ID', TEST_ACCESS_KEY)
+    monkeypatch.setenv('AWS_SECRET_ACCESS_KEY', TEST_SECRET_KEY)
+
+    with mock_s3():
+        conn = boto3.resource('s3', region_name=TEST_REGION)
+
+        conn.create_bucket(Bucket=TEST_BUCKET)
+
+        s3_client = boto3.client(
+            service_name='s3',
+            region_name=TEST_REGION,
+            aws_access_key_id=TEST_ACCESS_KEY,
+            aws_secret_access_key=TEST_SECRET_KEY,
+        )
+
+        yield s3_client
+
+
+def test_list_remote_objects(monkeypatch, s3_client):
+    # Check that nothing is returned if nothing is in the bucket
+    results = list_remote_objects(TEST_BUCKET, '/test-site', s3_client)
+    assert results == []
+
+    # Add a few objects with different prefixes
+    s3_client.put_object(Key='/test-site/a', Body='a', Bucket=TEST_BUCKET)
+    s3_client.put_object(Key='/wrong-prefix/b', Body='b', Bucket=TEST_BUCKET)
+
+    # Check that only one object matching the prefix is returned
+    results = list_remote_objects(TEST_BUCKET, '/test-site', s3_client)
+    assert len(results) == 1
+    assert type(results[0]) == SiteObject
+    assert results[0].s3_key == '/test-site/a'
+
+    # Add a few more objects
+    for i in range(0, 10):
+        s3_client.put_object(Key=f'/test-site/sub/{i}.html',
+                             Body=f'{i}', Bucket=TEST_BUCKET)
+
+    # Monkeypatch max keys so we can ensure ContinuationTokens are used
+    monkeypatch.setattr('publishing.s3publisher.MAX_S3_KEYS_PER_REQUEST', 5)
+
+    # Check that we get all expected objects back
+    results = list_remote_objects(TEST_BUCKET, '/test-site', s3_client)
+    assert len(results) == 11  # 10 keys from the loop, 1 from previous put
+
+
+def _make_fake_files(dir, filenames):
+    for f_name in filenames:
+        file = dir.join(f_name)
+        file.write(f'fake content for {f_name}')
+
+
+def test_publish_to_s3(tmpdir, s3_client):
+    # Use tmpdir to create a fake directory
+    # full of directories and files to be published/deleted/updated
+    test_dir = tmpdir.mkdir('test_dir')
+
+    # make a subdirectory
+    test_dir.mkdir('sub_dir')
+
+    site_prefix = 'test_dir'
+
+    filenames = ['index.html',
+                 'boop.txt',
+                 'sub_dir/index.html']
+
+    _make_fake_files(test_dir, filenames)
+
+    publish_kwargs = {
+        'directory': str(test_dir),
+        'base_url': '/base_url',
+        'site_prefix': site_prefix,
+        'bucket': TEST_BUCKET,
+        'cache_control': 'max-age=10',
+        's3_client': s3_client,
+    }
+    publish_to_s3(**publish_kwargs)
+
+    results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+
+    keys = [r['Key'] for r in results['Contents']]
+
+    assert results['KeyCount'] == 5  # 3 files, 2 redirect objects
+
+    assert f'{site_prefix}/index.html' in keys
+    assert f'{site_prefix}/boop.txt' in keys
+    assert f'{site_prefix}/sub_dir' in keys
+    assert f'{site_prefix}/sub_dir/index.html' in keys
+    assert f'{site_prefix}' in keys  # main redirect object
+
+    # Add another file to the directory
+    more_filenames = ['new_index.html']
+    _make_fake_files(test_dir, more_filenames)
+    publish_to_s3(**publish_kwargs)
+    results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+
+    assert results['KeyCount'] == 6
+
+    # Delete some files and check that the published files count
+    # is correct
+    test_dir.join('new_index.html').remove()
+    test_dir.join('boop.txt').remove()
+    publish_to_s3(**publish_kwargs)
+    results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+    assert results['KeyCount'] == 4
+
+    # Write an existing file with different content so that it
+    # needs to get updated
+    index_key = f'{site_prefix}/index.html'
+    orig_etag = s3_client.get_object(Bucket=TEST_BUCKET, Key=index_key)['ETag']
+    test_dir.join('index.html').write('totally new content!!!')
+    publish_to_s3(**publish_kwargs)
+    results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+
+    # number of keys should be the same
+    assert results['KeyCount'] == 4
+
+    # make sure content in changed file is updated
+    new_etag = s3_client.get_object(Bucket=TEST_BUCKET, Key=index_key)['ETag']
+    assert new_etag != orig_etag
