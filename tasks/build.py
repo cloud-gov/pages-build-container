@@ -29,7 +29,6 @@ RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
 JEKYLL_CONFIG_YML = '_config.yml'
 
-
 def has_federalist_script():
     '''
     Checks for existence of the "federalist" script in the
