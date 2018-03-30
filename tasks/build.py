@@ -186,7 +186,7 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
 
         else:
             LOGGER.info('Installing Jekyll')
-            ctx.run('gem install jekyll')
+            ctx.run('gem install jekyll --no-document')
 
         jekyll_vers_res = ctx.run(f'{jekyll_cmd} -v')
         LOGGER.info(f'Building using Jekyll version: {jekyll_vers_res.stdout}')
@@ -229,7 +229,7 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
     '''
     Builds the cloned site with Hugo
     '''
-    # Note that no pre- or post-tasks will be called when calling
+    # Note that no pre/post-tasks will be called when calling
     # the download_hugo task this way
     download_hugo(ctx, hugo_version)
 
