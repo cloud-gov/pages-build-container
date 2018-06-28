@@ -1,6 +1,8 @@
 version: 2
 jobs:
   build:
+    environment:
+      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
     machine: true
     steps:
       - checkout
