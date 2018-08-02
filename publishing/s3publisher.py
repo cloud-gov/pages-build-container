@@ -96,9 +96,9 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             f.write("<html><body><h1>404 Not Found</h1></body></html>")
 
         file_404 = SiteFile(filename=filename_404,
-            dir_prefix=directory,
-            site_prefix=site_prefix,
-            cache_control=cache_control)
+                            dir_prefix=directory,
+                            site_prefix=site_prefix,
+                            cache_control=cache_control)
         local_files.append(file_404)
 
     # Create a list of redirects from the local files
