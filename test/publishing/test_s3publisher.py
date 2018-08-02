@@ -96,7 +96,7 @@ def test_publish_to_s3(tmpdir, s3_client):
 
     keys = [r['Key'] for r in results['Contents']]
 
-    assert results['KeyCount'] == 7  # 4 files, 3 redirect objects including /404/index.html
+    assert results['KeyCount'] == 7  # 4 files, 3 redirect objects w/ /404/
 
     assert f'{site_prefix}/index.html' in keys
     assert f'{site_prefix}/boop.txt' in keys
