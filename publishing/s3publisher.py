@@ -91,9 +91,17 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     # Add local 404 if does not already exist
     filename_404 = directory + '/404/index.html'
     if not path.isfile(filename_404):
+        msg_404 = []
+        msg_404.append("<html><body><h1>404 Not Found</h1><h3>You have")
+        msg_404.append(" navigated to a page that does not exist! If this is")
+        msg_404.append(" a bug, please report it to")
+        msg_404.append(" <a href=\"mailto: federalist-support@gsa.gov\">")
+        msg_404.append("federalist-support@gsa.gov<a/>. Thank you!")
+        msg_404.append("</h3></body></html>")
+        msg_404 = ''.join(msg_404)
         makedirs(path.dirname(filename_404), exist_ok=True)
         with open(filename_404, "w+") as f:
-            f.write("<html><body><h1>404 Not Found</h1></body></html>")
+            f.write(msg_404)
 
         file_404 = SiteFile(filename=filename_404,
                             dir_prefix=directory,
