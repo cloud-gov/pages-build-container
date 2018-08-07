@@ -225,7 +225,7 @@ def download_hugo(ctx, version='0.23'):
 
 @task
 def build_hugo(ctx, branch, owner, repository, site_prefix,
-               base_url='', hugo_version='0.23'):
+               base_url='', hugo_version='0.44'):
     '''
     Builds the cloned site with Hugo
     '''
