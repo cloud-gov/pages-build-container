@@ -5,15 +5,22 @@ import gzip
 import hashlib
 import mimetypes
 
-from os import path
 from datetime import datetime
-
+from os import path
 
 mimetypes.init()  # must initialize mimetypes
 
 
 def remove_prefix(text, prefix):
-    '''Returns a copy of text with the given prefix removed'''
+    '''
+    Returns a copy of text with the given prefix removed.
+
+    >>> remove_prefix('/ab/cd/ef', '/ab/cd')
+    '/ef'
+
+    >>> remove_prefix('abcd', '/ef')
+    'abcd'
+    '''
     if text.startswith(prefix):
         return text[len(prefix):]
     return text
@@ -96,7 +103,7 @@ class SiteFile(SiteObject):
         '''Generates an md5 hash of the file contents'''
         hash_md5 = hashlib.md5()  # nosec
 
-        with open(self.filename, "rb") as file:
+        with open(self.filename, 'rb') as file:
             for chunk in iter(lambda: file.read(4096), b""):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
@@ -155,6 +162,9 @@ class SiteRedirect(SiteObject):
                          site_prefix=site_prefix)
 
         self.base_url = base_url
+
+        # The md5 hash is the hash of the destination string, not
+        # of the file contents, for our redirect objects
         self.md5 = hashlib.md5(self.destination.encode()).hexdigest()  # nosec
 
     @property
