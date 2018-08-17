@@ -274,7 +274,7 @@ def main(ctx):
                          log_callback=LOG_CALLBACK,
                          private_values=private_values)
             elif GENERATOR == 'javascript':
-                LOGGER.info('site build already ran using \'npm run federalist\'')
+                LOGGER.info('build already ran in \'npm run federalist\'')
             else:
                 raise ValueError(f'Invalid GENERATOR: {GENERATOR}')
 
