@@ -273,6 +273,8 @@ def main(ctx):
                 run_task(ctx, 'build-static',
                          log_callback=LOG_CALLBACK,
                          private_values=private_values)
+            elif GENERATOR == 'script only':
+                LOGGER.info('build already ran in \'npm run federalist\'')
             else:
                 raise ValueError(f'Invalid GENERATOR: {GENERATOR}')
 
