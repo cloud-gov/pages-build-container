@@ -93,7 +93,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     if not path.isfile(filename_404):
         msg_404 = []
         msg_404.append("<html><body><h1>Page not found (404)</h1><p>There was")
-        msg_404.append(" no page at the requested address. Return to the")
+        msg_404.append(" no page found at the requested address. Return to the")
         msg_404.append(" <a href="/"> homepage?<a/>.</p><br>")
         msg_404.append(" <p>This site is hosted by")
         msg_404.append(" <a href="https://federalist.18f.gov">Federalist</a>.")
