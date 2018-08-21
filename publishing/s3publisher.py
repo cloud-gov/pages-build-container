@@ -97,7 +97,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         msg_404.append(" the <a href='/'>homepage?<a/>.</p><br>")
         msg_404.append(" <p>This site is hosted by")
         msg_404.append(" <a href='https://federalist.18f.gov'>Federalist</a>.")
-        msg_404.append("</h3></body></html>")
+        msg_404.append("</p></body></html>")
         msg_404 = ''.join(msg_404)
         makedirs(path.dirname(filename_404), exist_ok=True)
         with open(filename_404, "w+") as f:
