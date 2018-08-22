@@ -92,11 +92,12 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     filename_404 = directory + '/404/index.html'
     if not path.isfile(filename_404):
         msg_404 = []
-        msg_404.append("<html><body><h1>Page not found (404)</h1><p>There was")
-        msg_404.append(" no page found at the requested address. Return to")
-        msg_404.append(" the <a href='/'>homepage?<a/>.</p><br>")
-        msg_404.append("<p>This site is hosted by")
-        msg_404.append(" <a href='https://federalist.18f.gov'>Federalist</a>.")
+        msg_404.append("<html><body><h1>Page not found (404)</h1><p>We could")
+        msg_404.append(" not find the page you were looking for. Return to")
+        msg_404.append(" the <a href='/'>homepage?<a/></p><br>")
+        msg_404.append("<p>This is a default 404 page for")
+        msg_404.append(" <a href='https://federalist.18f.gov'>Federalist</a>,")
+        msg_404.append(" a hosting service for federal websites.")
         msg_404.append("</p></body></html>")
         msg_404 = ''.join(msg_404)
         makedirs(path.dirname(filename_404), exist_ok=True)
