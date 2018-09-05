@@ -49,7 +49,7 @@ def _clone_repo(ctx, owner, repository, branch):
     branch = shlex.quote(branch)
 
     ctx.run(
-        f'git clone -b {branch} --single-branch '
+        f'git clone -b {branch} --single-branch --depth 1 '
         f'{clone_url(owner, repository, github_token)} '
         f'{CLONE_DIR_PATH}'
     )
