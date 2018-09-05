@@ -194,7 +194,7 @@ class TestDownloadHugo():
         with requests_mock.Mocker() as m:
             m.get(
                 'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.23/hugo_0.23_Linux-64bit.tar.gz', text='fake-data')
+                '/v0.48/hugo_0.48_Linux-64bit.tar.gz', text='fake-data')
             tasks.download_hugo(ctx)
 
     def test_it_accepts_other_versions(self):
@@ -227,7 +227,7 @@ class TestBuildHugo():
         with requests_mock.Mocker() as m:
             m.get(
                 'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.23/hugo_0.23_Linux-64bit.tar.gz')
+                '/v0.48/hugo_0.48_Linux-64bit.tar.gz')
             kwargs = dict(branch='branch', owner='owner',
                           repository='repo', site_prefix='site/prefix')
             tasks.build_hugo(ctx, **kwargs)
