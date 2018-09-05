@@ -13,7 +13,7 @@ class TestCloneRepo():
     ])
     def test_it_runs_expected_commands(self, monkeypatch, owner, repo, branch):
         monkeypatch.setenv('GITHUB_TOKEN', 'fake-token')
-        clone_cmd = (f'git clone -b {branch} --single-branch '
+        clone_cmd = (f'git clone -b {branch} --single-branch --depth 1 '
                      f'https://fake-token@github.com/{owner}/{repo}.git '
                      f'{CLONE_DIR_PATH}')
         ctx = MockContext(run={
