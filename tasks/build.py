@@ -203,7 +203,7 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
 
 
 @task
-def download_hugo(ctx, version='0.23'):
+def download_hugo(ctx, version='0.48'):
     '''
     Downloads the specified version of Hugo
     '''
@@ -225,7 +225,7 @@ def download_hugo(ctx, version='0.23'):
 
 @task
 def build_hugo(ctx, branch, owner, repository, site_prefix,
-               base_url='', hugo_version='0.44'):
+               base_url='', hugo_version='0.48'):
     '''
     Builds the cloned site with Hugo
     '''
