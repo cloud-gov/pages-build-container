@@ -7,19 +7,19 @@ from tasks.common import CLONE_DIR_PATH
 
 
 class TestCloneRepo():
-    @pytest.mark.parametrize('owner, repo, branch', [
-        ('owner-1', 'repo-1', 'master'),
-        ('owner-2', 'repo-2', 'funkybranch'),
+    @pytest.mark.parametrize('owner, repo, branch, depth', [
+        ('owner-1', 'repo-1', 'master', '--depth 1'),
+        ('owner-2', 'repo-2', 'funkybranch', None),
     ])
-    def test_it_runs_expected_commands(self, monkeypatch, owner, repo, branch):
+    def test_it_runs_expected_commands(self, monkeypatch, owner, repo, branch, depth):
         monkeypatch.setenv('GITHUB_TOKEN', 'fake-token')
-        clone_cmd = (f'git clone -b {branch} --single-branch --depth 1 '
+        clone_cmd = (f'git clone -b {branch} --single-branch {depth} '
                      f'https://fake-token@github.com/{owner}/{repo}.git '
                      f'{CLONE_DIR_PATH}')
         ctx = MockContext(run={
             clone_cmd: Result()
         })
-        clone_repo(ctx, owner=owner, repository=repo, branch=branch)
+        clone_repo(ctx, owner=owner, repository=repo, branch=branch, depth=depth)
 
 
 class TestPushRepoRemote():
