@@ -33,7 +33,7 @@ def clone_url(owner, repository, access_token=''):
     return f'https://{repo_url}'
 
 
-def _clone_repo(ctx, owner, repository, branch):
+def _clone_repo(ctx, owner, repository, branch, depth=''):
     '''
     Clones the GitHub repository specified by owner and repository
     into CLONE_DIR_PATH.
@@ -49,7 +49,7 @@ def _clone_repo(ctx, owner, repository, branch):
     branch = shlex.quote(branch)
 
     ctx.run(
-        f'git clone -b {branch} --single-branch --depth 1 '
+        f'git clone -b {branch} --single-branch {depth} '
         f'{clone_url(owner, repository, github_token)} '
         f'{CLONE_DIR_PATH}'
     )
