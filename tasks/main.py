@@ -230,6 +230,7 @@ def main(ctx):
                     '--owner': OWNER,
                     '--repository': REPOSITORY,
                     '--branch': BRANCH,
+                    '--depth': '--depth 1',
                 }
 
                 run_task(ctx, 'clone-repo',
