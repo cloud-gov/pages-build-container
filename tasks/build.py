@@ -28,6 +28,7 @@ PACKAGE_JSON = 'package.json'
 RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
 JEKYLL_CONFIG_YML = '_config.yml'
+HUGO_VERSION = '.hugo-version'
 
 
 def has_federalist_script():
@@ -203,13 +204,30 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
 
 
 @task
-def download_hugo(ctx, version='0.48'):
+def download_hugo(ctx):
+    HUGO_VERSION_PATH = CLONE_DIR_PATH / HUGO_VERSION
+    if HUGO_VERSION_PATH.is_file():
+        hugo_version = ''
+        with HUGO_VERSION_PATH.open() as hugo_vers_file:
+            hugo_version = hugo_vers_file.readline().strip()
+            # escape-quote the value in case there's anything weird
+            # in the .hugo-version file
+            hugo_version = shlex.quote(hugo_version)
+        if hugo_version:
+            LOGGER.info(f'Using hugo version in .hugo-version: {hugo_version}')
+    else:
+        response = requests.get(f'https://github.com/gohugoio/hugo/releases/latest')
+        lts_url = response.url
+        lts = lts_url.split('/')[-1][1:]
+        hugo_version = shlex.quote(lts)
+        if hugo_version:
+            LOGGER.info(f'Using latest hugo version: {hugo_version}')
     '''
     Downloads the specified version of Hugo
     '''
-    LOGGER.info(f'Downloading hugo version {version}')
+    LOGGER.info(f'Downloading hugo version {hugo_version}')
     dl_url = (f'https://github.com/gohugoio/hugo/releases/download/'
-              f'v{version}/hugo_{version}_Linux-64bit.tar.gz')
+              f'v{hugo_version}/hugo_{hugo_version}_Linux-64bit.tar.gz')
     response = requests.get(dl_url)
 
     hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
@@ -225,13 +243,13 @@ def download_hugo(ctx, version='0.48'):
 
 @task
 def build_hugo(ctx, branch, owner, repository, site_prefix,
-               base_url='', hugo_version='0.48'):
+               base_url=''):
     '''
     Builds the cloned site with Hugo
     '''
     # Note that no pre/post-tasks will be called when calling
     # the download_hugo task this way
-    download_hugo(ctx, hugo_version)
+    download_hugo(ctx)
 
     HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
 
