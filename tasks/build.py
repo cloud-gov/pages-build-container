@@ -6,6 +6,7 @@ import json
 import os
 import shlex
 import shutil
+import re
 from contextlib import ExitStack
 from os import path
 from pathlib import Path
@@ -210,10 +211,13 @@ def download_hugo(ctx):
         LOGGER.info(f'.hugo-version found')
         hugo_version = ''
         with HUGO_VERSION_PATH.open() as hugo_vers_file:
-            hugo_version = hugo_vers_file.readline().strip()
-            # escape-quote the value in case there's anything weird
-            # in the .hugo-version file
-            hugo_version = shlex.quote(hugo_version)
+            try:
+                hugo_version = hugo_vers_file.readline().strip()
+                hugo_version = shlex.quote(hugo_version)
+                hugo_version = re.search(r'(^[\d]+(\.[\d]+)+)$', hugo_version).group(1)
+            except Exception:
+                raise RuntimeError(f'Invalid .hugo-version')
+
         if hugo_version:
             LOGGER.info(f'Using hugo version in .hugo-version: {hugo_version}')
     else:
