@@ -207,6 +207,7 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
 def download_hugo(ctx):
     HUGO_VERSION_PATH = CLONE_DIR_PATH / HUGO_VERSION
     if HUGO_VERSION_PATH.is_file():
+        LOGGER.info(f'.hugo-version found')
         hugo_version = ''
         with HUGO_VERSION_PATH.open() as hugo_vers_file:
             hugo_version = hugo_vers_file.readline().strip()
@@ -216,30 +217,26 @@ def download_hugo(ctx):
         if hugo_version:
             LOGGER.info(f'Using hugo version in .hugo-version: {hugo_version}')
     else:
-        response = requests.get(f'https://github.com/gohugoio/hugo/releases/latest')
-        lts_url = response.url
-        lts = lts_url.split('/')[-1][1:]
-        hugo_version = shlex.quote(lts)
-        if hugo_version:
-            LOGGER.info(f'Using latest hugo version: {hugo_version}')
+        raise RuntimeError(".hugo-version not found")
     '''
     Downloads the specified version of Hugo
     '''
     LOGGER.info(f'Downloading hugo version {hugo_version}')
-    dl_url = (f'https://github.com/gohugoio/hugo/releases/download/'
-              f'v{hugo_version}/hugo_{hugo_version}_Linux-64bit.tar.gz')
-    response = requests.get(dl_url)
+    try:
+        dl_url = (f'https://github.com/gohugoio/hugo/releases/download/'
+                  f'v{hugo_version}/hugo_{hugo_version}_Linux-64bit.tar.gz')
+        response = requests.get(dl_url)
 
-    hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
-    with hugo_tar_path.open('wb') as hugo_tar:
-        for chunk in response.iter_content(chunk_size=128):
-            hugo_tar.write(chunk)
+        hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
+        with hugo_tar_path.open('wb') as hugo_tar:
+            for chunk in response.iter_content(chunk_size=128):
+                hugo_tar.write(chunk)
 
-    HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
-
-    ctx.run(f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}')
-    ctx.run(f'chmod +x {HUGO_BIN_PATH}')
-
+        HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
+        ctx.run(f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}')
+        ctx.run(f'chmod +x {HUGO_BIN_PATH}')
+    except:
+        raise RuntimeError(f'Unable to download hugo version: {hugo_version}')
 
 @task
 def build_hugo(ctx, branch, owner, repository, site_prefix,

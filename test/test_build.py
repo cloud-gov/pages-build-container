@@ -9,7 +9,7 @@ from invoke import MockContext, Result
 
 import tasks
 from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML, NVMRC,
-                         PACKAGE_JSON, RUBY_VERSION, node_context)
+                         PACKAGE_JSON, RUBY_VERSION, node_context, HUGO_VERSION)
 
 from .support import create_file, patch_dir
 
@@ -183,7 +183,8 @@ class TestBuildJekyll():
 
 
 class TestDownloadHugo():
-    def test_it_is_callable(self, patch_working_dir):
+    def test_it_is_callable(self, patch_working_dir, patch_clone_dir):
+        create_file(patch_clone_dir / HUGO_VERSION, '0.44')
         tar_cmd = (f'tar -xzf {patch_working_dir}/hugo.tar.gz -C '
                    f'{patch_working_dir}')
         chmod_cmd = f'chmod +x {patch_working_dir}/hugo'
@@ -194,26 +195,13 @@ class TestDownloadHugo():
         with requests_mock.Mocker() as m:
             m.get(
                 'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.48/hugo_0.48_Linux-64bit.tar.gz', text='fake-data')
+                '/v0.44/hugo_0.44_Linux-64bit.tar.gz', text='fake-data')
             tasks.download_hugo(ctx)
-
-    def test_it_accepts_other_versions(self):
-        version = '0.25'
-        ctx = MockContext(run=[
-            Result('tar result'),
-            Result('chmod result'),
-        ])
-        with requests_mock.Mocker() as m:
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                f'/v{version}/hugo_{version}_Linux-64bit.tar.gz',
-                text='fake-data')
-            tasks.download_hugo(ctx, version=version)
 
 
 class TestBuildHugo():
     def test_it_calls_hugo_as_expected(self, monkeypatch, patch_working_dir):
-        def mock_download(ctx, hugo_version):
+        def mock_download(ctx):
             pass
 
         monkeypatch.setattr(tasks.build, 'download_hugo', mock_download)
