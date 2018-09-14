@@ -235,8 +235,9 @@ def download_hugo(ctx):
         HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
         ctx.run(f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}')
         ctx.run(f'chmod +x {HUGO_BIN_PATH}')
-    except:
+    except Exception:
         raise RuntimeError(f'Unable to download hugo version: {hugo_version}')
+
 
 @task
 def build_hugo(ctx, branch, owner, repository, site_prefix,

@@ -9,7 +9,8 @@ from invoke import MockContext, Result
 
 import tasks
 from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML, NVMRC,
-                         PACKAGE_JSON, RUBY_VERSION, node_context, HUGO_VERSION)
+                         PACKAGE_JSON, RUBY_VERSION, node_context,
+                         HUGO_VERSION)
 
 from .support import create_file, patch_dir
 
