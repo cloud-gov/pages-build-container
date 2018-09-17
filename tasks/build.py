@@ -22,6 +22,7 @@ LOGGER = get_logger('BUILD')
 
 NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
+CERTS_PATH=Path('/etc/ssl/certs/ca-certificates.crt')
 
 HUGO_BIN = 'hugo'
 NVMRC = '.nvmrc'
@@ -229,7 +230,7 @@ def download_hugo(ctx):
     try:
         dl_url = (f'https://github.com/gohugoio/hugo/releases/download/'
                   f'v{hugo_version}/hugo_{hugo_version}_Linux-64bit.tar.gz')
-        response = requests.get(dl_url)
+        response = requests.get(dl_url, verify=CERTS_PATH)
 
         hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
         with hugo_tar_path.open('wb') as hugo_tar:
