@@ -22,7 +22,7 @@ LOGGER = get_logger('BUILD')
 
 NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
-CERTS_PATH=Path('/etc/ssl/certs/ca-certificates.crt')
+CERTS_PATH = Path('/etc/ssl/certs/ca-certificates.crt')
 
 HUGO_BIN = 'hugo'
 NVMRC = '.nvmrc'
@@ -215,7 +215,8 @@ def download_hugo(ctx):
             try:
                 hugo_version = hugo_vers_file.readline().strip()
                 hugo_version = shlex.quote(hugo_version)
-                hugo_version = re.search(r'(^[\d]+(\.[\d]+)+)$', hugo_version).group(1)
+                regex = r'^[\d]+(\.[\d]+)*$'
+                hugo_version = re.search(regex, hugo_version).group(0)
             except Exception:
                 raise RuntimeError(f'Invalid .hugo-version')
 
