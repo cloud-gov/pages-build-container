@@ -20,13 +20,13 @@ ENV LC_ALL en_US.UTF-8
 
 RUN dpkg-reconfigure --frontend noninteractive locales
 
-# Install nvm and install versions 4 and 6
+# Install nvm and install versions 8 and 10
 ENV NVM_DIR /usr/local/nvm
-ENV NODE_DEFAULT_VERSION 8
+ENV NODE_DEFAULT_VERSION 10
 RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.31.3/install.sh | bash \
   && . "$NVM_DIR/nvm.sh" \
   && nvm install $NODE_DEFAULT_VERSION \
-  && nvm install 6 \
+  && nvm install 8 \
   && nvm use $NODE_DEFAULT_VERSION \
   && echo 'export OLD_PREFIX=$PREFIX && unset PREFIX' > $HOME/.profile \
   && echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> $HOME/.profile \
