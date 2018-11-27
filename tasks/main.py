@@ -16,7 +16,7 @@ from .common import load_dotenv, delta_to_mins_secs
 
 LOGGER = get_logger('MAIN')
 
-TIMEOUT_SECONDS = 20 * 60  # 20 minutes
+TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
 
 def format_output(stdout_str, stderr_str):
