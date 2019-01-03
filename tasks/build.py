@@ -182,7 +182,7 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
         GEMFILE_PATH = CLONE_DIR_PATH / GEMFILE
         if GEMFILE_PATH.is_file():
             LOGGER.info('Setting up bundler')
-            ctx.run('gem install bundler  --version=1.17.3')
+            ctx.run('gem install bundler  --version "<2"')
             LOGGER.info('Installing dependencies in Gemfile')
             ctx.run('bundle install')
             jekyll_cmd = 'bundle exec ' + jekyll_cmd
