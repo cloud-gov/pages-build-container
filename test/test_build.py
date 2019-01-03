@@ -174,7 +174,7 @@ class TestBuildJekyll():
         monkeypatch.setattr(tasks.build, 'SITE_BUILD_DIR_PATH', '/boop')
         create_file(patch_clone_dir / GEMFILE, '')
         ctx = MockContext(run={
-            'gem install bundler': Result(),
+            'gem install bundler  --version "<2"': Result(),
             'bundle install': Result(),
             'bundle exec jekyll -v': Result(),
             f'bundle exec jekyll build --destination /boop': Result(),
