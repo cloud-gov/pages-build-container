@@ -31,6 +31,7 @@ RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
 JEKYLL_CONFIG_YML = '_config.yml'
 HUGO_VERSION = '.hugo-version'
+BUNDLER_VERSION = '.bundler-version'
 
 
 def has_federalist_script():
@@ -156,6 +157,28 @@ def setup_ruby(ctx):
         LOGGER.info(f'Ruby version: {ruby_ver_res.stdout}')
 
 
+@task
+def setup_bundler(ctx):
+    LOGGER.info('Setting up bundler')
+    BUNDLER_VERSION_PATH = CLONE_DIR_PATH / BUNDLER_VERSION
+    if BUNDLER_VERSION_PATH.is_file():
+        with BUNDLER_VERSION_PATH.open() as bundler_vers_file:
+            try:
+                bundler_vers = bundler_vers_file.readline().strip()
+                # escape-quote the value in case there's anything weird
+                # in the .bundler-version file
+                bundler_vers = shlex.quote(bundler_vers)
+                regex = r'^[\d]+(\.[\d]+)*$'
+                bundler_vers = re.search(regex, bundler_vers).group(0)
+                if bundler_vers:
+                    LOGGER.info('Using bundler version in .bundler-version')
+                    ctx.run(f'gem install bundler --version "{bundler_vers}"')
+            except Exception:
+                raise RuntimeError(f'Invalid .bundler-version')
+    else:
+        ctx.run('gem install bundler --version "<2"')
+
+
 @task(pre=[setup_ruby])
 def build_jekyll(ctx, branch, owner, repository, site_prefix,
                  config='', base_url=''):
@@ -181,8 +204,7 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
 
         GEMFILE_PATH = CLONE_DIR_PATH / GEMFILE
         if GEMFILE_PATH.is_file():
-            LOGGER.info('Setting up bundler')
-            ctx.run('gem install bundler  --version "<2"')
+            setup_bundler(ctx)
             LOGGER.info('Installing dependencies in Gemfile')
             ctx.run('bundle install')
             jekyll_cmd = 'bundle exec ' + jekyll_cmd
