@@ -120,6 +120,7 @@ class TestSetupRuby():
         })
         tasks.setup_ruby(ctx)
 
+
 class TestSetupBundler():
     def test_it_uses_bundler_version_if_it_exists(self, patch_clone_dir):
         ctx = MockContext(run={
@@ -133,7 +134,6 @@ class TestSetupBundler():
         })
         tasks.setup_bundler(ctx)
 
-        # ruby_version should be strippeed and quoted as well
 
 class TestBuildJekyll():
     def test_it_is_callable(self, patch_clone_dir):

@@ -8,6 +8,6 @@ from .publish import publish
 from .main import main
 
 __all__ = ['clean', 'clone_repo', 'push_repo_remote', 'setup_node',
-           'setup_ruby', 'setup_bundler', 'run_federalist_script', 'build_jekyll',
+           'setup_ruby', 'run_federalist_script', 'build_jekyll',
            'build_hugo', 'build_static', 'download_hugo',
-           'publish', 'main']
+           'publish', 'setup_bundler', 'main']

@@ -156,6 +156,7 @@ def setup_ruby(ctx):
         ruby_ver_res = ctx.run('ruby -v')
         LOGGER.info(f'Ruby version: {ruby_ver_res.stdout}')
 
+
 @task
 def setup_bundler(ctx):
     LOGGER.info('Setting up bundler')
@@ -163,19 +164,20 @@ def setup_bundler(ctx):
     if BUNDLER_VERSION_PATH.is_file():
         with BUNDLER_VERSION_PATH.open() as bundler_vers_file:
             try:
-                bundler_version = bundler_vers_file.readline().strip()
+                bundler_vers = bundler_vers_file.readline().strip()
                 # escape-quote the value in case there's anything weird
                 # in the .bundler-version file
-                bundler_version = shlex.quote(bundler_version)
+                bundler_vers = shlex.quote(bundler_vers)
                 regex = r'^[\d]+(\.[\d]+)*$'
-                bundler_version = re.search(regex, bundler_version).group(0)
-                if bundler_version:
+                bundler_vers = re.search(regex, bundler_vers).group(0)
+                if bundler_vers:
                     LOGGER.info('Using bundler version in .bundler-version')
-                    ctx.run(f'gem install bundler --version "{bundler_version}"')
+                    ctx.run(f'gem install bundler --version "{bundler_vers}"')
             except Exception:
                 raise RuntimeError(f'Invalid .bundler-version')
     else:
         ctx.run('gem install bundler --version "<2"')
+
 
 @task(pre=[setup_ruby])
 def build_jekyll(ctx, branch, owner, repository, site_prefix,
