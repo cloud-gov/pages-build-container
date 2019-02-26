@@ -10,7 +10,7 @@ from invoke import MockContext, Result
 import tasks
 from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML, NVMRC,
                          PACKAGE_JSON, RUBY_VERSION, node_context,
-                         HUGO_VERSION)
+                         HUGO_VERSION, BUNDLER_VERSION)
 
 from .support import create_file, patch_dir
 
@@ -121,6 +121,20 @@ class TestSetupRuby():
         tasks.setup_ruby(ctx)
 
 
+class TestSetupBundler():
+    def test_it_uses_bundler_version_if_it_exists(self, patch_clone_dir):
+        ctx = MockContext(run={
+            'gem install bundler --version "<2"': Result(),
+        })
+        tasks.setup_bundler(ctx)
+
+        create_file(patch_clone_dir / BUNDLER_VERSION, '2.0.1')
+        ctx = MockContext(run={
+            'gem install bundler --version "2.0.1"': Result(),
+        })
+        tasks.setup_bundler(ctx)
+
+
 class TestBuildJekyll():
     def test_it_is_callable(self, patch_clone_dir):
         ctx = MockContext(run=[
@@ -174,7 +188,7 @@ class TestBuildJekyll():
         monkeypatch.setattr(tasks.build, 'SITE_BUILD_DIR_PATH', '/boop')
         create_file(patch_clone_dir / GEMFILE, '')
         ctx = MockContext(run={
-            'gem install bundler  --version "<2"': Result(),
+            'gem install bundler --version "<2"': Result(),
             'bundle install': Result(),
             'bundle exec jekyll -v': Result(),
             f'bundle exec jekyll build --destination /boop': Result(),
