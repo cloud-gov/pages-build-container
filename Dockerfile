@@ -4,7 +4,7 @@ FROM python:3.6
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       apt-utils build-essential git curl libssl-dev \
-      libreadline-dev zlib1g-dev libffi-dev
+      libreadline-dev zlib1g-dev libffi-dev libgl1-mesa-glx
 
 # Install and setup en_US.UTF-8 locale
 # This is necessary so that output from node/ruby/python
