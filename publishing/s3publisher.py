@@ -90,7 +90,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             local_files.append(site_file)
 
     # Add local 404 if does not already exist
-    filename_404 = directory + '/404/index.html'
+    filename_404 = directory + '/404.html'
     default_404_url = ('https://raw.githubusercontent.com'
                        '/18F/federalist-404-page/master/'
                        '404-federalist-client.html')

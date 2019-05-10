@@ -105,14 +105,13 @@ def test_publish_to_s3(tmpdir, s3_client):
 
         keys = [r['Key'] for r in results['Contents']]
 
-        assert results['KeyCount'] == 7  # 4 files, 3 redirect objects w/ /404/
+        assert results['KeyCount'] == 6  # 4 files, 3 redirect objects w/ /404.html
 
         assert f'{site_prefix}/index.html' in keys
         assert f'{site_prefix}/boop.txt' in keys
         assert f'{site_prefix}/sub_dir' in keys
         assert f'{site_prefix}/sub_dir/index.html' in keys
-        assert f'{site_prefix}/404' in keys
-        assert f'{site_prefix}/404/index.html' in keys
+        assert f'{site_prefix}/404.html' in keys
         assert f'{site_prefix}' in keys  # main redirect object
 
         # Add another file to the directory
@@ -121,7 +120,7 @@ def test_publish_to_s3(tmpdir, s3_client):
         publish_to_s3(**publish_kwargs)
         results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
 
-        assert results['KeyCount'] == 8
+        assert results['KeyCount'] == 7
 
         # Delete some files and check that the published files count
         # is correct
@@ -129,7 +128,7 @@ def test_publish_to_s3(tmpdir, s3_client):
         test_dir.join('boop.txt').remove()
         publish_to_s3(**publish_kwargs)
         results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
-        assert results['KeyCount'] == 6
+        assert results['KeyCount'] == 5
 
         # Write an existing file with different content so that it
         # needs to get updated
@@ -142,7 +141,7 @@ def test_publish_to_s3(tmpdir, s3_client):
         results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
 
         # number of keys should be the same
-        assert results['KeyCount'] == 6
+        assert results['KeyCount'] == 5
 
         # make sure content in changed file is updated
         new_etag = s3_client.get_object(
