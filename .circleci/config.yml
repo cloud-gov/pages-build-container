@@ -27,7 +27,7 @@ jobs:
       - run:
           name: Bandit
           command: |
-            docker-compose -f docker-compose.test.yml run app bandit -r .
+            docker-compose -f docker-compose.test.yml run app bandit publishing/*.py tasks/*.py log_utils/*.py
 
       - run:
           name: Install cc-test-reporter
@@ -48,13 +48,12 @@ jobs:
           name: CodeClimate after-build
           command: |
             # for whatever reason the current user doesn't have access
-            # to the directory that gets created for the docker-compose 
+            # to the directory that gets created for the docker-compose
             # `coverage/` volume, so `chown` it
             sudo chown -R $(whoami) ./coverage
             ./cc-test-reporter format-coverage -t coverage.py ./coverage/coverage.xml
             ./cc-test-reporter upload-coverage || true
-      
+
       - store_artifacts:
           path: ./coverage/coverage.xml
 
-        
