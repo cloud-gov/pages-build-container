@@ -1,5 +1,6 @@
 import boto3
 import pytest
+import requests_mock
 
 from moto import mock_s3
 
@@ -90,47 +91,60 @@ def test_publish_to_s3(tmpdir, s3_client):
         'cache_control': 'max-age=10',
         's3_client': s3_client,
     }
-    publish_to_s3(**publish_kwargs)
 
-    results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+    # Create mock for default 404 page request
+    with requests_mock.mock() as m:
+        m.get(('https://raw.githubusercontent.com'
+               '/18F/federalist-404-page/master/'
+               '404-federalist-client.html'),
+              text='default 404 page')
 
-    keys = [r['Key'] for r in results['Contents']]
+        publish_to_s3(**publish_kwargs)
 
-    assert results['KeyCount'] == 5  # 4 files, 3 redirect objects
+        results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
 
-    assert f'{site_prefix}/index.html' in keys
-    assert f'{site_prefix}/boop.txt' in keys
-    assert f'{site_prefix}/sub_dir' in keys
-    assert f'{site_prefix}/sub_dir/index.html' in keys
-    assert f'{site_prefix}' in keys  # main redirect object
+        keys = [r['Key'] for r in results['Contents']]
 
-    # Add another file to the directory
-    more_filenames = ['new_index.html']
-    _make_fake_files(test_dir, more_filenames)
-    publish_to_s3(**publish_kwargs)
-    results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+        assert results['KeyCount'] == 6  # 4 files, 3 redirects & 404.html
 
-    assert results['KeyCount'] == 6
+        assert f'{site_prefix}/index.html' in keys
+        assert f'{site_prefix}/boop.txt' in keys
+        assert f'{site_prefix}/sub_dir' in keys
+        assert f'{site_prefix}/sub_dir/index.html' in keys
+        assert f'{site_prefix}/404.html' in keys
+        assert f'{site_prefix}' in keys  # main redirect object
 
-    # Delete some files and check that the published files count
-    # is correct
-    test_dir.join('new_index.html').remove()
-    test_dir.join('boop.txt').remove()
-    publish_to_s3(**publish_kwargs)
-    results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
-    assert results['KeyCount'] == 4
+        # Add another file to the directory
+        more_filenames = ['new_index.html']
+        _make_fake_files(test_dir, more_filenames)
+        publish_to_s3(**publish_kwargs)
+        results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
 
-    # Write an existing file with different content so that it
-    # needs to get updated
-    index_key = f'{site_prefix}/index.html'
-    orig_etag = s3_client.get_object(Bucket=TEST_BUCKET, Key=index_key)['ETag']
-    test_dir.join('index.html').write('totally new content!!!')
-    publish_to_s3(**publish_kwargs)
-    results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+        assert results['KeyCount'] == 7
 
-    # number of keys should be the same
-    assert results['KeyCount'] == 4
+        # Delete some files and check that the published files count
+        # is correct
+        test_dir.join('new_index.html').remove()
+        test_dir.join('boop.txt').remove()
+        publish_to_s3(**publish_kwargs)
+        results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+        assert results['KeyCount'] == 5
 
-    # make sure content in changed file is updated
-    new_etag = s3_client.get_object(Bucket=TEST_BUCKET, Key=index_key)['ETag']
-    assert new_etag != orig_etag
+        # Write an existing file with different content so that it
+        # needs to get updated
+        index_key = f'{site_prefix}/index.html'
+        orig_etag = s3_client.get_object(
+                        Bucket=TEST_BUCKET,
+                        Key=index_key)['ETag']
+        test_dir.join('index.html').write('totally new content!!!')
+        publish_to_s3(**publish_kwargs)
+        results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+
+        # number of keys should be the same
+        assert results['KeyCount'] == 5
+
+        # make sure content in changed file is updated
+        new_etag = s3_client.get_object(
+                    Bucket=TEST_BUCKET,
+                    Key=index_key)['ETag']
+        assert new_etag != orig_etag
