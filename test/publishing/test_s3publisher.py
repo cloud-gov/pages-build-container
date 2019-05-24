@@ -148,3 +148,16 @@ def test_publish_to_s3(tmpdir, s3_client):
                     Bucket=TEST_BUCKET,
                     Key=index_key)['ETag']
         assert new_etag != orig_etag
+
+        # test hidden files and directories
+        test_dir.mkdir('.well-known')
+        test_dir.mkdir('.not-well-known')
+        more_filenames = ['.well-known/security.txt',
+                          '.well-known/not-security.txt',
+                          '.well-known/.security',
+                          '.not-well-known/security.txt',
+                          '.security']
+        _make_fake_files(test_dir, more_filenames)
+        publish_to_s3(**publish_kwargs)
+        results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+        assert results['KeyCount'] == 6
