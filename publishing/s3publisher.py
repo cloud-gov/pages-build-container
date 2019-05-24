@@ -79,6 +79,9 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     files_and_dirs = glob.glob(path.join(directory, '**', '*'),
                                recursive=True)
 
+    # add security.txt support
+    files_and_dirs += glob.glob(path.join(directory, '**', '.well-known', '*'),
+                               recursive=True)
     # Collect a list of all files in the specified directory
     local_files = []
     for filename in files_and_dirs:
