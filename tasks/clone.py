@@ -14,7 +14,7 @@ from .common import (REPO_BASE_URL, CLONE_DIR_PATH,
 LOGGER = get_logger('CLONE')
 
 
-def clone_url(owner, repository, access_token=''):
+def clone_url(owner, repository, access_token=''):  # nosec
     '''
     Creates a URL to a remote git repository.
     If `access_token` is specified, it will be included in the authentication

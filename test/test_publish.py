@@ -1,5 +1,6 @@
 import boto3
 import pytest
+import requests_mock
 
 from unittest.mock import Mock
 
@@ -27,9 +28,16 @@ class TestPublish():
     def test_it_is_callable(self, s3_conn):
         ctx = MockContext()
 
-        publish(ctx, base_url='/site/prefix', site_prefix='site/prefix',
-                bucket=TEST_BUCKET, cache_control='max-age: boop',
-                aws_region=TEST_REGION)
+        # Create mock for default 404 page request
+        with requests_mock.mock() as m:
+            m.get(('https://raw.githubusercontent.com'
+                   '/18F/federalist-404-page/master/'
+                   '404-federalist-client.html'),
+                  text='default 404 page')
+
+            publish(ctx, base_url='/site/prefix', site_prefix='site/prefix',
+                    bucket=TEST_BUCKET, cache_control='max-age: boop',
+                    aws_region=TEST_REGION)
 
     def test_it_calls_publish_to_s3(self, monkeypatch, s3_conn):
         mock_publish_to_s3 = Mock()
