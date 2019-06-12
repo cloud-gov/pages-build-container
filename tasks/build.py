@@ -266,6 +266,7 @@ def download_hugo(ctx):
     except Exception:
         raise RuntimeError(f'Unable to download hugo version: {hugo_version}')
 
+
 @task
 def bundle_gemfile(ctx):
     source_rvm = ctx.prefix(f'source {RVM_PATH}')
@@ -276,6 +277,7 @@ def bundle_gemfile(ctx):
             setup_bundler(ctx)
             LOGGER.info('Installing dependencies in Gemfile')
             ctx.run('bundle install')
+
 
 @task(pre=[bundle_gemfile])
 def build_hugo(ctx, branch, owner, repository, site_prefix,
