@@ -268,18 +268,6 @@ def download_hugo(ctx):
 
 
 @task
-def bundle_gemfile(ctx):
-    source_rvm = ctx.prefix(f'source {RVM_PATH}')
-    with node_context(ctx, source_rvm, ctx.cd(str(CLONE_DIR_PATH))):
-        GEMFILE_PATH = CLONE_DIR_PATH / GEMFILE
-        if GEMFILE_PATH.is_file():
-            setup_ruby(ctx)
-            setup_bundler(ctx)
-            LOGGER.info('Installing dependencies in Gemfile')
-            ctx.run('bundle install')
-
-
-@task(pre=[bundle_gemfile])
 def build_hugo(ctx, branch, owner, repository, site_prefix,
                base_url=''):
     '''
