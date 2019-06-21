@@ -204,14 +204,15 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             LOGGER.info(f'... done in {delta.total_seconds():.2f}s')
 
 def update_admin_config(filename, base_url, owner, repository, auth_endpoint):
-    config = {}
+    config = None
     with open(filename) as f:
         config = yaml.safe_load(f)
 
-    if config["backend"]:
-        config["backend"]["repo"] = owner + "/" + repository
-        config["backend"]["base_url"] = base_url
-        config["backend"]["auth_endpoint"] = auth_endpoint
+    if config:
+        if config["backend"]:
+            config["backend"]["repo"] = owner + "/" + repository
+            config["backend"]["base_url"] = base_url
+            config["backend"]["auth_endpoint"] = auth_endpoint
 
-        with open(filename, "w") as f:
-            yaml.dump(config, f)
+            with open(filename, "w") as f:
+                yaml.dump(config, f)
