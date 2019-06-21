@@ -4,6 +4,7 @@ Classes and methods for publishing a directory to S3
 
 import glob
 import requests
+import yaml
 
 from os import path, makedirs
 from datetime import datetime
@@ -71,7 +72,7 @@ def list_remote_objects(bucket, site_prefix, s3_client):
 
 
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
-                  s3_client, dry_run=False):
+                  s3_client, owner, repository, auth_endpoint, dry_run=False):
     '''Publishes the given directory to S3'''
     # With glob, dotfiles are ignored by default
     # Note that the filenames will include the `directory` prefix
@@ -82,10 +83,16 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     # add security.txt support
     files_and_dirs += glob.glob(path.join(directory, '**', '.well-known',
                                 'security.txt'), recursive=True)
+
+    admin_config_filename = directory + '/admin/config.yml'
+
     # Collect a list of all files in the specified directory
     local_files = []
     for filename in files_and_dirs:
         if path.isfile(filename):
+            if filename == admin_config_filename:
+                update_admin_config(filename, base_url, owner, repository, auth_endpoint)
+
             site_file = SiteFile(filename=filename,
                                  dir_prefix=directory,
                                  site_prefix=site_prefix,
@@ -195,3 +202,16 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
 
             delta = datetime.now() - start_time
             LOGGER.info(f'... done in {delta.total_seconds():.2f}s')
+
+def update_admin_config(filename, base_url, owner, repository, auth_endpoint):
+    config = {}
+    with open(filename) as f:
+        config = yaml.safe_load(f)
+
+    if config["backend"]:
+        config["backend"]["repo"] = owner + "/" + repository
+        config["backend"]["base_url"] = base_url
+        config["backend"]["auth_endpoint"] = auth_endpoint
+
+        with open(filename, "w") as f:
+            yaml.dump(config, f)

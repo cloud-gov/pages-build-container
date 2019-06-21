@@ -177,6 +177,7 @@ def main(ctx):
     # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/log/<token>
     LOG_CALLBACK = os.environ['LOG_CALLBACK']
 
+    AUTH_ENDPOINT = os.environ['AUTH_ENDPOINT']
     try:
         # throw a timeout exception after TIMEOUT_SECONDS
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
@@ -288,6 +289,9 @@ def main(ctx):
                 '--bucket': BUCKET,
                 '--cache-control': CACHE_CONTROL,
                 '--aws-region': AWS_DEFAULT_REGION,
+                '--owner': OWNER,
+                '--repository': REPOSITORY,
+                '--auth-endpoint': AUTH_ENDPOINT,
             }
 
             publish_env = {
