@@ -205,14 +205,15 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
 
 def update_admin_config(filename, base_url, owner, repository, auth_endpoint):
     config = None
-    with open(filename) as f:
-        config = yaml.safe_load(f)
-
-    if config:
-        if config["backend"]:
-            config["backend"]["repo"] = owner + "/" + repository
-            config["backend"]["base_url"] = base_url
-            config["backend"]["auth_endpoint"] = auth_endpoint
-
-            with open(filename, "w") as f:
-                yaml.dump(config, f)
+    try:
+        with open(filename) as f:
+            config = yaml.safe_load(f)
+            if config:
+                if 'backend' in config:
+                    config['backend']['repo'] = f'{owner}/{repository}'
+                    config['backend']['base_url'] = base_url
+                    config['backend']['auth_endpoint'] = auth_endpoint
+        with open(filename, "w") as f:
+            yaml.dump(config, f)
+    except (yaml.YAMLError, IOError) as exc:
+        LOGGER.warn(f'Failed to modify admin/config.yml: {exc}')

@@ -1,6 +1,7 @@
 import boto3
 import pytest
 import requests_mock
+import yaml
 
 from moto import mock_s3
 
@@ -11,6 +12,10 @@ TEST_BUCKET = 'test-bucket'
 TEST_REGION = 'test-region'
 TEST_ACCESS_KEY = 'fake-access-key'
 TEST_SECRET_KEY = 'fake-secret-key'
+OWNER = 'the_owner',
+REPOSITORY = 'the_repository'
+AUTH_ENDPOINT = 'the_auth_endpoint'
+BASE_URL = '/base_url'
 
 
 @pytest.fixture
@@ -66,6 +71,13 @@ def _make_fake_files(dir, filenames):
         file = dir.join(f_name)
         file.write(f'fake content for {f_name}')
 
+def _make_fake_admin_config(dir, f_name='admin/config.yml'):
+    config = {
+        'backend': {
+        }
+    }
+    file = dir.join(f_name)
+    file.write(yaml.dump(config))
 
 def test_publish_to_s3(tmpdir, s3_client):
     # Use tmpdir to create a fake directory
@@ -85,11 +97,14 @@ def test_publish_to_s3(tmpdir, s3_client):
 
     publish_kwargs = {
         'directory': str(test_dir),
-        'base_url': '/base_url',
+        'base_url': BASE_URL,
         'site_prefix': site_prefix,
         'bucket': TEST_BUCKET,
         'cache_control': 'max-age=10',
         's3_client': s3_client,
+        'owner': OWNER,
+        'repository': REPOSITORY,
+        'auth_endpoint': AUTH_ENDPOINT,
     }
 
     # Create mock for default 404 page request
@@ -161,3 +176,17 @@ def test_publish_to_s3(tmpdir, s3_client):
         publish_to_s3(**publish_kwargs)
         results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
         assert results['KeyCount'] == 6
+
+        # test admin config updated
+        test_dir.mkdir('admin')
+        admin_config = 'admin/config.yml'
+        _make_fake_admin_config(test_dir, admin_config)
+        publish_to_s3(**publish_kwargs)
+        results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+        assert results['KeyCount'] == 7
+        config = None
+        with open(test_dir.join(admin_config)) as f:
+            config = yaml.safe_load(f)
+        assert config['backend']['repo'] == f'{OWNER}/{REPOSITORY}'
+        assert config['backend']['auth_endpoint'] == AUTH_ENDPOINT
+        assert config["backend"]["base_url"] == BASE_URL
