@@ -91,7 +91,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     for filename in files_and_dirs:
         if path.isfile(filename):
             if filename == admin_config_filename:
-                update_admin_config(filename, base_url, owner, repository, auth_endpoint)
+                update_admin_config(filename, base_url, owner,
+                                    repository, auth_endpoint)
 
             site_file = SiteFile(filename=filename,
                                  dir_prefix=directory,
@@ -202,6 +203,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
 
             delta = datetime.now() - start_time
             LOGGER.info(f'... done in {delta.total_seconds():.2f}s')
+
 
 def update_admin_config(filename, base_url, owner, repository, auth_endpoint):
     config = None

@@ -71,6 +71,7 @@ def _make_fake_files(dir, filenames):
         file = dir.join(f_name)
         file.write(f'fake content for {f_name}')
 
+
 def _make_fake_admin_config(dir, f_name='admin/config.yml'):
     config = {
         'backend': {
@@ -78,6 +79,7 @@ def _make_fake_admin_config(dir, f_name='admin/config.yml'):
     }
     file = dir.join(f_name)
     file.write(yaml.dump(config))
+
 
 def test_publish_to_s3(tmpdir, s3_client):
     # Use tmpdir to create a fake directory
