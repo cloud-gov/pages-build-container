@@ -15,6 +15,7 @@ TEST_REGION = 'test-region'
 OWNER = 'the_owner',
 REPOSITORY = 'the_repository'
 AUTH_ENDPOINT = 'the_auth_endpoint'
+AUTH_BASEURL = 'http://baseurl'
 
 
 @pytest.fixture
@@ -41,7 +42,7 @@ class TestPublish():
             publish(ctx, base_url='/site/prefix', site_prefix='site/prefix',
                     bucket=TEST_BUCKET, cache_control='max-age: boop',
                     aws_region=TEST_REGION, owner=OWNER, repository=REPOSITORY,
-                    auth_endpoint=AUTH_ENDPOINT)
+                    auth_base_url=AUTH_BASEURL, auth_endpoint=AUTH_ENDPOINT)
 
     def test_it_calls_publish_to_s3(self, monkeypatch, s3_conn):
         mock_publish_to_s3 = Mock()
@@ -58,6 +59,7 @@ class TestPublish():
             aws_region=TEST_REGION,
             owner=OWNER,
             repository=REPOSITORY,
+            auth_base_url=AUTH_BASEURL,
             auth_endpoint=AUTH_ENDPOINT,
         )
 

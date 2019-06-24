@@ -16,6 +16,7 @@ OWNER = 'the_owner',
 REPOSITORY = 'the_repository'
 AUTH_ENDPOINT = 'the_auth_endpoint'
 BASE_URL = '/base_url'
+AUTH_BASE_URL = 'https://base_url.com'
 
 
 @pytest.fixture
@@ -107,6 +108,7 @@ def test_publish_to_s3(tmpdir, s3_client):
         'owner': OWNER,
         'repository': REPOSITORY,
         'auth_endpoint': AUTH_ENDPOINT,
+        'auth_base_url': AUTH_BASE_URL,
     }
 
     # Create mock for default 404 page request
@@ -191,4 +193,4 @@ def test_publish_to_s3(tmpdir, s3_client):
             config = yaml.safe_load(f)
         assert config['backend']['repo'] == f'{OWNER}/{REPOSITORY}'
         assert config['backend']['auth_endpoint'] == AUTH_ENDPOINT
-        assert config["backend"]["base_url"] == BASE_URL
+        assert config["backend"]["base_url"] == AUTH_BASE_URL

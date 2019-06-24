@@ -177,6 +177,7 @@ def main(ctx):
     # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/log/<token>
     LOG_CALLBACK = os.environ['LOG_CALLBACK']
 
+    AUTH_BASEURL = os.environ['AUTH_BASEURL']
     AUTH_ENDPOINT = os.environ['AUTH_ENDPOINT']
     try:
         # throw a timeout exception after TIMEOUT_SECONDS
@@ -291,6 +292,7 @@ def main(ctx):
                 '--aws-region': AWS_DEFAULT_REGION,
                 '--owner': OWNER,
                 '--repository': REPOSITORY,
+                '--auth-base-url': AUTH_BASEURL,
                 '--auth-endpoint': AUTH_ENDPOINT,
             }
 

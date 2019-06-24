@@ -72,7 +72,8 @@ def list_remote_objects(bucket, site_prefix, s3_client):
 
 
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
-                  s3_client, owner, repository, auth_endpoint, dry_run=False):
+                  s3_client, owner, repository, auth_base_url,
+                  auth_endpoint, dry_run=False):
     '''Publishes the given directory to S3'''
     # With glob, dotfiles are ignored by default
     # Note that the filenames will include the `directory` prefix
@@ -92,7 +93,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         if path.isfile(filename):
             if filename == admin_config_filename:
                 update_admin_config(filename, base_url, owner,
-                                    repository, auth_endpoint)
+                                    repository, auth_base_url, auth_endpoint)
 
             site_file = SiteFile(filename=filename,
                                  dir_prefix=directory,
@@ -205,7 +206,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             LOGGER.info(f'... done in {delta.total_seconds():.2f}s')
 
 
-def update_admin_config(filename, base_url, owner, repository, auth_endpoint):
+def update_admin_config(filename, base_url, owner, repository, auth_base_url,
+                        auth_endpoint):
     config = None
     try:
         with open(filename) as f:
@@ -213,7 +215,7 @@ def update_admin_config(filename, base_url, owner, repository, auth_endpoint):
             if config:
                 if 'backend' in config:
                     config['backend']['repo'] = f'{owner}/{repository}'
-                    config['backend']['base_url'] = base_url
+                    config['backend']['base_url'] = auth_base_url
                     config['backend']['auth_endpoint'] = auth_endpoint
         with open(filename, "w") as f:
             yaml.dump(config, f)
