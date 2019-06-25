@@ -73,7 +73,7 @@ def list_remote_objects(bucket, site_prefix, s3_client):
 
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
                   s3_client, owner, repository, auth_base_url,
-                  auth_endpoint, dry_run=False):
+                  auth_endpoint, bucket_type, dry_run=False):
     '''Publishes the given directory to S3'''
     # With glob, dotfiles are ignored by default
     # Note that the filenames will include the `directory` prefix
@@ -92,8 +92,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     for filename in files_and_dirs:
         if path.isfile(filename):
             if filename == admin_config_filename:
-                update_admin_config(filename, base_url, owner,
-                                    repository, auth_base_url, auth_endpoint)
+                update_admin_config(filename, base_url, owner, repository,
+                                    auth_base_url, auth_endpoint, bucket_type)
 
             site_file = SiteFile(filename=filename,
                                  dir_prefix=directory,
@@ -207,16 +207,19 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
 
 
 def update_admin_config(filename, base_url, owner, repository, auth_base_url,
-                        auth_endpoint):
+                        auth_endpoint, bucket_type):
     config = None
     try:
         with open(filename) as f:
             config = yaml.safe_load(f)
             if config:
                 if 'backend' in config:
-                    config['backend']['repo'] = f'{owner}/{repository}'
-                    config['backend']['base_url'] = auth_base_url
-                    config['backend']['auth_endpoint'] = auth_endpoint
+                    if bucket_type == 'dedicated':
+                        config['backend']['repo'] = f'{owner}/{repository}'
+                        config['backend']['base_url'] = auth_base_url
+                        config['backend']['auth_endpoint'] = auth_endpoint
+                    else:
+                        config['backend'] = {}
         with open(filename, "w") as f:
             yaml.dump(config, f)
     except (yaml.YAMLError, IOError) as exc:

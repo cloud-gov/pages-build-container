@@ -179,6 +179,8 @@ def main(ctx):
 
     AUTH_BASEURL = os.environ['AUTH_BASEURL']
     AUTH_ENDPOINT = os.environ['AUTH_ENDPOINT']
+    BUCKET_TYPE = os.environ["BUCKET_TYPE"] or 'shared'
+
     try:
         # throw a timeout exception after TIMEOUT_SECONDS
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
@@ -294,6 +296,7 @@ def main(ctx):
                 '--repository': REPOSITORY,
                 '--auth-base-url': AUTH_BASEURL,
                 '--auth-endpoint': AUTH_ENDPOINT,
+                '--bucket-type': BUCKET_TYPE,
             }
 
             publish_env = {
