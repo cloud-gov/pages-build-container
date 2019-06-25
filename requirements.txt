@@ -3,3 +3,4 @@ python-dotenv==0.7.1
 requests==2.20.1
 boto3==1.4.7
 stopit==1.1.1
+PyYAML==5.1.1
