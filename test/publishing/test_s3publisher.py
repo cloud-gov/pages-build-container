@@ -18,6 +18,7 @@ AUTH_ENDPOINT = 'the_auth_endpoint'
 BASE_URL = '/base_url'
 AUTH_BASE_URL = 'https://base_url.com'
 BUCKET_TYPE = 'dedicated'
+BRANCH = 'branch'
 
 
 @pytest.fixture
@@ -108,6 +109,7 @@ def test_publish_to_s3(tmpdir, s3_client):
         's3_client': s3_client,
         'owner': OWNER,
         'repository': REPOSITORY,
+        'branch': BRANCH,
         'auth_endpoint': AUTH_ENDPOINT,
         'auth_base_url': AUTH_BASE_URL,
         'bucket_type': BUCKET_TYPE,
