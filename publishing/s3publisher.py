@@ -214,14 +214,14 @@ def update_admin_config(filename, base_url, owner, repository, branch,
         with open(filename) as f:
             config = yaml.safe_load(f)
             if config:
-                if bucket_type == 'dedicated':
-                    config['backend'] = config['backend'] or {}
-                    config['backend']['repo'] = f'{owner}/{repository}'
-                    config['backend']['base_url'] = auth_base_url
-                    config['backend']['auth_endpoint'] = auth_endpoint
-                    config['backend']['branch'] = branch
-                else:
-                    config['backend'] = {}
+                if 'backend' in config:
+                    if bucket_type == 'dedicated':
+                        config['backend']['repo'] = f'{owner}/{repository}'
+                        config['backend']['base_url'] = auth_base_url
+                        config['backend']['auth_endpoint'] = auth_endpoint
+                        config['backend']['branch'] = branch
+                    else:
+                        config['backend'] = {}
         with open(filename, "w") as f:
             yaml.dump(config, f)
     except (yaml.YAMLError, IOError) as exc:
