@@ -76,10 +76,7 @@ def _make_fake_files(dir, filenames):
 
 
 def _make_fake_admin_config(dir, f_name='admin/config.yml'):
-    config = {
-        'backend': {
-        }
-    }
+    config = {'hello': 'world'}
     file = dir.join(f_name)
     file.write(yaml.dump(config))
 
