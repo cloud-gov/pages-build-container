@@ -298,6 +298,7 @@ def main(ctx):
                 '--auth-base-url': AUTH_BASEURL,
                 '--auth-endpoint': AUTH_ENDPOINT,
                 '--bucket-type': BUCKET_TYPE,
+                '--generator': GENERATOR,
             }
 
             publish_env = {

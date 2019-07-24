@@ -20,7 +20,7 @@ LOGGER = get_logger('PUBLISH')
 @task
 def publish(ctx, base_url, site_prefix, bucket, cache_control, aws_region,
             owner, repository, branch, auth_base_url, auth_endpoint,
-            bucket_type, dry_run=False):
+            generator, dry_run=False):
     '''
     Publish the built site to S3.
 
@@ -52,7 +52,7 @@ def publish(ctx, base_url, site_prefix, bucket, cache_control, aws_region,
         branch=branch,
         auth_base_url=auth_base_url,
         auth_endpoint=auth_endpoint,
-        bucket_type=bucket_type,
+        generator=generator,
         dry_run=dry_run
     )
 

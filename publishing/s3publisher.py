@@ -73,7 +73,7 @@ def list_remote_objects(bucket, site_prefix, s3_client):
 
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
                   s3_client, owner, repository, branch, auth_base_url,
-                  auth_endpoint, bucket_type, dry_run=False):
+                  auth_endpoint, generator, dry_run=False):
     '''Publishes the given directory to S3'''
     # With glob, dotfiles are ignored by default
     # Note that the filenames will include the `directory` prefix
@@ -85,16 +85,19 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     files_and_dirs += glob.glob(path.join(directory, '**', '.well-known',
                                 'security.txt'), recursive=True)
 
-    admin_config_filename = directory + '/admin/config.yml'
+    admin_config_filename = None
+    if (generator == 'node.js' or generator == 'hugo'):
+        admin_config_filename = directory + '/static/admin/config.yml'
+    elif (generator == 'jekyll'):
+        admin_config_filename = directory + '/admin/config.yml'
 
     # Collect a list of all files in the specified directory
     local_files = []
     for filename in files_and_dirs:
         if path.isfile(filename):
-            if filename == admin_config_filename:
+            if admin_config_filename and (filename == admin_config_filename):
                 update_admin_config(filename, base_url, owner, repository,
-                                    branch, auth_base_url, auth_endpoint,
-                                    bucket_type)
+                                    branch, auth_base_url, auth_endpoint)
 
             site_file = SiteFile(filename=filename,
                                  dir_prefix=directory,
@@ -208,7 +211,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
 
 
 def update_admin_config(filename, base_url, owner, repository, branch,
-                        auth_base_url, auth_endpoint, bucket_type):
+                        auth_base_url, auth_endpoint):
     config = None
     try:
         with open(filename) as f:
@@ -216,13 +219,10 @@ def update_admin_config(filename, base_url, owner, repository, branch,
             if config:
                 if 'backend' not in config:
                     config['backend'] = {}
-                if bucket_type == 'dedicated':
-                    config['backend']['repo'] = f'{owner}/{repository}'
-                    config['backend']['base_url'] = auth_base_url
-                    config['backend']['auth_endpoint'] = auth_endpoint
-                    config['backend']['branch'] = branch
-                else:
-                    config['backend'] = {}
+                config['backend']['repo'] = f'{owner}/{repository}'
+                config['backend']['base_url'] = auth_base_url
+                config['backend']['auth_endpoint'] = auth_endpoint
+                config['backend']['branch'] = branch
         with open(filename, "w") as f:
             yaml.dump(config, f)
     except (yaml.YAMLError, IOError) as exc:

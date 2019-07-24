@@ -17,8 +17,8 @@ REPOSITORY = 'the_repository'
 AUTH_ENDPOINT = 'the_auth_endpoint'
 BASE_URL = '/base_url'
 AUTH_BASE_URL = 'https://base_url.com'
-BUCKET_TYPE = 'dedicated'
 BRANCH = 'branch'
+GENERATOR = 'static'
 
 
 @pytest.fixture
@@ -109,7 +109,7 @@ def test_publish_to_s3(tmpdir, s3_client):
         'branch': BRANCH,
         'auth_endpoint': AUTH_ENDPOINT,
         'auth_base_url': AUTH_BASE_URL,
-        'bucket_type': BUCKET_TYPE,
+        'generator': GENERATOR,
     }
 
     # Create mock for default 404 page request
@@ -186,6 +186,7 @@ def test_publish_to_s3(tmpdir, s3_client):
         test_dir.mkdir('admin')
         admin_config = 'admin/config.yml'
         _make_fake_admin_config(test_dir, admin_config)
+        publish_kwargs['generator'] = 'jekyll'
         publish_to_s3(**publish_kwargs)
         results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
         assert results['KeyCount'] == 7
@@ -196,11 +197,29 @@ def test_publish_to_s3(tmpdir, s3_client):
         assert config['backend']['auth_endpoint'] == AUTH_ENDPOINT
         assert config["backend"]["base_url"] == AUTH_BASE_URL
 
-        publish_kwargs['bucket_type'] = 'shared'
+        test_dir.mkdir('static')
+        test_dir.mkdir('static/admin')
+        admin_config = 'static/admin/config.yml'
+        _make_fake_admin_config(test_dir, admin_config)
+        publish_kwargs['generator'] = 'hugo'
         publish_to_s3(**publish_kwargs)
         results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
-        assert results['KeyCount'] == 7
+        assert results['KeyCount'] == 8
         config = None
         with open(test_dir.join(admin_config)) as f:
             config = yaml.safe_load(f)
-        assert config['backend'] == {}
+        assert config['backend']['repo'] == f'{OWNER}/{REPOSITORY}'
+        assert config['backend']['auth_endpoint'] == AUTH_ENDPOINT
+        assert config["backend"]["base_url"] == AUTH_BASE_URL
+
+        publish_kwargs['generator'] = 'node.js'
+        publish_kwargs['repository'] = 'node-repo'
+        publish_to_s3(**publish_kwargs)
+        results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+        assert results['KeyCount'] == 8
+        config = None
+        with open(test_dir.join(admin_config)) as f:
+            config = yaml.safe_load(f)
+        assert config['backend']['repo'] == f'{OWNER}/node-repo'
+        assert config['backend']['auth_endpoint'] == AUTH_ENDPOINT
+        assert config["backend"]["base_url"] == AUTH_BASE_URL
