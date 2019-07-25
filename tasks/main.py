@@ -179,7 +179,6 @@ def main(ctx):
 
     AUTH_BASEURL = os.getenv('AUTH_BASEURL', '')
     AUTH_ENDPOINT = os.getenv('AUTH_ENDPOINT', '')
-    BUCKET_TYPE = os.getenv("BUCKET_TYPE", 'shared')
 
     try:
         # throw a timeout exception after TIMEOUT_SECONDS
@@ -297,7 +296,6 @@ def main(ctx):
                 '--branch': BRANCH,
                 '--auth-base-url': AUTH_BASEURL,
                 '--auth-endpoint': AUTH_ENDPOINT,
-                '--bucket-type': BUCKET_TYPE,
                 '--generator': GENERATOR,
             }
 
