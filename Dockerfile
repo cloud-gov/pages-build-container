@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.6-stretch
 
 # Install general dependencies
 RUN apt-get update \
