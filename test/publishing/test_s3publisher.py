@@ -39,25 +39,25 @@ def test_list_remote_objects(monkeypatch, s3_client):
     assert results == []
 
     # Add a few objects with different prefixes
-    s3_client.put_object(Key='/test-site/a', Body='a', Bucket=TEST_BUCKET)
-    s3_client.put_object(Key='/wrong-prefix/b', Body='b', Bucket=TEST_BUCKET)
+    s3_client.put_object(Key='test-site/a', Body='a', Bucket=TEST_BUCKET)
+    s3_client.put_object(Key='wrong-prefix/b', Body='b', Bucket=TEST_BUCKET)
 
     # Check that only one object matching the prefix is returned
-    results = list_remote_objects(TEST_BUCKET, '/test-site', s3_client)
+    results = list_remote_objects(TEST_BUCKET, 'test-site', s3_client)
     assert len(results) == 1
     assert type(results[0]) == SiteObject
-    assert results[0].s3_key == '/test-site/a'
+    assert results[0].s3_key == 'test-site/a'
 
     # Add a few more objects
     for i in range(0, 10):
-        s3_client.put_object(Key=f'/test-site/sub/{i}.html',
+        s3_client.put_object(Key=f'test-site/sub/{i}.html',
                              Body=f'{i}', Bucket=TEST_BUCKET)
 
     # Monkeypatch max keys so we can ensure ContinuationTokens are used
     monkeypatch.setattr('publishing.s3publisher.MAX_S3_KEYS_PER_REQUEST', 5)
 
     # Check that we get all expected objects back
-    results = list_remote_objects(TEST_BUCKET, '/test-site', s3_client)
+    results = list_remote_objects(TEST_BUCKET, 'test-site', s3_client)
     assert len(results) == 11  # 10 keys from the loop, 1 from previous put
 
 

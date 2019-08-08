@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 import requests_mock
-from invoke import MockContext, Result
+from invoke import Result, MockContext
 
 import tasks
 from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML, NVMRC,
