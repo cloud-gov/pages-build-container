@@ -237,7 +237,7 @@ def download_hugo(ctx):
             try:
                 hugo_version = hugo_vers_file.readline().strip()
                 hugo_version = shlex.quote(hugo_version)
-                regex = r'^(extended_)?[\d]+(\.[\d]+)*$'
+                regex = r'^[\d]+(\.[\d]+)*$'
                 hugo_version = re.search(regex, hugo_version).group(0)
             except Exception:
                 raise RuntimeError(f'Invalid .hugo-version')
@@ -251,9 +251,8 @@ def download_hugo(ctx):
     '''
     LOGGER.info(f'Downloading hugo version {hugo_version}')
     try:
-        dl_url = (f'https://github.com/gohugoio/hugo/releases/download/v'
-                  + hugo_version.split('_')[-1] +
-                  f'/hugo_{hugo_version}_Linux-64bit.tar.gz')
+        dl_url = (f'https://github.com/gohugoio/hugo/releases/download/'
+                  f'v{hugo_version}/hugo_{hugo_version}_Linux-64bit.tar.gz')
         response = requests.get(dl_url, verify=CERTS_PATH)
 
         hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
