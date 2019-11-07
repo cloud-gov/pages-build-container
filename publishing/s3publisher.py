@@ -123,6 +123,9 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     # Combined list of local objects
     local_objects = local_files + local_redirects
 
+    if len(local_objects) == 0:
+        raise RuntimeError('Build files not found')
+
     # Get list of remote files
     remote_objects = list_remote_objects(bucket=bucket,
                                          site_prefix=site_prefix,
@@ -155,6 +158,10 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         obj for filename, obj in remote_objects_by_filename.items()
         if not local_objects_by_filename.get(filename)
     ]
+
+    if len(new_objects) == 0 and len(modified_objects) == 0:
+        if len(deletion_objects) == len(remote_objects):
+            raise RuntimeError('Cannot delete site without new/modified site files')
 
     LOGGER.info('Preparing to upload')
     LOGGER.info(f'New: {len(new_objects)}')
