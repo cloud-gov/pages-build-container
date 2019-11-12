@@ -314,7 +314,7 @@ def main(ctx):
                                 FEDERALIST_BUILDER_CALLBACK)
 
     except TimeoutException:
-        LOGGER.exception('Build({BUILD_INFO}) has timed out')
+        LOGGER.exception(f'Build({BUILD_INFO}) has timed out')
         post_build_timeout(LOG_CALLBACK,
                            STATUS_CALLBACK,
                            FEDERALIST_BUILDER_CALLBACK)
@@ -351,8 +351,8 @@ def main(ctx):
                          + err_string)
 
         err_message = (f'Unexpected build({BUILD_INFO}) error. Please try'
-                       + ' again and contact federalist-support'
-                       + ' if it persists.')
+                       ' again and contact federalist-support'
+                       ' if it persists.')
 
         post_build_error(LOG_CALLBACK,
                          STATUS_CALLBACK,
