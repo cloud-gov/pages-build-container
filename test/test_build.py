@@ -5,6 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 import requests_mock
+import requests
 from invoke import Result, MockContext
 
 import tasks
@@ -212,6 +213,70 @@ class TestDownloadHugo():
                 'https://github.com/gohugoio/hugo/releases/download'
                 '/v0.44/hugo_0.44_Linux-64bit.tar.gz', text='fake-data')
             tasks.download_hugo(ctx)
+
+    def test_it_is_callable_retry(self, patch_working_dir, patch_clone_dir):
+        create_file(patch_clone_dir / HUGO_VERSION, '0.44')
+        tar_cmd = (f'tar -xzf {patch_working_dir}/hugo.tar.gz -C '
+                   f'{patch_working_dir}')
+        chmod_cmd = f'chmod +x {patch_working_dir}/hugo'
+        ctx = MockContext(run={
+            tar_cmd: Result(),
+            chmod_cmd: Result(),
+        })
+        with requests_mock.Mocker() as m:
+            m.get(
+                'https://github.com/gohugoio/hugo/releases/download'
+                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
+                exc=requests.exceptions.ConnectTimeout)
+            m.get(
+                'https://github.com/gohugoio/hugo/releases/download'
+                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
+                exc=requests.exceptions.ConnectTimeout)
+            m.get(
+                'https://github.com/gohugoio/hugo/releases/download'
+                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
+                exc=requests.exceptions.ConnectTimeout)
+            m.get(
+                'https://github.com/gohugoio/hugo/releases/download'
+                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
+                exc=requests.exceptions.ConnectTimeout)
+            m.get(
+                'https://github.com/gohugoio/hugo/releases/download'
+                '/v0.44/hugo_0.44_Linux-64bit.tar.gz', text='fake-data')
+            tasks.download_hugo(ctx)
+
+    def test_it_is_exception(self, patch_working_dir, patch_clone_dir):
+        create_file(patch_clone_dir / HUGO_VERSION, '0.44')
+        tar_cmd = (f'tar -xzf {patch_working_dir}/hugo.tar.gz -C '
+                   f'{patch_working_dir}')
+        chmod_cmd = f'chmod +x {patch_working_dir}/hugo'
+        ctx = MockContext(run={
+            tar_cmd: Result(),
+            chmod_cmd: Result(),
+        })
+        with pytest.raises(Exception):
+            with requests_mock.Mocker() as m:
+                m.get(
+                    'https://github.com/gohugoio/hugo/releases/download'
+                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
+                    exc=requests.exceptions.ConnectTimeout)
+                m.get(
+                    'https://github.com/gohugoio/hugo/releases/download'
+                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
+                    exc=requests.exceptions.ConnectTimeout)
+                m.get(
+                    'https://github.com/gohugoio/hugo/releases/download'
+                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
+                    exc=requests.exceptions.ConnectTimeout)
+                m.get(
+                    'https://github.com/gohugoio/hugo/releases/download'
+                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
+                    exc=requests.exceptions.ConnectTimeout)
+                m.get(
+                    'https://github.com/gohugoio/hugo/releases/download'
+                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
+                    exc=requests.exceptions.ConnectTimeout)
+                tasks.download_hugo(ctx)
 
 
 class TestBuildHugo():
