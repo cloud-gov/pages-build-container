@@ -27,7 +27,7 @@ def b64string(text):
     return base64.b64encode(text.encode('utf-8')).decode('utf-8')
 
 
-def post_output_log(log_callback_url, source, output, chunk_size=500000):
+def post_output_log(log_callback_url, source, output, chunk_size=200000):
     '''
     POSTs `output` logs from `source` to the `log_callback_url` in chunks
     of length `chunk_size`.
