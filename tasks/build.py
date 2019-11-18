@@ -271,12 +271,12 @@ def download_hugo(ctx):
             downloaded = True
         except Exception:
             failed_attempts += 1
+            LOGGER.warn(f'Failed attempt #{failed_attempts} '
+                        'to download hugo version: {hugo_version}')
             if failed_attempts == 5:
                 raise RuntimeError(f'Unable to download hugo version: '
                                    + hugo_version)
             time.sleep(2)  # try again in 2 secons
-            LOGGER.warn(f'Failed attempt #{failed_attempts} '
-                        'to download hugo version: {hugo_version}')
 
 
 @task
