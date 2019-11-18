@@ -7,6 +7,7 @@ import os
 import shlex
 import shutil
 import re
+import time
 from contextlib import ExitStack
 from os import path
 from pathlib import Path
@@ -250,22 +251,32 @@ def download_hugo(ctx):
     Downloads the specified version of Hugo
     '''
     LOGGER.info(f'Downloading hugo version {hugo_version}')
-    try:
-        dl_url = (f'https://github.com/gohugoio/hugo/releases/download/v'
-                  + hugo_version.split('_')[-1] +
-                  f'/hugo_{hugo_version}_Linux-64bit.tar.gz')
-        response = requests.get(dl_url, verify=CERTS_PATH)
+    downloaded = False
+    failed_attempts = 0
+    while (not downloaded) and (failed_attempts < 5):
+        try:
+            dl_url = (f'https://github.com/gohugoio/hugo/releases/download/v'
+                      + hugo_version.split('_')[-1] +
+                      f'/hugo_{hugo_version}_Linux-64bit.tar.gz')
+            response = requests.get(dl_url, verify=CERTS_PATH)
 
-        hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
-        with hugo_tar_path.open('wb') as hugo_tar:
-            for chunk in response.iter_content(chunk_size=128):
-                hugo_tar.write(chunk)
+            hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
+            with hugo_tar_path.open('wb') as hugo_tar:
+                for chunk in response.iter_content(chunk_size=128):
+                    hugo_tar.write(chunk)
 
-        HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
-        ctx.run(f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}')
-        ctx.run(f'chmod +x {HUGO_BIN_PATH}')
-    except Exception:
-        raise RuntimeError(f'Unable to download hugo version: {hugo_version}')
+            HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
+            ctx.run(f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}')
+            ctx.run(f'chmod +x {HUGO_BIN_PATH}')
+            downloaded = True
+        except Exception:
+            failed_attempts += 1
+            LOGGER.warn(f'Failed attempt #{failed_attempts} '
+                        'to download hugo version: {hugo_version}')
+            if failed_attempts == 5:
+                raise RuntimeError(f'Unable to download hugo version: '
+                                   + hugo_version)
+            time.sleep(2)  # try again in 2 secons
 
 
 @task

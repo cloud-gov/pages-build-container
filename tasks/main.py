@@ -177,6 +177,10 @@ def main(ctx):
     # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/log/<token>
     LOG_CALLBACK = os.environ['LOG_CALLBACK']
 
+    BUILD_ID = os.environ['BUILD_ID']
+
+    BUILD_INFO = f'{OWNER}/{REPOSITORY}@id:{BUILD_ID}'
+
     try:
         # throw a timeout exception after TIMEOUT_SECONDS
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
@@ -310,7 +314,7 @@ def main(ctx):
                                 FEDERALIST_BUILDER_CALLBACK)
 
     except TimeoutException:
-        LOGGER.info('Build has timed out')
+        LOGGER.exception(f'Build({BUILD_INFO}) has timed out')
         post_build_timeout(LOG_CALLBACK,
                            STATUS_CALLBACK,
                            FEDERALIST_BUILDER_CALLBACK)
@@ -323,8 +327,8 @@ def main(ctx):
                                             private_values)
 
         # log the original exception
-        LOGGER.info(f'Exception raised during build:')
-        LOGGER.info(err_string)
+        LOGGER.exception(f'Exception raised during build({BUILD_INFO}):'
+                         + err_string)
 
         # replace the message with a custom one, if it exists
         err_string = find_custom_error_message(err_string)
@@ -342,11 +346,13 @@ def main(ctx):
                                             private_values)
 
         # log the original exception
-        LOGGER.info('Unexpected exception raised during build:')
-        LOGGER.info(err_string)
+        LOGGER.exception(f'Unexpected exception raised during build('
+                         + BUILD_INFO + '): '
+                         + err_string)
 
-        err_message = ('Unexpected error. Please try again and '
-                       'contact federalist-support if it persists.')
+        err_message = (f'Unexpected build({BUILD_INFO}) error. Please try'
+                       ' again and contact federalist-support'
+                       ' if it persists.')
 
         post_build_error(LOG_CALLBACK,
                          STATUS_CALLBACK,
