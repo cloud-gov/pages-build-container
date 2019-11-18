@@ -160,8 +160,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     ]
 
     if len(new_objects) == 0 and len(modified_objects) == 0:
-        if len(deletion_objects) == len(remote_objects):
-            raise RuntimeError('Cannot unpublish all files')
+        raise RuntimeError('Cannot unpublish all files')
 
     LOGGER.info('Preparing to upload')
     LOGGER.info(f'New: {len(new_objects)}')
