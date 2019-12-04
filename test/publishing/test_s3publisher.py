@@ -1,4 +1,5 @@
 import boto3
+import json
 import pytest
 import requests_mock
 
@@ -83,6 +84,18 @@ def test_publish_to_s3(tmpdir, s3_client):
 
     _make_fake_files(test_dir, filenames)
 
+    # Make a federalist.json file!
+    repo_config = {
+        'headers': [
+            { '/index.html': { 'cache-control': 'no-cache' } },
+            { '/*.txt': { 'cache-control': 'max-age=1000' } }
+        ]
+    }
+    clone_dir = tmpdir.mkdir('clone_dir')
+    federalist_json_file = clone_dir.join('federalist.json')
+    with federalist_json_file.open('w') as json_file:
+        return json.dump(repo_config, json_file)
+
     publish_kwargs = {
         'directory': str(test_dir),
         'base_url': '/base_url',
@@ -90,6 +103,7 @@ def test_publish_to_s3(tmpdir, s3_client):
         'bucket': TEST_BUCKET,
         'cache_control': 'max-age=10',
         's3_client': s3_client,
+        'clone_dir': str(clone_dir)
     }
 
     # Create mock for default 404 page request
@@ -113,6 +127,18 @@ def test_publish_to_s3(tmpdir, s3_client):
         assert f'{site_prefix}/sub_dir/index.html' in keys
         assert f'{site_prefix}/404.html' in keys
         assert f'{site_prefix}' in keys  # main redirect object
+
+        # Check the cache control headers
+        cache_control_checks = [
+            ('index.html',  'no-cache'),
+            ('boop.txt',    'max-age=1000'),
+            ('404.html',    'max-age=60')
+        ]
+        for filename, expected in cache_control_checks:
+            result = s3_client.get_object(
+                        Bucket=TEST_BUCKET,
+                        Key=f'{site_prefix}/{filename}')['CacheControl']
+            assert result == expected
 
         # Add another file to the directory
         more_filenames = ['new_index.html']
