@@ -33,6 +33,7 @@ def test_match_path():
         ('/bar/*.html', '/bar/foo.js',       False),
         ('/bar/*.html', '/bar/baz/foo.html', True),
         ('/bar/*.html', '/bar/baz/foo.js',   False),
+        ('/bar/*.map',  '/bar/foo.js.map',   True),
 
         # segment wildcard paths
         ('/:hello',       '/',             True),
