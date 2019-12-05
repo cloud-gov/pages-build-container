@@ -1,7 +1,6 @@
-from os import path
-import pytest
+from repo_config.repo_config import (RepoConfig, match_path,
+                                     find_first_matching_cfg)
 
-from repo_config.repo_config import RepoConfig, match_path, find_first_matching_cfg
 
 def test_match_path():
 
@@ -58,16 +57,17 @@ def test_match_path():
     ]
 
     for cfg_path, path_to_match, expected_result in configs:
-        assert match_path(cfg_path, path_to_match) == expected_result, f'cfg: {cfg_path} path: {path_to_match}'
+        assert match_path(cfg_path, path_to_match) == expected_result
+
 
 def test_find_first_matching_cfg():
     headers = [
-        { '/index.html':  { 'cache-control': 'no-cache' } },
-        { '/:foo/*.html': { 'cache-control': 'max-age=2000' } },
-        { '/*.html':      { 'cache-control': 'max-age=4000' } },
-        { '/*':           { 'cache-control': 'max-age=6000' } }
+        {'/index.html':  {'cache-control': 'no-cache'}},
+        {'/:foo/*.html': {'cache-control': 'max-age=2000'}},
+        {'/*.html':      {'cache-control': 'max-age=4000'}},
+        {'/*':           {'cache-control': 'max-age=6000'}}
     ]
-    
+
     configs = [
       (headers, '/index.html',   headers[0]),
       (headers, '/foo/bar.html', headers[1]),
@@ -78,14 +78,16 @@ def test_find_first_matching_cfg():
     ]
 
     for cfg_headers, path_to_match, expected_result in configs:
-        assert find_first_matching_cfg(cfg_headers, path_to_match) == expected_result, f'cfg: {cfg_headers} path: {path_to_match}'
+        assert find_first_matching_cfg(
+                cfg_headers, path_to_match) == expected_result
+
 
 def test_get_headers_for_path():
     config = {
         'headers': [
-            { '/index.html': { 'cache-control': 'no-cache' } },
-            { '/*.html':     { 'cache-control': 'max-age=4000' } },
-            { '/*':          { 'cache-control': 'max-age=6000' } }
+            {'/index.html': {'cache-control': 'no-cache'}},
+            {'/*.html':     {'cache-control': 'max-age=4000'}},
+            {'/*':          {'cache-control': 'max-age=6000'}}
         ]
     }
 
@@ -97,7 +99,7 @@ def test_get_headers_for_path():
     }
 
     repo_config = RepoConfig(config=config, defaults=defaults)
-    
+
     # When multiple paths match, return the first
     path_to_match = '/index.html'
     value = repo_config.get_headers_for_path(path_to_match)
@@ -125,7 +127,7 @@ def test_get_headers_for_path():
     # Match default
     config = {
         'headers': [
-            { '/index.html': { 'cache-control': 'max-age=3000' } }
+            {'/index.html': {'cache-control': 'max-age=3000'}}
         ]
     }
     repo_config = RepoConfig(config=config, defaults=defaults)

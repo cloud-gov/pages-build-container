@@ -7,7 +7,6 @@ import json
 import requests
 
 from os import path, makedirs
-from pathlib import Path
 from datetime import datetime
 
 from log_utils import get_logger
@@ -19,10 +18,13 @@ LOGGER = get_logger('S3_PUBLISHER')
 MAX_S3_KEYS_PER_REQUEST = 1000
 FEDERALIST_JSON = 'federalist.json'
 
+
 def list_remote_objects(bucket, site_prefix, s3_client):
     '''
+
     Generates a list of remote S3 objects that have keys starting with
     site_preix in the given bucket.
+
     '''
     results_truncated = True
     continuation_token = None
@@ -72,6 +74,7 @@ def list_remote_objects(bucket, site_prefix, s3_client):
 
     return remote_objects
 
+
 def load_federalist_json(clone_dir):
     federalist_json_path = path.join(clone_dir, FEDERALIST_JSON)
     if path.isfile(federalist_json_path):
@@ -79,12 +82,14 @@ def load_federalist_json(clone_dir):
             return json.load(json_file)
     return {}
 
+
 def get_cache_control(repo_config, filename, dir_prefix):
     filepath = filename
     if dir_prefix and filepath.startswith(dir_prefix):
         filepath = filepath[len(dir_prefix):]
 
     return repo_config.get_headers_for_path(filepath).get('cache-control')
+
 
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
                   s3_client, clone_dir, dry_run=False):
@@ -129,9 +134,9 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         makedirs(path.dirname(filename_404), exist_ok=True)
         with open(filename_404, "w+") as f:
             f.write(default_404.text)
-        
+
         cache_control = get_cache_control(repo_config, filename_404, directory)
-        
+
         file_404 = SiteFile(filename=filename_404,
                             dir_prefix=directory,
                             site_prefix=site_prefix,

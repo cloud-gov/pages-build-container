@@ -87,8 +87,8 @@ def test_publish_to_s3(tmpdir, s3_client):
     # Make a federalist.json file!
     repo_config = {
         'headers': [
-            { '/index.html': { 'cache-control': 'no-cache' } },
-            { '/*.txt': { 'cache-control': 'max-age=1000' } }
+            {'/index.html': {'cache-control': 'no-cache'}},
+            {'/*.txt': {'cache-control': 'max-age=1000'}}
         ]
     }
     clone_dir = tmpdir.mkdir('clone_dir')
