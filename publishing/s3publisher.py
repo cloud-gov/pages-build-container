@@ -79,11 +79,11 @@ def load_federalist_json(clone_dir):
             return json.load(json_file)
     return {}
 
-def get_cache_control(repo_config, filename, dir_prefix, site_prefix):
+def get_cache_control(repo_config, filename, dir_prefix):
     filepath = filename
     if dir_prefix and filepath.startswith(dir_prefix):
         filepath = filepath[len(dir_prefix):]
-    filepath = f'/{site_prefix}/{filepath}'
+
     return repo_config.get_headers_for_path(filepath).get('cache-control')
 
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
@@ -111,8 +111,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     local_files = []
     for filename in files_and_dirs:
         if path.isfile(filename):
-            cache_control = get_cache_control(repo_config, filename, directory, site_prefix)
-            
+            cache_control = get_cache_control(repo_config, filename, directory)
+
             site_file = SiteFile(filename=filename,
                                  dir_prefix=directory,
                                  site_prefix=site_prefix,
@@ -130,7 +130,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         with open(filename_404, "w+") as f:
             f.write(default_404.text)
         
-        cache_control = get_cache_control(repo_config, filename_404, directory, site_prefix)
+        cache_control = get_cache_control(repo_config, filename_404, directory)
         
         file_404 = SiteFile(filename=filename_404,
                             dir_prefix=directory,
