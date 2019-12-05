@@ -198,7 +198,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
 
     LOGGER.info('Preparing to upload')
     LOGGER.info(f'New: {len(new_objects)}')
-    LOGGER.info(f'Replacement: {len(replacement_objects)}')
+    LOGGER.info(f'Replaced: {len(replacement_objects)}')
     LOGGER.info(f'Deleted: {len(deletion_objects)}')
 
     # Upload new and replacement files
