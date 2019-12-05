@@ -3,23 +3,28 @@ Classes and methods for publishing a directory to S3
 '''
 
 import glob
+import json
 import requests
 
 from os import path, makedirs
 from datetime import datetime
 
 from log_utils import get_logger
+from repo_config.repo_config import RepoConfig
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
 LOGGER = get_logger('S3_PUBLISHER')
 
 MAX_S3_KEYS_PER_REQUEST = 1000
+FEDERALIST_JSON = 'federalist.json'
 
 
 def list_remote_objects(bucket, site_prefix, s3_client):
     '''
+
     Generates a list of remote S3 objects that have keys starting with
     site_preix in the given bucket.
+
     '''
     results_truncated = True
     continuation_token = None
@@ -70,9 +75,34 @@ def list_remote_objects(bucket, site_prefix, s3_client):
     return remote_objects
 
 
+def load_federalist_json(clone_dir):
+    federalist_json_path = path.join(clone_dir, FEDERALIST_JSON)
+    if path.isfile(federalist_json_path):
+        with open(federalist_json_path) as json_file:
+            return json.load(json_file)
+    return {}
+
+
+def get_cache_control(repo_config, filename, dir_prefix):
+    filepath = filename
+    if dir_prefix and filepath.startswith(dir_prefix):
+        filepath = filepath[len(dir_prefix):]
+
+    return repo_config.get_headers_for_path(filepath).get('cache-control')
+
+
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
-                  s3_client, dry_run=False):
+                  s3_client, clone_dir, dry_run=False):
     '''Publishes the given directory to S3'''
+
+    config_defaults = {
+        'headers': {
+            'cache-control': cache_control
+        }
+    }
+
+    repo_config = RepoConfig(load_federalist_json(clone_dir), config_defaults)
+
     # With glob, dotfiles are ignored by default
     # Note that the filenames will include the `directory` prefix
     # but we won't want that for the eventual S3 keys
@@ -86,6 +116,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     local_files = []
     for filename in files_and_dirs:
         if path.isfile(filename):
+            cache_control = get_cache_control(repo_config, filename, directory)
+
             site_file = SiteFile(filename=filename,
                                  dir_prefix=directory,
                                  site_prefix=site_prefix,
@@ -102,6 +134,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         makedirs(path.dirname(filename_404), exist_ok=True)
         with open(filename_404, "w+") as f:
             f.write(default_404.text)
+
+        cache_control = get_cache_control(repo_config, filename_404, directory)
 
         file_404 = SiteFile(filename=filename_404,
                             dir_prefix=directory,
@@ -145,13 +179,13 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
 
     # Create lists of all the new and modified objects
     new_objects = []
-    modified_objects = []
+    replacement_objects = []
     for local_filename, local_obj in local_objects_by_filename.items():
         matching_remote_obj = remote_objects_by_filename.get(local_filename)
         if not matching_remote_obj:
             new_objects.append(local_obj)
-        elif matching_remote_obj.md5 != local_obj.md5:
-            modified_objects.append(local_obj)
+        else:
+            replacement_objects.append(local_obj)
 
     # Create a list of the remote objects that should be deleted
     deletion_objects = [
@@ -159,16 +193,16 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         if not local_objects_by_filename.get(filename)
     ]
 
-    if len(new_objects) == 0 and len(modified_objects) == 0:
+    if len(new_objects) == 0 and len(replacement_objects) == 0:
         raise RuntimeError('Cannot unpublish all files')
 
     LOGGER.info('Preparing to upload')
     LOGGER.info(f'New: {len(new_objects)}')
-    LOGGER.info(f'Modified: {len(modified_objects)}')
+    LOGGER.info(f'Replaced: {len(replacement_objects)}')
     LOGGER.info(f'Deleted: {len(deletion_objects)}')
 
-    # Upload new and modified files
-    upload_objects = new_objects + modified_objects
+    # Upload new and replacement files
+    upload_objects = new_objects + replacement_objects
     for file in upload_objects:
         if dry_run:  # pragma: no cover
             LOGGER.info(f'Dry-run uploading {file.s3_key}')
