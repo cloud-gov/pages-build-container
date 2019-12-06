@@ -47,6 +47,7 @@ class TestSetupNode():
         ctx = MockContext(run={
             'node --version': Result(),
             'npm --version': Result(),
+            'npm set audit false': Result(),
             'npm install --production': Result(),
         })
         tasks.setup_node(ctx)
@@ -177,7 +178,8 @@ class TestBuildJekyll():
                                  'SITE_PREFIX': 'site/prefix',
                                  'BASEURL': '/site/prefix',
                                  'LANG': 'en_US.UTF-8',
-                                 'JEKYLL_ENV': 'production'}
+                                 'JEKYLL_ENV': 'production',
+                                 'GATSBY_TELEMETRY_DISABLED': '1'}
 
         # Check that the config file has had baseurl, branch, and custom
         # config added

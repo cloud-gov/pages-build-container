@@ -80,6 +80,7 @@ def setup_node(ctx):
             if PACKAGE_JSON_PATH.is_file():
                 LOGGER.info('Installing production dependencies '
                             'in package.json')
+                ctx.run(f'{npm_command} set audit false')
                 ctx.run(f'{npm_command} install --production')
 
 
@@ -118,6 +119,7 @@ def build_env(branch, owner, repository, site_prefix, base_url):
         'BASEURL': base_url,
         # necessary to make sure build engines use utf-8 encoding
         'LANG': 'en_US.UTF-8',
+        'GATSBY_TELEMETRY_DISABLED': '1',
     }
 
 
