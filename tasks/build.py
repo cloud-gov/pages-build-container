@@ -301,7 +301,7 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
         hugo_args = (f'--source {CLONE_DIR_PATH} '
                      f'--destination {SITE_BUILD_DIR_PATH}')
         if base_url:
-            hugo_args += f' --baseUrl {base_url}'
+            hugo_args += f' --baseURL {base_url}'
 
         ctx.run(
             f'{HUGO_BIN_PATH} {hugo_args}',
