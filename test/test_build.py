@@ -47,6 +47,7 @@ class TestSetupNode():
         ctx = MockContext(run={
             'node --version': Result(),
             'npm --version': Result(),
+            'npm set audit false': Result(),
             'npm install --production': Result(),
         })
         tasks.setup_node(ctx)
@@ -177,7 +178,8 @@ class TestBuildJekyll():
                                  'SITE_PREFIX': 'site/prefix',
                                  'BASEURL': '/site/prefix',
                                  'LANG': 'en_US.UTF-8',
-                                 'JEKYLL_ENV': 'production'}
+                                 'JEKYLL_ENV': 'production',
+                                 'GATSBY_TELEMETRY_DISABLED': '1'}
 
         # Check that the config file has had baseurl, branch, and custom
         # config added
@@ -302,7 +304,7 @@ class TestBuildHugo():
 
             # and with base_url specified
             kwargs['base_url'] = '/test_base'
-            hugo_call += f' --baseUrl /test_base'
+            hugo_call += f' --baseURL /test_base'
             ctx = MockContext(run={
                 f'{hugo_path} version': Result(),
                 hugo_call: Result(),

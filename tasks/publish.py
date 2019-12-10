@@ -11,7 +11,7 @@ from invoke import task
 from publishing import s3publisher
 
 from log_utils import get_logger
-from .common import SITE_BUILD_DIR_PATH, delta_to_mins_secs
+from .common import CLONE_DIR_PATH, SITE_BUILD_DIR_PATH, delta_to_mins_secs
 
 
 LOGGER = get_logger('PUBLISH')
@@ -46,6 +46,7 @@ def publish(ctx, base_url, site_prefix, bucket, cache_control,
         bucket=bucket,
         cache_control=cache_control,
         s3_client=s3_client,
+        clone_dir=str(CLONE_DIR_PATH),
         dry_run=dry_run
     )
 
