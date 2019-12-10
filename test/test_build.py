@@ -304,7 +304,7 @@ class TestBuildHugo():
 
             # and with base_url specified
             kwargs['base_url'] = '/test_base'
-            hugo_call += f' --baseUrl /test_base'
+            hugo_call += f' --baseURL /test_base'
             ctx = MockContext(run={
                 f'{hugo_path} version': Result(),
                 hugo_call: Result(),
