@@ -27,7 +27,7 @@ def get_logger(name):
     logger.addHandler(LOG_HANDLER)
 
     BRANCH = os.environ['BRANCH']
-    BUILD_ID = os.environ.get('BUILD_ID', 'hullo')
+    BUILD_ID = os.environ['BUILD_ID']
     OWNER = os.environ['OWNER']
     REPO = os.environ['REPOSITORY']
 
