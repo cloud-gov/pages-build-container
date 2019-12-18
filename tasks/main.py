@@ -182,6 +182,7 @@ def main(ctx):
     BUILD_INFO = f'{OWNER}/{REPOSITORY}@id:{BUILD_ID}'
 
     try:
+        post_build_begin(STATUS_CALLBACK)
         # throw a timeout exception after TIMEOUT_SECONDS
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
             LOGGER.info(f'Running build for {OWNER}/{REPOSITORY}/{BRANCH}')

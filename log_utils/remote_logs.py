@@ -5,10 +5,6 @@ import base64
 import requests
 
 
-STATUS_CODE_COMPLETE = 0
-STATUS_CODE_ERROR = 1
-
-
 def should_skip_logging():
     '''
     Reads SKIP_LOGGING env var to determine if logging
@@ -68,7 +64,7 @@ def post_build_complete(status_callback_url, builder_callback_url):
     if not should_skip_logging():
         post_status(
             status_callback_url,
-            status=STATUS_CODE_COMPLETE,
+            status='complete',
             output='')
 
     # Send a DELETE to the Federalist build scheduler to alert that the
@@ -92,13 +88,24 @@ def post_build_error(log_callback_url, status_callback_url,
         # Post to the Federalist web application endpoint with status
         # and output
         post_status(status_callback_url,
-                    status=STATUS_CODE_ERROR,
+                    status='error',
                     output=output)
 
     # Send a DELETE to the Federalist build scheduler to alert that
     # the container is available
     requests.delete(builder_callback_url)
 
+
+def post_build_processing(status_callback_url):
+    '''
+    POSTs a STATUS_CODE_BEGIN status to the status_callback_url
+    and issues a DELETE to the builder_callback_url.
+    '''
+    if not should_skip_logging():
+        post_status(
+            status_callback_url,
+            status='processing',
+            output='')
 
 def post_build_timeout(log_callback_url, status_callback_url,
                        builder_callback_url):
