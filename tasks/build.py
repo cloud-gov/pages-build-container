@@ -16,10 +16,9 @@ import requests
 from invoke import call, task
 
 from log_utils import get_logger
+from log_utils.load_dotenv import load_dotenv
 from tasks.common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH,
                           WORKING_DIR_PATH, clean)
-
-LOGGER = get_logger('BUILD')
 
 NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
@@ -57,6 +56,9 @@ def setup_node(ctx):
     Uses the node version specified in the cloned repo's .nvmrc
     file if it is present.
     '''
+    load_dotenv()
+    LOGGER = get_logger('BUILD')
+
     with ctx.cd(str(CLONE_DIR_PATH)):
         with ctx.prefix(f'source {NVM_SH_PATH}'):
             npm_command = 'npm'
@@ -129,6 +131,9 @@ def run_federalist_script(ctx, branch, owner, repository, site_prefix,
     '''
     Runs the npm "federalist" script if it is defined
     '''
+    load_dotenv()
+    LOGGER = get_logger('BUILD')
+
     if has_federalist_script():
         with node_context(ctx, ctx.cd(str(CLONE_DIR_PATH))):
             LOGGER.info('Running federalist build script in package.json')
@@ -143,6 +148,9 @@ def setup_ruby(ctx):
     Sets up RVM and installs ruby
     Uses the ruby version specified in .ruby-version if present
     '''
+    load_dotenv()
+    LOGGER = get_logger('BUILD')
+
     with ctx.prefix(f'source {RVM_PATH}'):
         RUBY_VERSION_PATH = CLONE_DIR_PATH / RUBY_VERSION
         if RUBY_VERSION_PATH.is_file():
@@ -162,6 +170,9 @@ def setup_ruby(ctx):
 
 @task
 def setup_bundler(ctx):
+    load_dotenv()
+    LOGGER = get_logger('BUILD')
+
     LOGGER.info('Setting up bundler')
     BUNDLER_VERSION_PATH = CLONE_DIR_PATH / BUNDLER_VERSION
     if BUNDLER_VERSION_PATH.is_file():
@@ -188,6 +199,9 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
     '''
     Builds the cloned site with Jekyll
     '''
+    load_dotenv()
+    LOGGER = get_logger('BUILD')
+
     JEKYLL_CONF_YML_PATH = CLONE_DIR_PATH / JEKYLL_CONFIG_YML
 
     # Add baseurl, branch, and the custom config to _config.yml.
@@ -232,6 +246,9 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
 
 @task
 def download_hugo(ctx):
+    load_dotenv()
+    LOGGER = get_logger('BUILD')
+
     HUGO_VERSION_PATH = CLONE_DIR_PATH / HUGO_VERSION
     if HUGO_VERSION_PATH.is_file():
         LOGGER.info(f'.hugo-version found')
@@ -287,6 +304,9 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
     '''
     Builds the cloned site with Hugo
     '''
+    load_dotenv()
+    LOGGER = get_logger('BUILD')
+
     # Note that no pre/post-tasks will be called when calling
     # the download_hugo task this way
     download_hugo(ctx)
@@ -316,6 +336,9 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
 ])
 def build_static(ctx):
     '''Moves all files from CLONE_DIR into SITE_BUILD_DIR'''
+    load_dotenv()
+    LOGGER = get_logger('BUILD')
+
     LOGGER.info(f'Moving files to {SITE_BUILD_DIR}')
 
     # Make the site build directory first

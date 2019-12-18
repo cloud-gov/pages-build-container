@@ -11,10 +11,9 @@ from invoke import task
 from publishing import s3publisher
 
 from log_utils import get_logger
-from .common import CLONE_DIR_PATH, SITE_BUILD_DIR_PATH, delta_to_mins_secs
-
-
-LOGGER = get_logger('PUBLISH')
+from log_utils.load_dotenv import load_dotenv
+from log_utils.delta_to_mins_secs import delta_to_mins_secs
+from .common import CLONE_DIR_PATH, SITE_BUILD_DIR_PATH
 
 
 @task
@@ -26,6 +25,9 @@ def publish(ctx, base_url, site_prefix, bucket, cache_control,
     Expects AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to be
     in the environment.
     '''
+    load_dotenv()
+    LOGGER = get_logger('PUBLISH')
+
     LOGGER.info('Publishing to S3')
 
     access_key_id = os.environ['AWS_ACCESS_KEY_ID']

@@ -12,9 +12,9 @@ from log_utils import get_logger
 from log_utils.remote_logs import (
     post_output_log, post_build_complete,
     post_build_error, post_build_timeout)
-from .common import load_dotenv, delta_to_mins_secs
+from log_utils.delta_to_mins_secs import delta_to_mins_secs
+from log_utils.load_dotenv import load_dotenv
 
-LOGGER = get_logger('MAIN')
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
@@ -123,14 +123,14 @@ def main(ctx):
     All values needed for the build are loaded from
     environment variables.
     '''
+    load_dotenv()
+    LOGGER = get_logger('MAIN')
+
     # (variable naming)
     # pylint: disable=C0103
 
     # keep track of total time
     start_time = datetime.now()
-
-    # Load from .env for development
-    load_dotenv()
 
     # These environment variables will be set into the environment
     # by federalist-builder.

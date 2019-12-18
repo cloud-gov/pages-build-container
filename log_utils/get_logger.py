@@ -7,10 +7,10 @@ import os
 import sys
 import logging
 
-
 LOG_FORMATTER = logging.Formatter(
-    "[%(name)s] %(asctime)s %(levelname)s: %(message)s",
+    "{asctime} {levelname} [{name}] @buildId: {buildid} @owner: {owner} @repo: {repo} @branch: {branch}: {message}",
     datefmt='%Y-%m-%d %H:%M:%S',
+    style='{'
 )
 
 LOG_HANDLER = logging.StreamHandler(sys.stdout)
@@ -25,4 +25,15 @@ def get_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(os.environ.get('LOGLEVEL', logging.INFO))
     logger.addHandler(LOG_HANDLER)
-    return logger
+
+    BRANCH = os.environ['BRANCH']
+    BUILD_ID = os.environ.get('BUILD_ID', 'hullo')
+    OWNER = os.environ['OWNER']
+    REPO = os.environ['REPOSITORY']
+
+    return logging.LoggerAdapter(logger, {
+        'buildid': BUILD_ID,
+        'owner': OWNER,
+        'repo': REPO,
+        'branch': BRANCH
+    })

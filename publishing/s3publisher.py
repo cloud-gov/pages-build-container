@@ -13,8 +13,6 @@ from log_utils import get_logger
 from repo_config.repo_config import RepoConfig
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
-LOGGER = get_logger('S3_PUBLISHER')
-
 MAX_S3_KEYS_PER_REQUEST = 1000
 FEDERALIST_JSON = 'federalist.json'
 
@@ -94,6 +92,7 @@ def get_cache_control(repo_config, filename, dir_prefix):
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
                   s3_client, clone_dir, dry_run=False):
     '''Publishes the given directory to S3'''
+    LOGGER = get_logger('PUBLISH')
 
     config_defaults = {
         'headers': {
