@@ -73,13 +73,13 @@ def init_logging():
     style_format = '{'
 
     long_format = ('{asctime} '
-                      '{levelname} '
-                      '[{name}] '
-                      '@buildId: {buildid} '
-                      '@owner: {owner} '
-                      '@repo: {repo} '
-                      '@branch: {branch} '
-                      '@message: {message}')
+                   '{levelname} '
+                   '[{name}] '
+                   '@buildId: {buildid} '
+                   '@owner: {owner} '
+                   '@repo: {repo} '
+                   '@branch: {branch} '
+                   '@message: {message}')
 
     short_format = '{asctime} {levelname}: {message}'
 

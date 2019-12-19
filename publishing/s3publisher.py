@@ -7,7 +7,6 @@ import json
 import requests
 
 from os import path, makedirs
-from datetime import datetime
 
 from repo_config.repo_config import RepoConfig
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
