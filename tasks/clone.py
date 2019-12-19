@@ -3,11 +3,8 @@ Clone tasks and helpers
 '''
 import os
 import shlex
-
 from invoke import task, call
 
-from log_utils import get_logger
-from log_utils.load_dotenv import load_dotenv
 from .common import (REPO_BASE_URL, CLONE_DIR_PATH,
                      SITE_BUILD_DIR_PATH, clean)
 
@@ -38,9 +35,7 @@ def _clone_repo(ctx, owner, repository, branch, depth=''):
 
     Expects GITHUB_TOKEN to be in the environment.
     '''
-    LOGGER = get_logger('CLONE')
-
-    LOGGER.info(f'Cloning {owner}/{repository}/{branch} to {CLONE_DIR_PATH}')
+    print(f'Cloning {owner}/{repository}/{branch} to {CLONE_DIR_PATH}')
 
     github_token = os.environ['GITHUB_TOKEN']
 
@@ -77,10 +72,7 @@ def push_repo_remote(ctx, owner, repository, branch,
 
     Expects GITHUB_TOKEN to be in the environment.
     '''
-    load_dotenv()
-    LOGGER = get_logger('CLONE')
-
-    LOGGER.info(f'Pushing cloned repository to {owner}/{repository}/{branch}')
+    print(f'Pushing cloned repository to {owner}/{repository}/{branch}')
 
     github_token = os.environ['GITHUB_TOKEN']
 

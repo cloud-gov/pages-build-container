@@ -2,18 +2,16 @@
 
 import os
 import shlex
-
+import logging
 from datetime import datetime
 
 from invoke import task, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
 
-from log_utils import get_logger
+from log_utils import delta_to_mins_secs, get_logger, StreamToLogger
 from log_utils.remote_logs import (
     post_output_log, post_build_complete,
     post_build_error, post_build_timeout)
-from log_utils.delta_to_mins_secs import delta_to_mins_secs
-from log_utils.load_dotenv import load_dotenv
 
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
@@ -102,6 +100,10 @@ def run_task(ctx, task_name, private_values, log_callback,
     if env:
         run_kwargs['env'] = env
 
+    logger = get_logger(task_name)
+    run_kwargs['out_stream'] = StreamToLogger(logger)
+    run_kwargs['err_stream'] = StreamToLogger(logger, logging.ERROR)
+
     result = ctx.run(command, **run_kwargs)
 
     # Add both STDOUT and STDERR to the output logs
@@ -123,7 +125,6 @@ def main(ctx):
     All values needed for the build are loaded from
     environment variables.
     '''
-    load_dotenv()
     LOGGER = get_logger('MAIN')
 
     # (variable naming)
