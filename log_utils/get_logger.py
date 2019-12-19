@@ -41,7 +41,6 @@ class StreamToLogger:
         self.log_level = log_level
 
     def write(self, buf):
-        # self.logger.log(self.log_level, buf.rstrip())
         for line in buf.rstrip().splitlines():
             self.logger.log(self.log_level, line.rstrip())
 
