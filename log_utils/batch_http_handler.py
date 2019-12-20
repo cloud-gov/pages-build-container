@@ -62,7 +62,8 @@ class BatchHTTPHandler(logging.handlers.BufferingHandler):
             import json
             host = self.host
             if self.secure:
-                h = http.client.HTTPSConnection(host, context=self.context)
+                # We are using Python >=3.6
+                h = http.client.HTTPSConnection(host, context=self.context)  # nosec
             else:
                 h = http.client.HTTPConnection(host)
             url = self.url
