@@ -1,3 +1,6 @@
+from datetime import timedelta  # noqa pylint: disable=W0611
+
+
 def delta_to_mins_secs(delta):
     '''
     Converts a timedelta to a string of minutes and seconds.

@@ -27,25 +27,6 @@ def b64string(text):
     return base64.b64encode(text.encode('utf-8')).decode('utf-8')
 
 
-def post_output_log(log_callback_url, source, output, chunk_size=200000):
-    '''
-    POSTs `output` logs from `source` to the `log_callback_url` in chunks
-    of length `chunk_size`.
-    '''
-    n = chunk_size
-    output_chunks = [output[i:i+n] for i in range(0, len(output), n)]
-
-    if not should_skip_logging():
-        for chunk in output_chunks:
-            requests.post(
-                log_callback_url,
-                json={
-                    'source': source,
-                    'output': b64string(chunk),
-                }
-            )
-
-
 def post_status(status_callback_url, status, output):
     '''
     POSTs `status` and `output` to the `status_callback_url`
@@ -76,7 +57,7 @@ def post_build_complete(status_callback_url, builder_callback_url):
     requests.delete(builder_callback_url)
 
 
-def post_build_error(log_callback_url, status_callback_url,
+def post_build_error(status_callback_url,
                      builder_callback_url, error_output):
     '''
     Sends build error notifications and output to the given callbacks.
@@ -84,11 +65,6 @@ def post_build_error(log_callback_url, status_callback_url,
     output = error_output
 
     if not should_skip_logging():
-        post_output_log(
-            log_callback_url,
-            source='ERROR',
-            output=output)
-
         # Post to the Federalist web application endpoint with status
         # and output
         post_status(status_callback_url,
@@ -100,7 +76,7 @@ def post_build_error(log_callback_url, status_callback_url,
     requests.delete(builder_callback_url)
 
 
-def post_build_timeout(log_callback_url, status_callback_url,
+def post_build_timeout(status_callback_url,
                        builder_callback_url):
     '''
     Sends timeout error notifications to the given callbacks.
@@ -108,13 +84,7 @@ def post_build_timeout(log_callback_url, status_callback_url,
     output = 'The build did not complete. It may have timed out.'
 
     if not should_skip_logging():
-        post_output_log(
-            log_callback_url,
-            source='ERROR',
-            output=output)
-
-        # Post to the Federalist web application endpoint with status
-        # and output
+        # Post to the Federalist web application with status and output
         post_status(status_callback_url,
                     status=STATUS_CODE_ERROR,
                     output=output)

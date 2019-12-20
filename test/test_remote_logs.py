@@ -3,13 +3,11 @@ import pytest
 from unittest.mock import patch
 
 from log_utils.remote_logs import (
-    b64string,
-    post_output_log, post_build_complete,
+    b64string, post_build_complete,
     post_build_error, post_build_timeout,
     should_skip_logging)
 
 
-MOCK_LOG_URL = 'https://log.example.com'
 MOCK_STATUS_URL = 'https://status.example.com'
 MOCK_BUILDER_URL = 'https://builder.example.com'
 
@@ -24,45 +22,6 @@ MOCK_BUILDER_URL = 'https://builder.example.com'
 def test_should_skip_logging(skip_logging, expected, monkeypatch):
     monkeypatch.setenv('SKIP_LOGGING', skip_logging)
     assert should_skip_logging() == expected
-
-
-class TestPostOutputLog():
-    @patch('requests.post')
-    def test_it_works(self, mock_post):
-        post_output_log(MOCK_LOG_URL, 'test', 'test output')
-        mock_post.assert_called_once_with(MOCK_LOG_URL, json={
-            'source': 'test',
-            'output': b64string('test output'),
-        })
-
-    @patch('requests.post')
-    def test_logs_are_chunked(self, mock_post):
-        post_output_log(MOCK_LOG_URL, 'test', 'abcdefg', chunk_size=2)
-
-        assert mock_post.call_count == 4
-
-        mock_post.assert_any_call(
-            MOCK_LOG_URL,
-            json={'source': 'test', 'output': b64string('ab')}
-        )
-        mock_post.assert_any_call(
-            MOCK_LOG_URL,
-            json={'source': 'test', 'output': b64string('cd')}
-        )
-        mock_post.assert_any_call(
-            MOCK_LOG_URL,
-            json={'source': 'test', 'output': b64string('ef')}
-        )
-        mock_post.assert_any_call(
-            MOCK_LOG_URL,
-            json={'source': 'test', 'output': b64string('g')}
-        )
-
-    @patch('requests.post')
-    def test_it_does_not_post_if_SKIP_LOGGING(self, mock_post, monkeypatch):
-        monkeypatch.setenv('SKIP_LOGGING', 'true')
-        post_output_log(MOCK_LOG_URL, 'test', 'test output')
-        mock_post.assert_not_called()
 
 
 class TestPostBuildComplete():
@@ -90,15 +49,10 @@ class TestPostBuildError():
     @patch('requests.post')
     @patch('requests.delete')
     def test_it_works(self, mock_del, mock_post):
-        post_build_error(MOCK_LOG_URL, MOCK_STATUS_URL,
+        post_build_error(MOCK_STATUS_URL,
                          MOCK_BUILDER_URL, 'error message')
 
-        assert mock_post.call_count == 2
-        mock_post.assert_any_call(
-            MOCK_LOG_URL,
-            json={'source': 'ERROR', 'output': b64string('error message')}
-        )
-
+        assert mock_post.call_count == 1
         mock_post.assert_any_call(
             MOCK_STATUS_URL,
             json={'status': 1, 'message': b64string('error message')}
@@ -111,7 +65,7 @@ class TestPostBuildError():
     def test_it_does_not_post_logs_or_status_if_SKIP_LOGGING(
             self, mock_del, mock_post, monkeypatch):
         monkeypatch.setenv('SKIP_LOGGING', 'true')
-        post_build_error(MOCK_LOG_URL, MOCK_STATUS_URL,
+        post_build_error(MOCK_STATUS_URL,
                          MOCK_BUILDER_URL, 'error message')
         mock_post.assert_not_called()
         # but the builder DELETE should still be called
@@ -122,17 +76,12 @@ class TestPostBuildTimeout():
     @patch('requests.post')
     @patch('requests.delete')
     def test_it_works(self, mock_del, mock_post):
-        post_build_timeout(MOCK_LOG_URL, MOCK_STATUS_URL, MOCK_BUILDER_URL)
+        post_build_timeout(MOCK_STATUS_URL, MOCK_BUILDER_URL)
 
         expected_output = b64string(
             'The build did not complete. It may have timed out.')
 
-        assert mock_post.call_count == 2
-        mock_post.assert_any_call(
-            MOCK_LOG_URL,
-            json={'source': 'ERROR', 'output': expected_output}
-        )
-
+        assert mock_post.call_count == 1
         mock_post.assert_any_call(
             MOCK_STATUS_URL,
             json={'status': 1, 'message': expected_output}
@@ -145,7 +94,7 @@ class TestPostBuildTimeout():
     def test_it_does_not_post_logs_or_status_if_SKIP_LOGGING(
             self, mock_del, mock_post, monkeypatch):
         monkeypatch.setenv('SKIP_LOGGING', 'true')
-        post_build_timeout(MOCK_LOG_URL, MOCK_STATUS_URL, MOCK_BUILDER_URL)
+        post_build_timeout(MOCK_STATUS_URL, MOCK_BUILDER_URL)
         mock_post.assert_not_called()
         # but the builder DELETE should still be called
         mock_del.assert_called_once_with(MOCK_BUILDER_URL)

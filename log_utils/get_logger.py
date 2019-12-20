@@ -8,6 +8,9 @@ import sys
 import logging
 import logging.handlers
 
+from .batch_http_handler import BatchHTTPHandler
+from .remote_logs import should_skip_logging
+
 
 class LogFilter(logging.Filter):
     def filter(self, record):
@@ -68,6 +71,16 @@ def get_logger(name):
     })
 
 
+class HTTPHandler(BatchHTTPHandler):
+    def mapLogRecord(self, record):
+        keys = [
+            'name', 'levelname', 'buildid', 'owner',
+            'repo', 'branch', 'message', 'asctime'
+        ]
+
+        return {k: getattr(record, k, '') for k in keys}
+
+
 def init_logging():
     date_format = '%Y-%m-%d %H:%M:%S'
     style_format = '{'
@@ -81,8 +94,6 @@ def init_logging():
                    '@branch: {branch} '
                    '@message: {message}')
 
-    short_format = '{asctime} {levelname}: {message}'
-
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(
         logging.Formatter(
@@ -90,17 +101,17 @@ def init_logging():
     stream_handler.setLevel(logging.INFO)
     stream_handler.addFilter(LogFilter())
 
-    # not used...yet
-    host = ''
-    url = ''
-    http_handler = logging.handlers.HTTPHandler(host, url, method='POST')
-    http_handler.setFormatter(
-        logging.Formatter(
-            short_format, datefmt=date_format, style=style_format))
-    http_handler.setLevel(logging.INFO)
-    http_handler.addFilter(LogFilter())
+    handlers = [stream_handler]
 
-    logging.basicConfig(
-        level=logging.DEBUG,
-        handlers=[stream_handler]
-    )
+    if not should_skip_logging():
+        LOG_HTTP_HOST = os.environ.get('LOG_HTTP_HOST', '')
+        if LOG_HTTP_HOST:
+            host = LOG_HTTP_HOST.rstrip('/')
+            url = '/' + os.environ.get('LOG_HTTP_PATH', '').lstrip('/')
+            buffered_lines = 10
+            http_handler = HTTPHandler(buffered_lines, host, url)
+            http_handler.setLevel(logging.INFO)
+            http_handler.addFilter(LogFilter())
+            handlers.append(http_handler)
+
+    logging.basicConfig(level=logging.INFO, handlers=handlers)
