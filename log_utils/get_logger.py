@@ -108,7 +108,7 @@ def init_logging():
         if LOG_HTTP_HOST:
             host = LOG_HTTP_HOST.rstrip('/')
             url = '/' + os.environ.get('LOG_HTTP_PATH', '').lstrip('/')
-            buffered_lines = 10
+            buffered_lines = os.environ.get('LOG_HTTP_BATCH_SIZE', 10)
             http_handler = HTTPHandler(buffered_lines, host, url)
             http_handler.setLevel(logging.INFO)
             http_handler.addFilter(LogFilter())

@@ -66,7 +66,7 @@ class BatchHTTPHandler(logging.handlers.BufferingHandler):
             else:
                 h = http.client.HTTPConnection(host)
             url = self.url
-            # Send a json encoded array under a key of `data`
+            # Send a json encoded array
             data = json.dumps(
                 [self.mapLogRecord(record) for record in records])
             # support multiple hosts on one IP address...
