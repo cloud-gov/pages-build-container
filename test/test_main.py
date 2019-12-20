@@ -9,7 +9,7 @@ def test_run_task(monkeypatch):
     monkeypatch.setenv('BRANCH', 'foo')
     monkeypatch.setenv('BUILD_ID', '1')
     monkeypatch.setenv('OWNER', 'me')
-    monkeypatch.setenv('REPO', 'my-repo')
+    monkeypatch.setenv('REPOSITORY', 'my-repo')
 
     mock_ctx = Mock()
 
