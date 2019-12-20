@@ -63,8 +63,8 @@ class BatchHTTPHandler(logging.handlers.BufferingHandler):
             host = self.host
             if self.secure:
                 # We are using Python >=3.6
-                h = http.client.HTTPSConnection(
-                    host, context=self.context)  # nosec
+                h = http.client.HTTPSConnection(  # nosec
+                    host, context=self.context)
             else:
                 h = http.client.HTTPConnection(host)
             url = self.url
