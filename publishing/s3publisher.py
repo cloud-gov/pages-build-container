@@ -189,7 +189,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         if not local_objects_by_filename.get(filename)
     ]
 
-    if len(new_objects) == 0 and len(replacement_objects) == 0:
+    if (len(new_objects) == 0 and len(replacement_objects) <= 1 and
+            len(local_files) <= 1):
         raise RuntimeError('Cannot unpublish all files')
 
     print('Preparing to upload')
