@@ -8,6 +8,7 @@ import sys
 import logging
 import logging.handlers
 
+from .db_handler import DBHandler
 from .batch_http_handler import BatchHTTPHandler
 from .remote_logs import should_skip_logging
 
@@ -94,6 +95,11 @@ def init_logging():
                    '@branch: {branch} '
                    '@message: {message}')
 
+    short_format = ('{asctime} '
+                   '{levelname} '
+                   '[{name}] '
+                   '{message}')
+
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(
         logging.Formatter(
@@ -113,5 +119,16 @@ def init_logging():
             http_handler.setLevel(logging.INFO)
             http_handler.addFilter(LogFilter())
             handlers.append(http_handler)
+
+    if not should_skip_logging():
+        DB_URL = os.environ.get('DB_URL', '')
+        if DB_URL:
+            db_handler = DBHandler(DB_URL, os.environ['BUILD_ID'])
+            db_handler.setFormatter(
+                logging.Formatter(
+                    short_format, datefmt=date_format, style=style_format))
+            db_handler.setLevel(logging.INFO)
+            db_handler.addFilter(LogFilter())
+            handlers.append(db_handler)
 
     logging.basicConfig(level=logging.INFO, handlers=handlers)

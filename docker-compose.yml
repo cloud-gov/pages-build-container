@@ -10,12 +10,15 @@ services:
       - .:/app:delegated
     links:
       - echoserver
+      - db
     depends_on:
       - echoserver
+      - db
     environment:
       FEDERALIST_BUILDER_CALLBACK: http://echoserver:8989/builder
       STATUS_CALLBACK: http://echoserver:8989/status
       LOG_CALLBACK: http://echoserver:8989/log
+      DB_URL: postgresql://postgres@db/federalist
 
   echoserver:
     # simple python server to log requests during development
@@ -28,3 +31,11 @@ services:
       PORT: 8989
     ports:
       - "8989:8989"
+
+  db:
+    image: postgres:latest
+    volumes:
+      - ./tmp/db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: federalist
