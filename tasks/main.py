@@ -17,7 +17,7 @@ from log_utils.remote_logs import (
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
 
-def run_task(ctx, task_name, private_values, flags_dict=None, env=None):
+def run_task(ctx, task_name, flags_dict=None, env=None):
     '''
     Uses `ctx.run` to call the specified `task_name` with the
     argument flags given in `flags_dict` and `env`, if specified.
@@ -80,9 +80,6 @@ def main(ctx):
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
     AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
 
-    # List of private strings to be removed from any posted logs
-    private_values = [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]
-
     # Optional environment variables
     SOURCE_REPO = os.getenv('SOURCE_REPO', '')
     SOURCE_OWNER = os.getenv('SOURCE_OWNER', '')
@@ -91,10 +88,6 @@ def main(ctx):
     # makes a commit to a repo and thus initiates a build for a
     # Federalist site
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
-    if GITHUB_TOKEN:
-        # only include it in list of values to strip from log output
-        # if it exists
-        private_values.append(GITHUB_TOKEN)
 
     # Ex: https://federalist-builder.fr.cloud.gov/builds/<token>/callback
     FEDERALIST_BUILDER_CALLBACK = os.environ['FEDERALIST_BUILDER_CALLBACK']
@@ -137,7 +130,6 @@ def main(ctx):
                 }
 
                 run_task(ctx, 'clone-repo',
-                         private_values=private_values,
                          flags_dict=clone_source_flags,
                          env={'GITHUB_TOKEN': GITHUB_TOKEN})
 
@@ -151,7 +143,6 @@ def main(ctx):
                 }
 
                 run_task(ctx, 'push-repo-remote',
-                         private_values=private_values,
                          flags_dict=push_repo_flags,
                          env={'GITHUB_TOKEN': GITHUB_TOKEN})
             else:
@@ -164,7 +155,6 @@ def main(ctx):
                 }
 
                 run_task(ctx, 'clone-repo',
-                         private_values=private_values,
                          flags_dict=clone_flags,
                          env={'GITHUB_TOKEN': GITHUB_TOKEN})
 
@@ -181,24 +171,20 @@ def main(ctx):
 
             # Run the npm `federalist` task (if it is defined)
             run_task(ctx, 'run-federalist-script',
-                     private_values=private_values,
                      flags_dict=build_flags)
 
             # Run the appropriate build engine based on GENERATOR
             if GENERATOR == 'jekyll':
                 build_flags['--config'] = CONFIG
                 run_task(ctx, 'build-jekyll',
-                         private_values=private_values,
                          flags_dict=build_flags)
             elif GENERATOR == 'hugo':
                 # extra: --hugo-version (not yet used)
                 run_task(ctx, 'build-hugo',
-                         private_values=private_values,
                          flags_dict=build_flags)
             elif GENERATOR == 'static':
                 # no build arguments are needed
-                run_task(ctx, 'build-static',
-                         private_values=private_values)
+                run_task(ctx, 'build-static')
             elif (GENERATOR == 'node.js' or GENERATOR == 'script only'):
                 LOGGER.info('build already ran in \'npm run federalist\'')
             else:
@@ -221,7 +207,6 @@ def main(ctx):
             }
 
             run_task(ctx, 'publish',
-                     private_values=private_values,
                      flags_dict=publish_flags,
                      env=publish_env)
 

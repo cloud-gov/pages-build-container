@@ -13,7 +13,6 @@ def test_run_task(monkeypatch):
 
     mock_ctx = Mock()
 
-    priv_values = ['IM_PRIVATE']
     flags_dict = {
         'fake-flag': 'flag-val',
         'other-flag': 'other-val',
@@ -23,8 +22,7 @@ def test_run_task(monkeypatch):
         'ENV_VAR', 'env-val'
     }
 
-    run_task(mock_ctx, 'fake-task', priv_values,
-             flags_dict=flags_dict, env=env)
+    run_task(mock_ctx, 'fake-task', flags_dict=flags_dict, env=env)
 
     mock_ctx.run.assert_called_once()
 
