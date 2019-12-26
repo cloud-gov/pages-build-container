@@ -21,7 +21,7 @@ class DBHandler(logging.Handler):
         try:
             self.exec(
                 ('INSERT INTO buildlog (build, source, output) '
-                'VALUES (%s, %s, %s);'),
+                 'VALUES (%s, %s, %s);'),
                 (self.build_id, self.source, self.format(record))
             )
         except Exception:

@@ -96,9 +96,9 @@ def init_logging():
                    '@message: {message}')
 
     short_format = ('{asctime} '
-                   '{levelname} '
-                   '[{name}] '
-                   '{message}')
+                    '{levelname} '
+                    '[{name}] '
+                    '{message}')
 
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(
