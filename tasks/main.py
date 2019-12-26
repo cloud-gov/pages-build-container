@@ -170,18 +170,15 @@ def main(ctx):
             }
 
             # Run the npm `federalist` task (if it is defined)
-            run_task(ctx, 'run-federalist-script',
-                     flags_dict=build_flags)
+            run_task(ctx, 'run-federalist-script', flags_dict=build_flags)
 
             # Run the appropriate build engine based on GENERATOR
             if GENERATOR == 'jekyll':
                 build_flags['--config'] = CONFIG
-                run_task(ctx, 'build-jekyll',
-                         flags_dict=build_flags)
+                run_task(ctx, 'build-jekyll', flags_dict=build_flags)
             elif GENERATOR == 'hugo':
                 # extra: --hugo-version (not yet used)
-                run_task(ctx, 'build-hugo',
-                         flags_dict=build_flags)
+                run_task(ctx, 'build-hugo', flags_dict=build_flags)
             elif GENERATOR == 'static':
                 # no build arguments are needed
                 run_task(ctx, 'build-static')
@@ -206,17 +203,14 @@ def main(ctx):
                 'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
             }
 
-            run_task(ctx, 'publish',
-                     flags_dict=publish_flags,
-                     env=publish_env)
+            run_task(ctx, 'publish', flags_dict=publish_flags, env=publish_env)
 
             delta_string = delta_to_mins_secs(datetime.now() - start_time)
             LOGGER.info(
                 f'Total build time: {delta_string}')
 
             # Finished!
-            post_build_complete(STATUS_CALLBACK,
-                                FEDERALIST_BUILDER_CALLBACK)
+            post_build_complete(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
 
     except TimeoutException:
         LOGGER.exception(f'Build({BUILD_INFO}) has timed out')
