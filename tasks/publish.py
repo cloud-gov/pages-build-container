@@ -1,7 +1,6 @@
 '''
 Publish tasks and helpers
 '''
-import os
 from datetime import datetime
 import boto3
 from invoke import task
@@ -18,22 +17,14 @@ def publish(ctx, base_url, site_prefix, bucket, cache_control,
     '''
     Publish the built site to S3.
 
-    Expects AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY to be
-    in the environment.
+    Requires environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
     '''
 
     print('Publishing to S3')
 
-    access_key_id = os.environ['AWS_ACCESS_KEY_ID']
-    secret_access_key = os.environ['AWS_SECRET_ACCESS_KEY']
-
     start_time = datetime.now()
 
-    s3_client = boto3.client(
-        service_name='s3',
-        region_name=aws_region,
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=secret_access_key)
+    s3_client = boto3.client(service_name='s3', region_name=aws_region)
 
     s3publisher.publish_to_s3(
         directory=str(SITE_BUILD_DIR_PATH),
