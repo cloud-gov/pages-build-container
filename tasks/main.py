@@ -119,19 +119,23 @@ def main(ctx):
             # helper `run_task` method.
 
             ##
-            # CLONE
+            # CLONE and/or PUSH
             #
+            clone_env = {'GITHUB_TOKEN': GITHUB_TOKEN}
+
             if SOURCE_OWNER and SOURCE_REPO:
                 # First clone the source (ie, template) repository
+
                 clone_source_flags = {
                     '--owner': SOURCE_OWNER,
                     '--repository': SOURCE_REPO,
                     '--branch': BRANCH,
+                    '--depth': '--depth 1',
                 }
 
                 run_task(ctx, 'clone-repo',
                          flags_dict=clone_source_flags,
-                         env={'GITHUB_TOKEN': GITHUB_TOKEN})
+                         env=clone_env)
 
                 # Then push the cloned source repo up to the destination repo.
                 # Note that the dest repo must already exist but be empty.
@@ -144,7 +148,7 @@ def main(ctx):
 
                 run_task(ctx, 'push-repo-remote',
                          flags_dict=push_repo_flags,
-                         env={'GITHUB_TOKEN': GITHUB_TOKEN})
+                         env=clone_env)
             else:
                 # Just clone the given repository
                 clone_flags = {
@@ -156,7 +160,7 @@ def main(ctx):
 
                 run_task(ctx, 'clone-repo',
                          flags_dict=clone_flags,
-                         env={'GITHUB_TOKEN': GITHUB_TOKEN})
+                         env=clone_env)
 
             ##
             # BUILD
@@ -206,8 +210,7 @@ def main(ctx):
             run_task(ctx, 'publish', flags_dict=publish_flags, env=publish_env)
 
             delta_string = delta_to_mins_secs(datetime.now() - start_time)
-            LOGGER.info(
-                f'Total build time: {delta_string}')
+            LOGGER.info(f'Total build time: {delta_string}')
 
             # Finished!
             post_build_complete(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
