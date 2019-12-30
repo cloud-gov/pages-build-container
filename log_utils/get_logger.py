@@ -39,6 +39,23 @@ class LogFilter(logging.Filter):
         return len(record.msg) > 0
 
 
+class Formatter(logging.Formatter):
+    '''
+    A more forgiving formatter that will fill in blank values if our custom
+    attributes are missing
+    '''
+    def format(self, record):
+        '''
+        Add missing values before formatting as normal
+        '''
+        keys = ['buildid', 'owner', 'repo', 'branch']
+        for key in keys:
+            if (key not in record.__dict__):
+                record.__dict__[key] = ''
+
+        return super().format(record)
+
+
 class StreamToLogger:
     def __init__(self, logger, log_level=logging.INFO):
         self.logger = logger
@@ -102,8 +119,7 @@ def init_logging():
 
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(
-        logging.Formatter(
-            long_format, datefmt=date_format, style=style_format))
+        Formatter(long_format, datefmt=date_format, style=style_format))
     stream_handler.setLevel(logging.INFO)
     stream_handler.addFilter(LogFilter())
 
