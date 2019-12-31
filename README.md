@@ -93,10 +93,12 @@ docker-compose run app bash
 After running the above command, you will be in a shell inside of the `app` container. From there, you can easily run [PyInvoke][] tasks or execute the test suite.
 
 ```sh
-invoke --help   # prints Invoke's usage
-invoke --list   # lists all the available tasks
-invoke main     # runs the full clone-build-publish pipeline
-pytest          # run all the python tests
+python main.py     # runs the full clone-build-publish pipeline
+invoke --help      # prints Invoke's usage
+invoke --list      # lists all the available tasks
+invoke clone-repo  # runs the clone-repo task
+pytest             # run all the python tests
+flake8             # run flake8 linter
 ```
 
 To view any logs pushed to the database:
