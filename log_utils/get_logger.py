@@ -92,13 +92,13 @@ def init_logging():
     style_fmt = '{'
 
     long_fmt = ('{asctime} '
-                   '{levelname} '
-                   '[{name}] '
-                   '@buildId: {buildid} '
-                   '@owner: {owner} '
-                   '@repo: {repo} '
-                   '@branch: {branch} '
-                   '@message: {message}')
+                '{levelname} '
+                '[{name}] '
+                '@buildId: {buildid} '
+                '@owner: {owner} '
+                '@repo: {repo} '
+                '@branch: {branch} '
+                '@message: {message}')
 
     short_fmt = ('{asctime} {levelname} [{name}] {message}')
 
