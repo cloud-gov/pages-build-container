@@ -4,6 +4,10 @@ import os
 import base64
 import requests
 
+STATUS_COMPLETE = 'success'
+STATUS_ERROR = 'error'
+STATUS_PROCESSING = 'processing'
+
 
 def should_skip_logging():
     '''
@@ -50,7 +54,7 @@ def post_status(status_callback_url, status, output):
         requests.post(
             status_callback_url,
             json={
-                'status': status,
+                'status': b64string(status),
                 'message': b64string(output),
             }
         )
@@ -64,7 +68,7 @@ def post_build_complete(status_callback_url, builder_callback_url):
     if not should_skip_logging():
         post_status(
             status_callback_url,
-            status='complete',
+            status=STATUS_COMPLETE,
             output='')
 
     # Send a DELETE to the Federalist build scheduler to alert that the
@@ -88,7 +92,7 @@ def post_build_error(log_callback_url, status_callback_url,
         # Post to the Federalist web application endpoint with status
         # and output
         post_status(status_callback_url,
-                    status='error',
+                    status=STATUS_ERROR,
                     output=output)
 
     # Send a DELETE to the Federalist build scheduler to alert that
@@ -104,7 +108,7 @@ def post_build_processing(status_callback_url):
     if not should_skip_logging():
         post_status(
             status_callback_url,
-            status='processing',
+            status=STATUS_PROCESSING,
             output='')
 
 
@@ -124,7 +128,7 @@ def post_build_timeout(log_callback_url, status_callback_url,
         # Post to the Federalist web application endpoint with status
         # and output
         post_status(status_callback_url,
-                    status='error',
+                    status=STATUS_ERROR,
                     output=output)
 
     # Send a DELETE to the Federalist build scheduler to alert that the

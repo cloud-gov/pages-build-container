@@ -12,6 +12,9 @@ from log_utils.remote_logs import (
 MOCK_LOG_URL = 'https://log.example.com'
 MOCK_STATUS_URL = 'https://status.example.com'
 MOCK_BUILDER_URL = 'https://builder.example.com'
+STATUS_COMPLETE = b64string('success')
+STATUS_ERROR = b64string('error')
+STATUS_PROCESSING = b64string('processing')
 
 
 @pytest.mark.parametrize('skip_logging, expected', [
@@ -71,7 +74,7 @@ class TestPostBuildComplete():
     def test_it_works(self, mock_del, mock_post):
         post_build_complete(MOCK_STATUS_URL, MOCK_BUILDER_URL)
         mock_post.assert_called_once_with(
-            MOCK_STATUS_URL, json={'status': 'complete', 'message': ''})
+            MOCK_STATUS_URL, json={'status': STATUS_COMPLETE, 'message': ''})
         mock_del.assert_called_once_with(MOCK_BUILDER_URL)
 
     @patch('requests.post')
@@ -91,7 +94,7 @@ class TestPostBuildProcessing():
     def test_it_works(self, mock_post):
         post_build_processing(MOCK_STATUS_URL)
         mock_post.assert_called_once_with(
-            MOCK_STATUS_URL, json={'status': 'processing', 'message': ''})
+            MOCK_STATUS_URL, json={'status': STATUS_PROCESSING, 'message': ''})
 
     @patch('requests.post')
     def test_it_does_not_post_status_if_SKIP_LOGGING(self, mock_post,
@@ -107,17 +110,17 @@ class TestPostBuildError():
     @patch('requests.delete')
     def test_it_works(self, mock_del, mock_post):
         post_build_error(MOCK_LOG_URL, MOCK_STATUS_URL,
-                         MOCK_BUILDER_URL, 'error message')
+                         MOCK_BUILDER_URL, 'error msg')
 
         assert mock_post.call_count == 2
         mock_post.assert_any_call(
             MOCK_LOG_URL,
-            json={'source': 'ERROR', 'output': b64string('error message')}
+            json={'source': 'ERROR', 'output': b64string('error msg')}
         )
 
         mock_post.assert_any_call(
             MOCK_STATUS_URL,
-            json={'status': 'error', 'message': b64string('error message')}
+            json={'status': STATUS_ERROR, 'message': b64string('error msg')}
         )
 
         mock_del.assert_called_once_with(MOCK_BUILDER_URL)
@@ -151,7 +154,7 @@ class TestPostBuildTimeout():
 
         mock_post.assert_any_call(
             MOCK_STATUS_URL,
-            json={'status': 'error', 'message': expected_output}
+            json={'status': STATUS_ERROR, 'message': expected_output}
         )
 
         mock_del.assert_called_once_with(MOCK_BUILDER_URL)
