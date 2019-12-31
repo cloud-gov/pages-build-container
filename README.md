@@ -69,10 +69,15 @@ For the `GITHUB_TOKEN`, create a new [personal token for your GitHub account](ht
 
 ### Building and running
 
-Build the development container using Docker Compose:
+1. Build the development container using Docker Compose:
 
 ```sh
 docker-compose build
+```
+
+2. Initialize the database to receive logs
+```sh
+docker-compose run app python ./bin/migrate.py
 ```
 
 The main builder application is called `app` within the Docker Compose environment.
@@ -92,6 +97,41 @@ invoke --help   # prints Invoke's usage
 invoke --list   # lists all the available tasks
 invoke main     # runs the full clone-build-publish pipeline
 pytest          # run all the python tests
+```
+
+To view any logs pushed to the database:
+
+1. connect to the docker container containing the database.
+```sh
+docker exec -it federalist-garden-build_db_1 bash
+```
+
+2. connect to the database
+```sh
+psql -U postgred -d federalist
+```
+
+and query away!
+
+Ex.
+```
+$ docker exec -it federalist-garden-build_db_1 bash
+
+root@2006c3a10bb3:/# psql -U postgres -d federalist
+psql (12.1 (Debian 12.1-1.pgdg100+1))
+Type "help" for help.
+
+federalist=# \d
+               List of relations
+ Schema |      Name       |   Type   |  Owner
+--------+-----------------+----------+----------
+ public | buildlog        | table    | postgres
+ public | buildlog_id_seq | sequence | postgres
+(2 rows)
+
+federalist=# \q
+
+root@2006c3a10bb3:/# exit
 ```
 
 ## Deploying to cloud.gov
