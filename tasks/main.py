@@ -1,23 +1,25 @@
 '''Main task entrypoint'''
 
 import os
+from pathlib import Path
 import shlex
 import logging
 from datetime import datetime
+from dotenv import load_dotenv
 
-from invoke import task, UnexpectedExit
+from invoke import Context, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
 
-from log_utils import delta_to_mins_secs, get_logger, StreamToLogger
+from log_utils import (delta_to_mins_secs, get_logger, init_logging,
+                       StreamToLogger)
 from log_utils.remote_logs import (
     post_build_complete,
-    post_build_error, post_build_timeout)
-
+    post_build_error, post_build_timeout, should_skip_logging)
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
 
-def run_task(ctx, task_name, flags_dict=None, env=None):
+def run_task(ctx, task_name, log_attrs={}, flags_dict=None, env=None):
     '''
     Uses `ctx.run` to call the specified `task_name` with the
     argument flags given in `flags_dict` and `env`, if specified.
@@ -37,38 +39,32 @@ def run_task(ctx, task_name, flags_dict=None, env=None):
     if env:
         run_kwargs['env'] = env
 
-    logger = get_logger(task_name)
+    logger = get_logger(task_name, log_attrs)
     run_kwargs['out_stream'] = StreamToLogger(logger)
     run_kwargs['err_stream'] = StreamToLogger(logger, logging.ERROR)
 
     ctx.run(command, **run_kwargs)
 
 
-@task
-def main(ctx):
+def main():
     '''
     Main task to run a full site build process.
 
     All values needed for the build are loaded from
     environment variables.
     '''
-    LOGGER = get_logger('MAIN')
-
     # (variable naming)
     # pylint: disable=C0103
 
     # keep track of total time
     start_time = datetime.now()
 
-    # These environment variables will be set into the environment
-    # by federalist-builder.
-
-    # During development, we can use a `.env` file (loaded above)
-    # to make it easier to specify variables.
+    load_env()
 
     AWS_DEFAULT_REGION = os.environ['AWS_DEFAULT_REGION']
     BUCKET = os.environ['BUCKET']
     BASEURL = os.environ['BASEURL']
+    BUILD_ID = os.environ['BUILD_ID']
     CACHE_CONTROL = os.environ['CACHE_CONTROL']
     BRANCH = os.environ['BRANCH']
     CONFIG = os.environ['CONFIG']
@@ -76,7 +72,6 @@ def main(ctx):
     OWNER = os.environ['OWNER']
     SITE_PREFIX = os.environ['SITE_PREFIX']
     GENERATOR = os.environ['GENERATOR']
-
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
     AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
 
@@ -95,12 +90,27 @@ def main(ctx):
     # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/status/<token>
     STATUS_CALLBACK = os.environ['STATUS_CALLBACK']
 
-    # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/log/<token>
-    # LOG_CALLBACK = os.environ['LOG_CALLBACK']
-
-    BUILD_ID = os.environ['BUILD_ID']
+    # Necessary to log to database
+    DB_URL = os.environ.get('DB_URL', '')
 
     BUILD_INFO = f'{OWNER}/{REPOSITORY}@id:{BUILD_ID}'
+
+    priv_vals = private_values()
+
+    logattrs = {
+        'branch': BRANCH,
+        'buildid': BUILD_ID,
+        'owner': OWNER,
+        'repository': REPOSITORY,
+    }
+
+    init_logging(priv_vals, logattrs, db_url=DB_URL,
+                 skip_logging=should_skip_logging)
+
+    LOGGER = get_logger('main', logattrs)
+
+    def run(task, args=None, env=None):
+        run_task(Context(), task, logattrs, args, env)
 
     try:
         # throw a timeout exception after TIMEOUT_SECONDS
@@ -133,9 +143,7 @@ def main(ctx):
                     '--depth': '--depth 1',
                 }
 
-                run_task(ctx, 'clone-repo',
-                         flags_dict=clone_source_flags,
-                         env=clone_env)
+                run('clone-repo', clone_source_flags, clone_env)
 
                 # Then push the cloned source repo up to the destination repo.
                 # Note that the dest repo must already exist but be empty.
@@ -146,9 +154,7 @@ def main(ctx):
                     '--branch': BRANCH,
                 }
 
-                run_task(ctx, 'push-repo-remote',
-                         flags_dict=push_repo_flags,
-                         env=clone_env)
+                run('push-repo-remote', push_repo_flags, clone_env)
             else:
                 # Just clone the given repository
                 clone_flags = {
@@ -158,9 +164,7 @@ def main(ctx):
                     '--depth': '--depth 1',
                 }
 
-                run_task(ctx, 'clone-repo',
-                         flags_dict=clone_flags,
-                         env=clone_env)
+                run('clone-repo', clone_flags, clone_env)
 
             ##
             # BUILD
@@ -174,18 +178,18 @@ def main(ctx):
             }
 
             # Run the npm `federalist` task (if it is defined)
-            run_task(ctx, 'run-federalist-script', flags_dict=build_flags)
+            run('run-federalist-script', build_flags)
 
             # Run the appropriate build engine based on GENERATOR
             if GENERATOR == 'jekyll':
                 build_flags['--config'] = CONFIG
-                run_task(ctx, 'build-jekyll', flags_dict=build_flags)
+                run('build-jekyll', build_flags)
             elif GENERATOR == 'hugo':
                 # extra: --hugo-version (not yet used)
-                run_task(ctx, 'build-hugo', flags_dict=build_flags)
+                run('build-hugo', build_flags)
             elif GENERATOR == 'static':
                 # no build arguments are needed
-                run_task(ctx, 'build-static')
+                run('build-static')
             elif (GENERATOR == 'node.js' or GENERATOR == 'script only'):
                 LOGGER.info('build already ran in \'npm run federalist\'')
             else:
@@ -207,7 +211,7 @@ def main(ctx):
                 'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
             }
 
-            run_task(ctx, 'publish', flags_dict=publish_flags, env=publish_env)
+            run('publish', publish_flags, publish_env)
 
             delta_string = delta_to_mins_secs(datetime.now() - start_time)
             LOGGER.info(f'Total build time: {delta_string}')
@@ -216,14 +220,14 @@ def main(ctx):
             post_build_complete(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
 
     except TimeoutException:
-        LOGGER.exception(f'Build({BUILD_INFO}) has timed out')
+        LOGGER.warning(f'Build({BUILD_INFO}) has timed out')
         post_build_timeout(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
     except UnexpectedExit as err:
         err_string = str(err)
 
         # log the original exception
-        LOGGER.exception(f'Exception raised during build({BUILD_INFO}):'
-                         + err_string)
+        LOGGER.warning(f'Exception raised during build({BUILD_INFO}):'
+                       + err_string)
 
         post_build_error(STATUS_CALLBACK,
                          FEDERALIST_BUILDER_CALLBACK,
@@ -235,9 +239,9 @@ def main(ctx):
         err_string = str(err)
 
         # log the original exception
-        LOGGER.exception(f'Unexpected exception raised during build('
-                         + BUILD_INFO + '): '
-                         + err_string)
+        LOGGER.warning(f'Unexpected exception raised during build('
+                       + BUILD_INFO + '): '
+                       + err_string)
 
         err_message = (f'Unexpected build({BUILD_INFO}) error. Please try'
                        ' again and contact federalist-support'
@@ -246,3 +250,30 @@ def main(ctx):
         post_build_error(STATUS_CALLBACK,
                          FEDERALIST_BUILDER_CALLBACK,
                          err_message)
+
+
+def load_env():
+    '''
+    Load the environment from a .env file using `dotenv`.
+    The file should only be present when running locally.
+
+    Otherwise these environment variables will be set into the environment
+    by federalist-builder.
+    '''
+    DOTENV_PATH = Path(os.path.dirname(os.path.dirname(__file__))) / '.env'
+
+    if os.path.exists(DOTENV_PATH):
+        print('Loading environment from .env file')
+        load_dotenv(DOTENV_PATH)
+
+
+def private_values():
+    priv_vals = [
+        os.environ['AWS_ACCESS_KEY_ID'],
+        os.environ['AWS_SECRET_ACCESS_KEY']
+    ]
+    GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
+    if GITHUB_TOKEN:
+        priv_vals.append(GITHUB_TOKEN)
+
+    return priv_vals

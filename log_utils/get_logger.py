@@ -3,13 +3,11 @@ Setup nice logs.
 Clients should use the `get_logger` method to get a logger instance.
 '''
 
-import os
 import sys
 import logging
 import logging.handlers
 
 from .db_handler import DBHandler
-from .remote_logs import should_skip_logging
 
 
 class LogFilter(logging.Filter):
@@ -67,50 +65,26 @@ class StreamToLogger:
         pass
 
 
-def get_logger(name):
+def get_logger(name, attrs={}):
     '''
     Gets a logger instance configured with our formatter and handler
     for the given name.
     '''
     logger = logging.getLogger(name)
 
-    BRANCH = os.environ['BRANCH']
-    BUILD_ID = os.environ['BUILD_ID']
-    OWNER = os.environ['OWNER']
-    REPO = os.environ['REPOSITORY']
-
-    return logging.LoggerAdapter(logger, {
-        'buildid': BUILD_ID,
-        'owner': OWNER,
-        'repo': REPO,
-        'branch': BRANCH
-    })
+    return logging.LoggerAdapter(logger, attrs)
 
 
-def init_logging():
+def init_logging(private_values, attrs={}, db_url=None, skip_logging=False):
     date_fmt = '%Y-%m-%d %H:%M:%S'
     style_fmt = '{'
+    short_fmt = '{asctime} {levelname} [{name}] {message}'
+    long_fmt = '{asctime} {levelname} [{name}] '
+    for key in attrs.keys():
+        long_fmt = long_fmt + '@' + key + ': {' + key + '} '
+    long_fmt = long_fmt + '@message: {message}'
 
-    long_fmt = ('{asctime} '
-                '{levelname} '
-                '[{name}] '
-                '@buildId: {buildid} '
-                '@owner: {owner} '
-                '@repo: {repo} '
-                '@branch: {branch} '
-                '@message: {message}')
-
-    short_fmt = ('{asctime} {levelname} [{name}] {message}')
-
-    extra_attrs = ['buildid', 'owner', 'repo', 'branch']
-
-    private_values = [
-        os.environ['AWS_ACCESS_KEY_ID'],
-        os.environ['AWS_SECRET_ACCESS_KEY']
-    ]
-    GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
-    if GITHUB_TOKEN:
-        private_values.append(GITHUB_TOKEN)
+    extra_attrs = attrs.keys()
 
     log_filter = LogFilter(private_values)
 
@@ -125,17 +99,15 @@ def init_logging():
 
     handlers = [stream_handler]
 
-    if not should_skip_logging():
-        DB_URL = os.environ.get('DB_URL', '')
-        buildId = os.environ['BUILD_ID']
-        if DB_URL:
-            db_formatter = logging.Formatter(short_fmt, date_fmt, style_fmt)
+    if not skip_logging and db_url:
+        buildId = attrs['buildid']
+        db_formatter = logging.Formatter(short_fmt, date_fmt, style_fmt)
 
-            db_handler = DBHandler(DB_URL, buildId)
-            db_handler.setFormatter(db_formatter)
-            db_handler.setLevel(log_level)
-            db_handler.addFilter(log_filter)
+        db_handler = DBHandler(db_url, buildId)
+        db_handler.setFormatter(db_formatter)
+        db_handler.setLevel(log_level)
+        db_handler.addFilter(log_filter)
 
-            handlers.append(db_handler)
+        handlers.append(db_handler)
 
     logging.basicConfig(level=log_level, handlers=handlers)
