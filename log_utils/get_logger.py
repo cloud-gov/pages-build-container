@@ -9,7 +9,6 @@ import logging
 import logging.handlers
 
 from .db_handler import DBHandler
-from .batch_http_handler import BatchHTTPHandler
 from .remote_logs import should_skip_logging
 
 
@@ -89,16 +88,6 @@ def get_logger(name):
     })
 
 
-class HTTPHandler(BatchHTTPHandler):
-    def mapLogRecord(self, record):
-        keys = [
-            'name', 'levelname', 'buildid', 'owner',
-            'repo', 'branch', 'message', 'asctime'
-        ]
-
-        return {k: getattr(record, k, '') for k in keys}
-
-
 def init_logging():
     date_format = '%Y-%m-%d %H:%M:%S'
     style_format = '{'
@@ -124,17 +113,6 @@ def init_logging():
     stream_handler.addFilter(LogFilter())
 
     handlers = [stream_handler]
-
-    if not should_skip_logging():
-        LOG_HTTP_HOST = os.environ.get('LOG_HTTP_HOST', '')
-        if LOG_HTTP_HOST:
-            host = LOG_HTTP_HOST.rstrip('/')
-            url = '/' + os.environ.get('LOG_HTTP_PATH', '').lstrip('/')
-            buffered_lines = os.environ.get('LOG_HTTP_BATCH_SIZE', 10)
-            http_handler = HTTPHandler(buffered_lines, host, url)
-            http_handler.setLevel(logging.INFO)
-            http_handler.addFilter(LogFilter())
-            handlers.append(http_handler)
 
     if not should_skip_logging():
         DB_URL = os.environ.get('DB_URL', '')
