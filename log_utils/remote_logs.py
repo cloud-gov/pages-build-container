@@ -107,6 +107,7 @@ def post_build_processing(status_callback_url):
             status='processing',
             output='')
 
+
 def post_build_timeout(log_callback_url, status_callback_url,
                        builder_callback_url):
     '''
@@ -123,7 +124,7 @@ def post_build_timeout(log_callback_url, status_callback_url,
         # Post to the Federalist web application endpoint with status
         # and output
         post_status(status_callback_url,
-                    status=STATUS_CODE_ERROR,
+                    status='error',
                     output=output)
 
     # Send a DELETE to the Federalist build scheduler to alert that the

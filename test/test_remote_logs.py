@@ -6,7 +6,7 @@ from log_utils.remote_logs import (
     b64string,
     post_output_log, post_build_complete,
     post_build_error, post_build_timeout,
-    should_skip_logging)
+    post_build_processing, should_skip_logging)
 
 
 MOCK_LOG_URL = 'https://log.example.com'
@@ -71,7 +71,7 @@ class TestPostBuildComplete():
     def test_it_works(self, mock_del, mock_post):
         post_build_complete(MOCK_STATUS_URL, MOCK_BUILDER_URL)
         mock_post.assert_called_once_with(
-            MOCK_STATUS_URL, json={'status': 0, 'message': ''})
+            MOCK_STATUS_URL, json={'status': 'complete', 'message': ''})
         mock_del.assert_called_once_with(MOCK_BUILDER_URL)
 
     @patch('requests.post')
@@ -84,6 +84,22 @@ class TestPostBuildComplete():
         mock_post.assert_not_called()
         # but the builder DELETE should still be called
         mock_del.assert_called_once_with(MOCK_BUILDER_URL)
+
+
+class TestPostBuildProcessing():
+    @patch('requests.post')
+    def test_it_works(self, mock_post):
+        post_build_processing(MOCK_STATUS_URL)
+        mock_post.assert_called_once_with(
+            MOCK_STATUS_URL, json={'status': 'processing', 'message': ''})
+
+    @patch('requests.post')
+    def test_it_does_not_post_status_if_SKIP_LOGGING(self, mock_post,
+                                                     monkeypatch):
+        monkeypatch.setenv('SKIP_LOGGING', 'true')
+        post_build_processing(MOCK_STATUS_URL)
+        # the status POST should not be called
+        mock_post.assert_not_called()
 
 
 class TestPostBuildError():
@@ -101,7 +117,7 @@ class TestPostBuildError():
 
         mock_post.assert_any_call(
             MOCK_STATUS_URL,
-            json={'status': 1, 'message': b64string('error message')}
+            json={'status': 'error', 'message': b64string('error message')}
         )
 
         mock_del.assert_called_once_with(MOCK_BUILDER_URL)
@@ -135,7 +151,7 @@ class TestPostBuildTimeout():
 
         mock_post.assert_any_call(
             MOCK_STATUS_URL,
-            json={'status': 1, 'message': expected_output}
+            json={'status': 'error', 'message': expected_output}
         )
 
         mock_del.assert_called_once_with(MOCK_BUILDER_URL)
