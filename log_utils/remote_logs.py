@@ -54,7 +54,7 @@ def post_status(status_callback_url, status, output):
         requests.post(
             status_callback_url,
             json={
-                'status': b64string(status),
+                'status': status,
                 'message': b64string(output),
             }
         )
