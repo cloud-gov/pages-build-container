@@ -8,13 +8,11 @@ from log_utils.remote_logs import (
     post_build_error, post_build_timeout,
     post_build_processing, should_skip_logging)
 
+from log_utils.common import (STATUS_COMPLETE, STATUS_ERROR, STATUS_PROCESSING)
 
 MOCK_LOG_URL = 'https://log.example.com'
 MOCK_STATUS_URL = 'https://status.example.com'
 MOCK_BUILDER_URL = 'https://builder.example.com'
-STATUS_COMPLETE = 'success'
-STATUS_ERROR = 'error'
-STATUS_PROCESSING = 'processing'
 
 
 @pytest.mark.parametrize('skip_logging, expected', [

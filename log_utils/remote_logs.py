@@ -4,9 +4,7 @@ import os
 import base64
 import requests
 
-STATUS_COMPLETE = 'success'
-STATUS_ERROR = 'error'
-STATUS_PROCESSING = 'processing'
+from .common import (STATUS_COMPLETE, STATUS_ERROR, STATUS_PROCESSING)
 
 
 def should_skip_logging():
