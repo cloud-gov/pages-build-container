@@ -4,9 +4,7 @@ import os
 import base64
 import requests
 
-
-STATUS_CODE_COMPLETE = 0
-STATUS_CODE_ERROR = 1
+from .common import (STATUS_COMPLETE, STATUS_ERROR, STATUS_PROCESSING)
 
 
 def should_skip_logging():
@@ -27,7 +25,7 @@ def b64string(text):
     return base64.b64encode(text.encode('utf-8')).decode('utf-8')
 
 
-def post_status(status_callback_url, status, output):
+def post_status(status_callback_url, status, output=''):
     '''
     POSTs `status` and `output` to the `status_callback_url`
     '''
@@ -47,18 +45,14 @@ def post_build_complete(status_callback_url, builder_callback_url):
     and issues a DELETE to the builder_callback_url.
     '''
     if not should_skip_logging():
-        post_status(
-            status_callback_url,
-            status=STATUS_CODE_COMPLETE,
-            output='')
+        post_status(status_callback_url, status=STATUS_COMPLETE)
 
     # Send a DELETE to the Federalist build scheduler to alert that the
     # container is available
     requests.delete(builder_callback_url)
 
 
-def post_build_error(status_callback_url,
-                     builder_callback_url, error_output):
+def post_build_error(status_callback_url, builder_callback_url, error_output):
     '''
     Sends build error notifications and output to the given callbacks.
     '''
@@ -67,17 +61,23 @@ def post_build_error(status_callback_url,
     if not should_skip_logging():
         # Post to the Federalist web application endpoint with status
         # and output
-        post_status(status_callback_url,
-                    status=STATUS_CODE_ERROR,
-                    output=output)
+        post_status(status_callback_url, status=STATUS_ERROR, output=output)
 
     # Send a DELETE to the Federalist build scheduler to alert that
     # the container is available
     requests.delete(builder_callback_url)
 
 
-def post_build_timeout(status_callback_url,
-                       builder_callback_url):
+def post_build_processing(status_callback_url):
+    '''
+    POSTs a STATUS_CODE_BEGIN status to the status_callback_url
+    and issues a DELETE to the builder_callback_url.
+    '''
+    if not should_skip_logging():
+        post_status(status_callback_url, status=STATUS_PROCESSING)
+
+
+def post_build_timeout(status_callback_url, builder_callback_url):
     '''
     Sends timeout error notifications to the given callbacks.
     '''
@@ -85,9 +85,7 @@ def post_build_timeout(status_callback_url,
 
     if not should_skip_logging():
         # Post to the Federalist web application with status and output
-        post_status(status_callback_url,
-                    status=STATUS_CODE_ERROR,
-                    output=output)
+        post_status(status_callback_url, status=STATUS_ERROR, output=output)
 
     # Send a DELETE to the Federalist build scheduler to alert that the
     # container is available

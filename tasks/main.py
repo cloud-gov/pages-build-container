@@ -6,15 +6,14 @@ import shlex
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
-
 from invoke import Context, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
 
 from log_utils import (delta_to_mins_secs, get_logger, init_logging,
                        StreamToLogger)
 from log_utils.remote_logs import (
-    post_build_complete,
-    post_build_error, post_build_timeout, should_skip_logging)
+    post_build_complete, post_build_error, post_build_timeout,
+    should_skip_logging, post_build_processing)
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
@@ -113,6 +112,7 @@ def main():
         run_task(Context(), task, logattrs, args, env)
 
     try:
+        post_build_processing(STATUS_CALLBACK)
         # throw a timeout exception after TIMEOUT_SECONDS
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
             LOGGER.info(f'Running build for {OWNER}/{REPOSITORY}/{BRANCH}')

@@ -19,6 +19,10 @@ CLONE_DIR_PATH = WORKING_DIR_PATH / CLONE_DIR
 SITE_BUILD_DIR = '_site'
 SITE_BUILD_DIR_PATH = CLONE_DIR_PATH / SITE_BUILD_DIR
 
+STATUS_COMPLETE = 'success'
+STATUS_ERROR = 'error'
+STATUS_PROCESSING = 'processing'
+
 
 @task
 def clean(ctx, which=None):

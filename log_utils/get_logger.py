@@ -100,10 +100,10 @@ def init_logging(private_values, attrs={}, db_url=None, skip_logging=False):
     handlers = [stream_handler]
 
     if not skip_logging and db_url:
-        buildId = attrs['buildid']
+        build_id = attrs['buildid']
         db_formatter = logging.Formatter(short_fmt, date_fmt, style_fmt)
 
-        db_handler = DBHandler(db_url, buildId)
+        db_handler = DBHandler(db_url, build_id)
         db_handler.setFormatter(db_formatter)
         db_handler.setLevel(log_level)
         db_handler.addFilter(log_filter)
