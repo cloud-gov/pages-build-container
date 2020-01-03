@@ -11,7 +11,15 @@ from .db_handler import DBHandler
 
 
 class LogFilter(logging.Filter):
-    def __init__(self, priv_vals, mask='[PRIVATE VALUE HIDDEN]'):
+    '''
+    For every log message, replaces any of the values found in `priv_values`
+    with the provided or default `mask` text. In addition, this prevents empty
+    messages from being logged at all.
+    '''
+    DEFAULT_MASK = '[PRIVATE VALUE HIDDEN]'
+    INVALID_ACCESS_KEY = 'InvalidAccessKeyId'
+
+    def __init__(self, priv_vals, mask=DEFAULT_MASK):
         self.priv_vals = priv_vals
         self.mask = mask
         logging.Filter.__init__(self)
@@ -20,7 +28,7 @@ class LogFilter(logging.Filter):
         for priv_val in self.priv_vals:
             record.msg = record.msg.replace(priv_val, self.mask)
 
-        if "InvalidAccessKeyId" in record.msg:
+        if self.INVALID_ACCESS_KEY in record.msg:
             record.msg = (
                 'Whoops, our S3 keys were rotated during your '
                 'build and became out of date. This was not a '
