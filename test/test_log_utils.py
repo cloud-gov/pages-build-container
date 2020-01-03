@@ -1,6 +1,7 @@
 import logging
+from unittest.mock import patch
 
-from log_utils.get_logger import LogFilter
+from log_utils.get_logger import LogFilter, Formatter
 
 
 class TestLogFilter():
@@ -53,3 +54,29 @@ class TestLogFilter():
             'the failed build it should work on the next try. '
             'Sorry for the inconvenience!'
         ))
+
+
+class TestFormatter():
+    @patch('logging.Formatter.format')
+    def test_it_populates_empty_strings_if_key_is_missing(self, mock_format):
+        keys = ['foobar']
+
+        formatter = Formatter(keys)
+        record = logging.makeLogRecord({})
+
+        formatter.format(record)
+
+        assert(record.foobar == '')
+        mock_format.assert_called_once_with(record)
+
+    @patch('logging.Formatter.format')
+    def test_it_ignores_key_if_present(self, mock_format):
+        keys = ['foobar']
+
+        formatter = Formatter(keys)
+        record = logging.makeLogRecord({'foobar': 'Hello!'})
+
+        formatter.format(record)
+
+        assert(record.foobar == 'Hello!')
+        mock_format.assert_called_once_with(record)
