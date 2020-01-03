@@ -68,10 +68,7 @@ class TestPostBuildError():
     def test_it_works(self, mock_del, mock_post):
         post_build_error(MOCK_STATUS_URL, MOCK_BUILDER_URL, 'error msg')
 
-        assert mock_post.call_count == 2
-        mock_post.assert_any_call(
-            json={'source': 'ERROR', 'output': b64string('error msg')}
-        )
+        assert mock_post.call_count == 1
 
         mock_post.assert_any_call(
             MOCK_STATUS_URL,
