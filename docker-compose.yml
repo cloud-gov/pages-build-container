@@ -18,7 +18,7 @@ services:
       FEDERALIST_BUILDER_CALLBACK: http://echoserver:8989/builder
       STATUS_CALLBACK: http://echoserver:8989/status
       LOG_CALLBACK: http://echoserver:8989/log
-      DB_URL: postgresql://postgres@db/federalist
+      DATABASE_URL: postgresql://postgres@db/federalist
 
   echoserver:
     # simple python server to log requests during development

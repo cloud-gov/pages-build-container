@@ -3,7 +3,7 @@ import psycopg2
 
 
 def migrate():
-    conn = psycopg2.connect(os.environ['DB_URL'])
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cursor = conn.cursor()
     cursor.execute(
         'CREATE TABLE IF NOT EXISTS buildlog (id serial PRIMARY KEY, '
