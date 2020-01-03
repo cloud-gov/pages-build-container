@@ -1,7 +1,8 @@
 import logging
 from unittest.mock import Mock, patch
 
-from log_utils.get_logger import LogFilter, Formatter, StreamToLogger
+from log_utils.get_logger import (
+    LogFilter, Formatter, StreamToLogger, get_logger)
 
 
 class TestLogFilter():
@@ -124,3 +125,15 @@ class TestStreamLogger():
 
         flush = getattr(streamLogger, 'flush')
         assert(callable(flush) is True)
+
+
+class TestGetLogger():
+    def test_it_returns_a_logger_with_an_adapter_with_extras(self):
+        name = 'foobar'
+        attrs = {'foo': 'bar'}
+
+        adapter = get_logger(name, attrs)
+
+        assert(type(adapter) == logging.LoggerAdapter)
+        assert(adapter.logger.name == name)
+        assert(adapter.extra == attrs)
