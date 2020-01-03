@@ -91,7 +91,7 @@ def main():
     STATUS_CALLBACK = os.environ['STATUS_CALLBACK']
 
     # Necessary to log to database
-    DB_URL = os.environ.get('DB_URL', '')
+    DATABASE_URL = os.environ.get('DATABASE_URL', '')
 
     BUILD_INFO = f'{OWNER}/{REPOSITORY}@id:{BUILD_ID}'
 
@@ -104,7 +104,7 @@ def main():
         'repository': REPOSITORY,
     }
 
-    init_logging(priv_vals, logattrs, db_url=DB_URL,
+    init_logging(priv_vals, logattrs, db_url=DATABASE_URL,
                  skip_logging=should_skip_logging)
 
     LOGGER = get_logger('main', logattrs)
