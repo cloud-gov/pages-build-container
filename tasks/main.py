@@ -11,7 +11,8 @@ from stopit import TimeoutException, SignalTimeout as Timeout
 from log_utils import get_logger
 from log_utils.remote_logs import (
     post_output_log, post_build_complete,
-    post_build_error, post_build_timeout)
+    post_build_error, post_build_timeout,
+    post_build_processing)
 from .common import load_dotenv, delta_to_mins_secs
 
 LOGGER = get_logger('MAIN')
@@ -182,6 +183,7 @@ def main(ctx):
     BUILD_INFO = f'{OWNER}/{REPOSITORY}@id:{BUILD_ID}'
 
     try:
+        post_build_processing(STATUS_CALLBACK)
         # throw a timeout exception after TIMEOUT_SECONDS
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
             LOGGER.info(f'Running build for {OWNER}/{REPOSITORY}/{BRANCH}')

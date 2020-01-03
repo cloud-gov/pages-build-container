@@ -32,6 +32,10 @@ SITE_BUILD_DIR_PATH = CLONE_DIR_PATH / SITE_BUILD_DIR
 
 LOGGER = get_logger('COMMON')
 
+STATUS_COMPLETE = 'success'
+STATUS_ERROR = 'error'
+STATUS_PROCESSING = 'processing'
+
 
 def load_dotenv():  # pragma: no cover
     '''Loads environment from a .env file'''
