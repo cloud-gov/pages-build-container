@@ -61,7 +61,9 @@ class Formatter(logging.Formatter):
 
 
 class StreamToLogger:
-    def __init__(self, logger, log_level=logging.INFO):
+    DEFAULT_LEVEL = logging.INFO
+
+    def __init__(self, logger, log_level=DEFAULT_LEVEL):
         self.logger = logger
         self.log_level = log_level
 
