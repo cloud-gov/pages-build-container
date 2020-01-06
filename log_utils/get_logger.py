@@ -9,6 +9,8 @@ import logging.handlers
 
 from .db_handler import DBHandler
 
+DEFAULT_LOG_LEVEL = logging.INFO
+
 
 class LogFilter(logging.Filter):
     '''
@@ -98,7 +100,7 @@ def init_logging(private_values, attrs={}, db_url=None, skip_logging=False):
 
     log_filter = LogFilter(private_values)
 
-    log_level = logging.INFO
+    log_level = DEFAULT_LOG_LEVEL
 
     stream_formatter = Formatter(extra_attrs, long_fmt, date_fmt, style_fmt)
 
