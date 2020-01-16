@@ -7,13 +7,9 @@ import json
 import requests
 
 from os import path, makedirs
-from datetime import datetime
 
-from log_utils import get_logger
 from repo_config.repo_config import RepoConfig
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
-
-LOGGER = get_logger('S3_PUBLISHER')
 
 MAX_S3_KEYS_PER_REQUEST = 1000
 FEDERALIST_JSON = 'federalist.json'
@@ -197,42 +193,33 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             len(local_files) <= 1):
         raise RuntimeError('Cannot unpublish all files')
 
-    LOGGER.info('Preparing to upload')
-    LOGGER.info(f'New: {len(new_objects)}')
-    LOGGER.info(f'Replaced: {len(replacement_objects)}')
-    LOGGER.info(f'Deleted: {len(deletion_objects)}')
+    print('Preparing to upload')
+    print(f'New: {len(new_objects)}')
+    print(f'Replaced: {len(replacement_objects)}')
+    print(f'Deleted: {len(deletion_objects)}')
 
     # Upload new and replacement files
     upload_objects = new_objects + replacement_objects
     for file in upload_objects:
         if dry_run:  # pragma: no cover
-            LOGGER.info(f'Dry-run uploading {file.s3_key}')
+            print(f'Dry-run uploading {file.s3_key}')
         else:
-            LOGGER.info(f'Uploading {file.s3_key}')
-            start_time = datetime.now()
+            print(f'Uploading {file.s3_key}')
 
             try:
                 file.upload_to_s3(bucket, s3_client)
             except UnicodeEncodeError as err:
                 if err.reason == 'surrogates not allowed':
-                    LOGGER.warn(f'... unable to upload {file.filename} due '
-                                f'to invalid characters in file name.')
+                    print(f'... unable to upload {file.filename} due '
+                          f'to invalid characters in file name.')
                 else:
                     raise
-
-            delta = datetime.now() - start_time
-            LOGGER.info(f'... done in {delta.total_seconds():.2f}s')
 
     # Delete files not needed any more
     for file in deletion_objects:
         if dry_run:  # pragma: no cover
-            LOGGER.info(f'Dry run deleting {file.s3_key}')
+            print(f'Dry run deleting {file.s3_key}')
         else:
-            LOGGER.info(f'Deleting {file.s3_key}')
-
-            start_time = datetime.now()
+            print(f'Deleting {file.s3_key}')
 
             file.delete_from_s3(bucket, s3_client)
-
-            delta = datetime.now() - start_time
-            LOGGER.info(f'... done in {delta.total_seconds():.2f}s')

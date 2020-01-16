@@ -27,7 +27,7 @@ jobs:
       - run:
           name: Bandit
           command: |
-            docker-compose -f docker-compose.test.yml run app bandit publishing/*.py tasks/*.py log_utils/*.py
+            docker-compose -f docker-compose.test.yml run app bandit publishing/*.py tasks/*.py log_utils/*.py repo_config/*.py
 
       - run:
           name: Install cc-test-reporter
