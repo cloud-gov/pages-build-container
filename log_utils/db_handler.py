@@ -23,7 +23,7 @@ class DBHandler(logging.Handler):
             now = datetime.now()
             self.exec(
                 ('INSERT INTO buildlog '
-                 '(build, source, output, createdAt, updatedAt) '
+                 '(build, source, output, "createdAt", "updatedAt") '
                  'VALUES (%s, %s, %s, %s, %s);'),
                 (self.build_id, self.source, self.format(record), now, now)
             )

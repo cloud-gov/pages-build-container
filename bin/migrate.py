@@ -10,10 +10,10 @@ def migrate():
         'build integer, source varchar, output varchar)'
     )
     cursor.execute(
-        'ALTER TABLE buildlog ADD COLUMN IF NOT EXISTS createdAt timestamp'
+        'ALTER TABLE buildlog ADD COLUMN IF NOT EXISTS "createdAt" timestamp'
     )
     cursor.execute(
-        'ALTER TABLE buildlog ADD COLUMN IF NOT EXISTS updatedAt timestamp'
+        'ALTER TABLE buildlog ADD COLUMN IF NOT EXISTS "updatedAt" timestamp'
     )
     conn.commit()
     cursor.close()
