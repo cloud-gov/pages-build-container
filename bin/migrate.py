@@ -9,6 +9,12 @@ def migrate():
         'CREATE TABLE IF NOT EXISTS buildlog (id serial PRIMARY KEY, '
         'build integer, source varchar, output varchar)'
     )
+    cursor.execute(
+        'ALTER TABLE buildlog ADD COLUMN IF NOT EXISTS "createdAt" timestamp'
+    )
+    cursor.execute(
+        'ALTER TABLE buildlog ADD COLUMN IF NOT EXISTS "updatedAt" timestamp'
+    )
     conn.commit()
     cursor.close()
     conn.close()

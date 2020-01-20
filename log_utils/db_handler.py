@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 import psycopg2
 
@@ -19,10 +20,12 @@ class DBHandler(logging.Handler):
 
     def emit(self, record):
         try:
+            now = datetime.now()
             self.exec(
-                ('INSERT INTO buildlog (build, source, output) '
-                 'VALUES (%s, %s, %s);'),
-                (self.build_id, self.source, self.format(record))
+                ('INSERT INTO buildlog '
+                 '(build, source, output, "createdAt", "updatedAt") '
+                 'VALUES (%s, %s, %s, %s, %s);'),
+                (self.build_id, self.source, self.format(record), now, now)
             )
         except Exception:
             self.handleError(record)
