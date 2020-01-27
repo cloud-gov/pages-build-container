@@ -67,8 +67,7 @@ def setup_node(ctx):
             else:
                 # output node and npm versions if the defaults are used
                 ctx.run(f'echo Node version: $(node --version)')
-                result = ctx.run(f'echo NPM version: $({npm_command} --version)')
-                print(result)
+                ctx.run(f'echo NPM version: $({npm_command} --version)')
 
             PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
             if PACKAGE_JSON_PATH.is_file():
@@ -149,8 +148,7 @@ def setup_ruby(ctx):
                 ruby_version = shlex.quote(ruby_version)
             if ruby_version:
                 print('Using ruby version in .ruby-version')
-                result = ctx.run(f'rvm install {ruby_version}')
-                print(result)
+                ctx.run(f'rvm install {ruby_version}')
 
         ctx.run('echo Ruby version: $(ruby -v)')
 
