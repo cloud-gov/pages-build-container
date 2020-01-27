@@ -66,11 +66,9 @@ def setup_node(ctx):
                 npm_command = f'nvm use && {npm_command}'
             else:
                 # output node and npm versions if the defaults are used
-                node_version_res = ctx.run(f'node --version', hide=True)
-                print(f'Node version: {node_version_res.stdout}')
-                npm_version_res = ctx.run(f'{npm_command} --version',
-                                          hide=True)
-                print(f'NPM version: {npm_version_res.stdout}')
+                ctx.run(f'echo Node version: $(node --version)')
+                result = ctx.run(f'echo NPM version: $({npm_command} --version)')
+                print(result)
 
             PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
             if PACKAGE_JSON_PATH.is_file():
@@ -151,10 +149,10 @@ def setup_ruby(ctx):
                 ruby_version = shlex.quote(ruby_version)
             if ruby_version:
                 print('Using ruby version in .ruby-version')
-                ctx.run(f'rvm install {ruby_version}')
+                result = ctx.run(f'rvm install {ruby_version}')
+                print(result)
 
-        ruby_ver_res = ctx.run('ruby -v')
-        print(f'Ruby version: {ruby_ver_res.stdout}')
+        ctx.run('echo Ruby version: $(ruby -v)')
 
 
 @task
@@ -215,8 +213,7 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
             print('Installing Jekyll')
             ctx.run('gem install jekyll --no-document')
 
-        jekyll_vers_res = ctx.run(f'{jekyll_cmd} -v')
-        print(f'Building using Jekyll version: {jekyll_vers_res.stdout}')
+        ctx.run(f'echo Building using Jekyll version: $({jekyll_cmd} -v)')
 
         jekyll_build_env = build_env(branch, owner, repository, site_prefix,
                                      base_url)
@@ -294,8 +291,7 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
 
     HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
 
-    hugo_vers_res = ctx.run(f'{HUGO_BIN_PATH} version')
-    print(f'hugo version: {hugo_vers_res.stdout}')
+    ctx.run(f'echo hugo version: $({HUGO_BIN_PATH} version)')
     print('Building site with hugo')
 
     with node_context(ctx):  # in case some hugo plugin needs node
