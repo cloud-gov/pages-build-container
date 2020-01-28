@@ -5,7 +5,7 @@ from pathlib import Path
 import shlex
 import logging
 from datetime import datetime
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from invoke import Context, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
 
@@ -58,7 +58,7 @@ def main():
     # keep track of total time
     start_time = datetime.now()
 
-    load_env()
+    # load_env()
 
     AWS_DEFAULT_REGION = os.environ['AWS_DEFAULT_REGION']
     BUCKET = os.environ['BUCKET']
@@ -252,19 +252,19 @@ def main():
                          err_message)
 
 
-def load_env():
-    '''
-    Load the environment from a .env file using `dotenv`.
-    The file should only be present when running locally.
+# def load_env():
+#     '''
+#     Load the environment from a .env file using `dotenv`.
+#     The file should only be present when running locally.
 
-    Otherwise these environment variables will be set into the environment
-    by federalist-builder.
-    '''
-    DOTENV_PATH = Path(os.path.dirname(os.path.dirname(__file__))) / '.env'
+#     Otherwise these environment variables will be set into the environment
+#     by federalist-builder.
+#     '''
+#     DOTENV_PATH = Path(os.path.dirname(os.path.dirname(__file__))) / '.env'
 
-    if os.path.exists(DOTENV_PATH):
-        print('Loading environment from .env file')
-        load_dotenv(DOTENV_PATH)
+#     if os.path.exists(DOTENV_PATH):
+#         print('Loading environment from .env file')
+#         load_dotenv(DOTENV_PATH)
 
 
 def private_values():
