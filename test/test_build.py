@@ -193,7 +193,8 @@ class TestBuildJekyll():
         ctx = MockContext(run={
             'gem install bundler --version "<2"': Result(),
             'bundle install': Result(),
-            'echo Building using Jekyll version: $(bundle exec jekyll -v)': Result(),
+            'echo Building using Jekyll version: '
+            '$(bundle exec jekyll -v)': Result(),
             f'bundle exec jekyll build --destination /boop': Result(),
         })
         tasks.build_jekyll(ctx, branch='branch', owner='owner',
