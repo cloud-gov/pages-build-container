@@ -39,8 +39,8 @@ def run_task(ctx, task_name, log_attrs={}, flags_dict=None, env=None):
         run_kwargs['env'] = env
 
     logger = get_logger(task_name, log_attrs)
-    run_kwargs['out_stream'] = StreamToLogger(logger)
-    run_kwargs['err_stream'] = StreamToLogger(logger, logging.ERROR)
+    ctx.config.run.out_stream = StreamToLogger(logger)
+    ctx.config.run.err_stream = StreamToLogger(logger, logging.ERROR)
 
     ctx.run(command, **run_kwargs)
 

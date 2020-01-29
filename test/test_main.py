@@ -34,5 +34,3 @@ def test_run_task(monkeypatch):
     assert call_args[0] == (
         'inv fake-task fake-flag=flag-val other-flag=other-val',)
     assert call_args[1]['env'] == env
-    assert call_args[1]['out_stream']
-    assert call_args[1]['err_stream']
