@@ -66,7 +66,7 @@ def setup_node(ctx):
                 npm_command = f'nvm use && {npm_command}'
             else:
                 # output node and npm versions if the defaults are used
-                ctx.run(f'echo Node version: $(node --version)')
+                ctx.run('echo Node version: $(node --version)')
                 ctx.run(f'echo NPM version: $({npm_command} --version)')
 
             PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
