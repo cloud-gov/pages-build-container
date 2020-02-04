@@ -1,0 +1,8 @@
+---    
+applications:
+  - name: federalist-build-container-task
+    no-route: true
+    health-check-type: process
+    instances: 0
+    docker:
+      image: federalist-registry.fr.cloud.gov/federalist-garden-build

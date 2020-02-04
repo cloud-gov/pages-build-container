@@ -5,6 +5,7 @@ import sys
 from dotenv import load_dotenv
 from tasks import main
 
+
 def load_env():
     '''
     Load the environment from a .env file using `dotenv`.
@@ -19,28 +20,27 @@ def load_env():
         print('Loading environment from .env file')
         load_dotenv(DOTENV_PATH)
 
+
 flags = {
-    'a': 'AWS_DEFAULT_REGION',
-    'b': 'BUCKET',
-    'c': 'BASEURL',
-    'd': 'BUILD_ID',
-    'e': 'CACHE_CONTROL',
-    'f': 'BRANCH',
-    'g': 'CONFIG',
-    'h': 'REPOSITORY',
-    'i': 'OWNER',
-    'j': 'SITE_PREFIX',
-    'k': 'GENERATOR',
-    'l': 'AWS_ACCESS_KEY_ID',
-    'm': 'AWS_SECRET_ACCESS_KEY',
-    'n': 'FEDERALIST_BUILDER_CALLBACK',
-    'o': 'STATUS_CALLBACK',
-    # optional
-    'p': 'SOURCE_REPO',
-    'q': 'SOURCE_OWNER',
-    'r': 'GITHUB_TOKEN',
-    's': 'DATABASE_URL',
-    't': 'SKIP_LOGGING'
+    'aws-access-key': 'AWS_ACCESS_KEY_ID',
+    'aws-region': 'AWS_DEFAULT_REGION',
+    'aws-secret-access-key': 'AWS_SECRET_ACCESS_KEY',
+    'baseurl': 'BASEURL',
+    'branch': 'BRANCH',
+    'bucket': 'BUCKET',
+    'build-id': 'BUILD_ID',
+    'builder-callback': 'FEDERALIST_BUILDER_CALLBACK',
+    'cache-control': 'CACHE_CONTROL',
+    'config': 'CONFIG',
+    'generator': 'GENERATOR',
+    'github-token': 'GITHUB_TOKEN',
+    'owner': 'OWNER',
+    'repo': 'REPOSITORY',
+    'site-prefix': 'SITE_PREFIX',
+    'source-repo': 'SOURCE_REPO',
+    'source-owner': 'SOURCE_OWNER',
+    'status-callback': 'STATUS_CALLBACK',
+    'skip-logging': 'SKIP_LOGGING'
 }
 
 if __name__ == "__main__":
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         for opt, arg in opts:
             name = flags[opt[1:]]
             os.environ[name] = arg
-        
+
     else:
         load_env()
 
