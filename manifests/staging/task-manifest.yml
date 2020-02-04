@@ -6,3 +6,5 @@ applications:
     instances: 0
     docker:
       image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build
+    services:
+      - federalist-staging-rds

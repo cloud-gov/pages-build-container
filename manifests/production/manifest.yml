@@ -5,6 +5,8 @@ defaults: &defaults
   disk_quota: 4G
   docker:
     image: federalist-registry.fr.cloud.gov/federalist-garden-build
+  services:
+    - federalist-production-rds
   command: bash ./run.sh
     
 applications:
