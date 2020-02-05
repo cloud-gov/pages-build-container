@@ -1,2 +1,2 @@
-invoke main
+python main.py
 sleep infinity
