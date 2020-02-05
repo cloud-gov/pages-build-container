@@ -45,8 +45,8 @@ class TestSetupNode():
     def test_installs_production_deps(self, patch_clone_dir):
         create_file(patch_clone_dir / PACKAGE_JSON)
         ctx = MockContext(run={
-            'node --version': Result(),
-            'npm --version': Result(),
+            'echo Node version: $(node --version)': Result(),
+            'echo NPM version: $(npm --version)': Result(),
             'npm set audit false': Result(),
             'npm install --production': Result(),
         })
@@ -102,7 +102,7 @@ class TestRunFederalistScript():
 class TestSetupRuby():
     def test_it_is_callable(self):
         ctx = MockContext(run={
-            'ruby -v': Result(),
+            'echo Ruby version: $(ruby -v)': Result(),
         })
         tasks.setup_ruby(ctx)
 
@@ -110,7 +110,7 @@ class TestSetupRuby():
         create_file(patch_clone_dir / RUBY_VERSION, '2.3')
         ctx = MockContext(run={
             'rvm install 2.3': Result(),
-            'ruby -v': Result(),
+            'echo Ruby version: $(ruby -v)': Result(),
         })
         tasks.setup_ruby(ctx)
 
@@ -118,7 +118,7 @@ class TestSetupRuby():
         create_file(patch_clone_dir / RUBY_VERSION, '  $2.2  ')
         ctx = MockContext(run={
             "rvm install '$2.2'": Result(),
-            'ruby -v': Result(),
+            'echo Ruby version: $(ruby -v)': Result(),
         })
         tasks.setup_ruby(ctx)
 
@@ -193,7 +193,8 @@ class TestBuildJekyll():
         ctx = MockContext(run={
             'gem install bundler --version "<2"': Result(),
             'bundle install': Result(),
-            'bundle exec jekyll -v': Result(),
+            'echo Building using Jekyll version: '
+            '$(bundle exec jekyll -v)': Result(),
             f'bundle exec jekyll build --destination /boop': Result(),
         })
         tasks.build_jekyll(ctx, branch='branch', owner='owner',
@@ -291,7 +292,7 @@ class TestBuildHugo():
         hugo_call = (f'{hugo_path} --source /work/site_repo '
                      f'--destination /work/site_repo/_site')
         ctx = MockContext(run={
-            f'{hugo_path} version': Result(),
+            f'echo hugo version: $({hugo_path} version)': Result(),
             hugo_call: Result(),
         })
         with requests_mock.Mocker() as m:
@@ -306,7 +307,7 @@ class TestBuildHugo():
             kwargs['base_url'] = '/test_base'
             hugo_call += f' --baseURL /test_base'
             ctx = MockContext(run={
-                f'{hugo_path} version': Result(),
+                f'echo hugo version: $({hugo_path} version)': Result(),
                 hugo_call: Result(),
             })
             tasks.build_hugo(ctx, **kwargs)
