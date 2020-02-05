@@ -1,29 +1,93 @@
 '''Main task entrypoint'''
 
 import os
-from pathlib import Path
 import shlex
-import logging
+
 from datetime import datetime
-from dotenv import load_dotenv
-from invoke import Context, UnexpectedExit
+
+from invoke import task, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
 
-from log_utils import (delta_to_mins_secs, get_logger, init_logging,
-                       StreamToLogger)
+from log_utils import get_logger
 from log_utils.remote_logs import (
-    post_build_complete, post_build_error, post_build_timeout,
-    should_skip_logging, post_build_processing)
+    post_output_log, post_build_complete,
+    post_build_error, post_build_timeout)
+from .common import load_dotenv, delta_to_mins_secs
+
+LOGGER = get_logger('MAIN')
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
 
-def run_task(ctx, task_name, log_attrs={}, flags_dict=None, env=None):
+def format_output(stdout_str, stderr_str):
+    '''
+    Convenience method for combining strings of stdout and stderr.
+
+    >>> format_output('stdout', 'stderr')
+    '>> STDOUT:\\nstdout\\n---------------------------\\n>> STDERR:\\nstderr'
+
+    >>> format_output('abc', 'def')
+    '>> STDOUT:\\nabc\\n---------------------------\\n>> STDERR:\\ndef'
+    '''
+    output = f'>> STDOUT:\n{stdout_str}'
+    output += '\n---------------------------\n'
+    output += f'>> STDERR:\n{stderr_str}'
+    return output
+
+
+def replace_private_values(text, private_values,
+                           replace_string='[PRIVATE VALUE HIDDEN]'):
+    '''
+    Replaces instances of the strings in `private_values` list
+    with `replace_string`.
+
+    >>> replace_private_values('18F boop Rulez boop', ['boop'])
+    '18F [PRIVATE VALUE HIDDEN] Rulez [PRIVATE VALUE HIDDEN]'
+
+    >>> replace_private_values('18F boop Rulez beep',
+    ...                        ['boop', 'beep'], 'STUFF')
+    '18F STUFF Rulez STUFF'
+    '''
+    for priv_val in private_values:
+        text = text.replace(priv_val, replace_string)
+
+    return text
+
+
+def find_custom_error_message(err_string):
+    '''
+    Returns a custom error message based on the current
+    contents of `err_string`, if one exists.
+
+    Otherwise, just return the supplied `err_string`.
+
+    >>> msg = find_custom_error_message('boop InvalidAccessKeyId')
+    >>> 'S3 keys were rotated' in msg
+    True
+
+    >>> find_custom_error_message('boop')
+    'boop'
+    '''
+    if "InvalidAccessKeyId" in err_string:
+        err_string = (
+            'Whoops, our S3 keys were rotated during your '
+            'build and became out of date. This was not a '
+            'problem with your site build, but if you restart '
+            'the failed build it should work on the next try. '
+            'Sorry for the inconvenience!'
+        )
+
+    return err_string
+
+
+def run_task(ctx, task_name, private_values, log_callback,
+             flags_dict=None, env=None):
     '''
     Uses `ctx.run` to call the specified `task_name` with the
     argument flags given in `flags_dict` and `env`, if specified.
 
-    The result's stdout and stderr are routed to the logger.
+    The result's stdout is posted to log_callback, with `private_values`
+    removed.
     '''
     flag_args = []
     if flags_dict:
@@ -38,14 +102,21 @@ def run_task(ctx, task_name, log_attrs={}, flags_dict=None, env=None):
     if env:
         run_kwargs['env'] = env
 
-    logger = get_logger(task_name, log_attrs)
-    ctx.config.run.out_stream = StreamToLogger(logger)
-    ctx.config.run.err_stream = StreamToLogger(logger, logging.ERROR)
+    result = ctx.run(command, **run_kwargs)
 
-    ctx.run(command, **run_kwargs)
+    # Add both STDOUT and STDERR to the output logs
+    output = format_output(result.stdout, result.stderr)
+
+    # Replace instances of any private_values that may be present
+    output = replace_private_values(output, private_values)
+
+    post_output_log(log_callback, source=task_name, output=output)
+
+    return result
 
 
-def main():
+@task
+def main(ctx):
     '''
     Main task to run a full site build process.
 
@@ -58,12 +129,18 @@ def main():
     # keep track of total time
     start_time = datetime.now()
 
-    load_env()
+    # Load from .env for development
+    load_dotenv()
+
+    # These environment variables will be set into the environment
+    # by federalist-builder.
+
+    # During development, we can use a `.env` file (loaded above)
+    # to make it easier to specify variables.
 
     AWS_DEFAULT_REGION = os.environ['AWS_DEFAULT_REGION']
     BUCKET = os.environ['BUCKET']
     BASEURL = os.environ['BASEURL']
-    BUILD_ID = os.environ['BUILD_ID']
     CACHE_CONTROL = os.environ['CACHE_CONTROL']
     BRANCH = os.environ['BRANCH']
     CONFIG = os.environ['CONFIG']
@@ -71,8 +148,12 @@ def main():
     OWNER = os.environ['OWNER']
     SITE_PREFIX = os.environ['SITE_PREFIX']
     GENERATOR = os.environ['GENERATOR']
+
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
     AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+
+    # List of private strings to be removed from any posted logs
+    private_values = [AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY]
 
     # Optional environment variables
     SOURCE_REPO = os.getenv('SOURCE_REPO', '')
@@ -82,6 +163,10 @@ def main():
     # makes a commit to a repo and thus initiates a build for a
     # Federalist site
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
+    if GITHUB_TOKEN:
+        # only include it in list of values to strip from log output
+        # if it exists
+        private_values.append(GITHUB_TOKEN)
 
     # Ex: https://federalist-builder.fr.cloud.gov/builds/<token>/callback
     FEDERALIST_BUILDER_CALLBACK = os.environ['FEDERALIST_BUILDER_CALLBACK']
@@ -89,30 +174,14 @@ def main():
     # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/status/<token>
     STATUS_CALLBACK = os.environ['STATUS_CALLBACK']
 
-    # Necessary to log to database
-    DATABASE_URL = os.getenv('DATABASE_URL', '')
+    # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/log/<token>
+    LOG_CALLBACK = os.environ['LOG_CALLBACK']
+
+    BUILD_ID = os.environ['BUILD_ID']
 
     BUILD_INFO = f'{OWNER}/{REPOSITORY}@id:{BUILD_ID}'
 
-    priv_vals = private_values()
-
-    logattrs = {
-        'branch': BRANCH,
-        'buildid': BUILD_ID,
-        'owner': OWNER,
-        'repository': REPOSITORY,
-    }
-
-    init_logging(priv_vals, logattrs, db_url=DATABASE_URL,
-                 skip_logging=should_skip_logging())
-
-    LOGGER = get_logger('main', logattrs)
-
-    def run(task, args=None, env=None):
-        run_task(Context(), task, logattrs, args, env)
-
     try:
-        post_build_processing(STATUS_CALLBACK)
         # throw a timeout exception after TIMEOUT_SECONDS
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
             LOGGER.info(f'Running build for {OWNER}/{REPOSITORY}/{BRANCH}')
@@ -129,21 +198,21 @@ def main():
             # helper `run_task` method.
 
             ##
-            # CLONE and/or PUSH
+            # CLONE
             #
-            clone_env = {'GITHUB_TOKEN': GITHUB_TOKEN}
-
             if SOURCE_OWNER and SOURCE_REPO:
                 # First clone the source (ie, template) repository
-
                 clone_source_flags = {
                     '--owner': SOURCE_OWNER,
                     '--repository': SOURCE_REPO,
                     '--branch': BRANCH,
-                    '--depth': '--depth 1',
                 }
 
-                run('clone-repo', clone_source_flags, clone_env)
+                run_task(ctx, 'clone-repo',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
+                         flags_dict=clone_source_flags,
+                         env={'GITHUB_TOKEN': GITHUB_TOKEN})
 
                 # Then push the cloned source repo up to the destination repo.
                 # Note that the dest repo must already exist but be empty.
@@ -154,7 +223,11 @@ def main():
                     '--branch': BRANCH,
                 }
 
-                run('push-repo-remote', push_repo_flags, clone_env)
+                run_task(ctx, 'push-repo-remote',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
+                         flags_dict=push_repo_flags,
+                         env={'GITHUB_TOKEN': GITHUB_TOKEN})
             else:
                 # Just clone the given repository
                 clone_flags = {
@@ -164,7 +237,11 @@ def main():
                     '--depth': '--depth 1',
                 }
 
-                run('clone-repo', clone_flags, clone_env)
+                run_task(ctx, 'clone-repo',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
+                         flags_dict=clone_flags,
+                         env={'GITHUB_TOKEN': GITHUB_TOKEN})
 
             ##
             # BUILD
@@ -178,18 +255,29 @@ def main():
             }
 
             # Run the npm `federalist` task (if it is defined)
-            run('run-federalist-script', build_flags)
+            run_task(ctx, 'run-federalist-script',
+                     log_callback=LOG_CALLBACK,
+                     private_values=private_values,
+                     flags_dict=build_flags)
 
             # Run the appropriate build engine based on GENERATOR
             if GENERATOR == 'jekyll':
                 build_flags['--config'] = CONFIG
-                run('build-jekyll', build_flags)
+                run_task(ctx, 'build-jekyll',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
+                         flags_dict=build_flags)
             elif GENERATOR == 'hugo':
                 # extra: --hugo-version (not yet used)
-                run('build-hugo', build_flags)
+                run_task(ctx, 'build-hugo',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values,
+                         flags_dict=build_flags)
             elif GENERATOR == 'static':
                 # no build arguments are needed
-                run('build-static')
+                run_task(ctx, 'build-static',
+                         log_callback=LOG_CALLBACK,
+                         private_values=private_values)
             elif (GENERATOR == 'node.js' or GENERATOR == 'script only'):
                 LOGGER.info('build already ran in \'npm run federalist\'')
             else:
@@ -211,25 +299,42 @@ def main():
                 'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
             }
 
-            run('publish', publish_flags, publish_env)
+            run_task(ctx, 'publish',
+                     log_callback=LOG_CALLBACK,
+                     private_values=private_values,
+                     flags_dict=publish_flags,
+                     env=publish_env)
 
             delta_string = delta_to_mins_secs(datetime.now() - start_time)
-            LOGGER.info(f'Total build time: {delta_string}')
+            LOGGER.info(
+                f'Total build time: {delta_string}')
 
             # Finished!
-            post_build_complete(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
+            post_build_complete(STATUS_CALLBACK,
+                                FEDERALIST_BUILDER_CALLBACK)
 
     except TimeoutException:
-        LOGGER.warning(f'Build({BUILD_INFO}) has timed out')
-        post_build_timeout(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
+        LOGGER.exception(f'Build({BUILD_INFO}) has timed out')
+        post_build_timeout(LOG_CALLBACK,
+                           STATUS_CALLBACK,
+                           FEDERALIST_BUILDER_CALLBACK)
     except UnexpectedExit as err:
-        err_string = str(err)
+        # Combine the error's stdout and stderr into one string
+        err_string = format_output(err.result.stdout, err.result.stderr)
+
+        # replace any private values that might be in the error message
+        err_string = replace_private_values(err_string,
+                                            private_values)
 
         # log the original exception
-        LOGGER.warning(f'Exception raised during build({BUILD_INFO}):'
-                       + err_string)
+        LOGGER.exception(f'Exception raised during build({BUILD_INFO}):'
+                         + err_string)
 
-        post_build_error(STATUS_CALLBACK,
+        # replace the message with a custom one, if it exists
+        err_string = find_custom_error_message(err_string)
+
+        post_build_error(LOG_CALLBACK,
+                         STATUS_CALLBACK,
                          FEDERALIST_BUILDER_CALLBACK,
                          err_string)
     except Exception as err:  # pylint: disable=W0703
@@ -237,43 +342,19 @@ def main():
         # since all errors caught during tasks should be caught
         # in the previous block as `UnexpectedExit` exceptions.
         err_string = str(err)
+        err_string = replace_private_values(err_string,
+                                            private_values)
 
         # log the original exception
-        LOGGER.warning(f'Unexpected exception raised during build('
-                       + BUILD_INFO + '): '
-                       + err_string)
+        LOGGER.exception(f'Unexpected exception raised during build('
+                         + BUILD_INFO + '): '
+                         + err_string)
 
         err_message = (f'Unexpected build({BUILD_INFO}) error. Please try'
                        ' again and contact federalist-support'
                        ' if it persists.')
 
-        post_build_error(STATUS_CALLBACK,
+        post_build_error(LOG_CALLBACK,
+                         STATUS_CALLBACK,
                          FEDERALIST_BUILDER_CALLBACK,
                          err_message)
-
-
-def load_env():
-    '''
-    Load the environment from a .env file using `dotenv`.
-    The file should only be present when running locally.
-
-    Otherwise these environment variables will be set into the environment
-    by federalist-builder.
-    '''
-    DOTENV_PATH = Path(os.path.dirname(os.path.dirname(__file__))) / '.env'
-
-    if os.path.exists(DOTENV_PATH):
-        print('Loading environment from .env file')
-        load_dotenv(DOTENV_PATH)
-
-
-def private_values():
-    priv_vals = [
-        os.environ['AWS_ACCESS_KEY_ID'],
-        os.environ['AWS_SECRET_ACCESS_KEY']
-    ]
-    GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
-    if GITHUB_TOKEN:
-        priv_vals.append(GITHUB_TOKEN)
-
-    return priv_vals

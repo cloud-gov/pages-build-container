@@ -1,9 +1,11 @@
-version: "2"
+---
+languages:
+  Python: true
 
-plugins:
+engines:
   pep8:
     enabled: true
 
-exclude_patterns:
-  - "bin/migrate.py"
-  - "main.py"
+ratings:
+  paths:
+  - "**.py"

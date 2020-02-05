@@ -11,11 +11,15 @@ import time
 from contextlib import ExitStack
 from os import path
 from pathlib import Path
+
 import requests
 from invoke import call, task
 
+from log_utils import get_logger
 from tasks.common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH,
                           WORKING_DIR_PATH, clean)
+
+LOGGER = get_logger('BUILD')
 
 NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
@@ -61,17 +65,21 @@ def setup_node(ctx):
 
             if NVMRC_PATH.is_file():
                 # nvm will output the node and npm versions used
-                print('Using node version specified in .nvmrc')
+                LOGGER.info('Using node version specified in .nvmrc')
                 ctx.run('nvm install')
                 npm_command = f'nvm use && {npm_command}'
             else:
                 # output node and npm versions if the defaults are used
-                ctx.run('echo Node version: $(node --version)')
-                ctx.run(f'echo NPM version: $({npm_command} --version)')
+                node_version_res = ctx.run(f'node --version', hide=True)
+                LOGGER.info(f'Node version: {node_version_res.stdout}')
+                npm_version_res = ctx.run(f'{npm_command} --version',
+                                          hide=True)
+                LOGGER.info(f'NPM version: {npm_version_res.stdout}')
 
             PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
             if PACKAGE_JSON_PATH.is_file():
-                print('Installing production dependencies in package.json')
+                LOGGER.info('Installing production dependencies '
+                            'in package.json')
                 ctx.run(f'{npm_command} set audit false')
                 ctx.run(f'{npm_command} install --production')
 
@@ -121,10 +129,9 @@ def run_federalist_script(ctx, branch, owner, repository, site_prefix,
     '''
     Runs the npm "federalist" script if it is defined
     '''
-
     if has_federalist_script():
         with node_context(ctx, ctx.cd(str(CLONE_DIR_PATH))):
-            print('Running federalist build script in package.json')
+            LOGGER.info('Running federalist build script in package.json')
             ctx.run('npm run federalist',
                     env=build_env(branch, owner, repository, site_prefix,
                                   base_url))
@@ -136,7 +143,6 @@ def setup_ruby(ctx):
     Sets up RVM and installs ruby
     Uses the ruby version specified in .ruby-version if present
     '''
-
     with ctx.prefix(f'source {RVM_PATH}'):
         RUBY_VERSION_PATH = CLONE_DIR_PATH / RUBY_VERSION
         if RUBY_VERSION_PATH.is_file():
@@ -147,16 +153,16 @@ def setup_ruby(ctx):
                 # in the .ruby-version file
                 ruby_version = shlex.quote(ruby_version)
             if ruby_version:
-                print('Using ruby version in .ruby-version')
+                LOGGER.info('Using ruby version in .ruby-version')
                 ctx.run(f'rvm install {ruby_version}')
 
-        ctx.run('echo Ruby version: $(ruby -v)')
+        ruby_ver_res = ctx.run('ruby -v')
+        LOGGER.info(f'Ruby version: {ruby_ver_res.stdout}')
 
 
 @task
 def setup_bundler(ctx):
-
-    print('Setting up bundler')
+    LOGGER.info('Setting up bundler')
     BUNDLER_VERSION_PATH = CLONE_DIR_PATH / BUNDLER_VERSION
     if BUNDLER_VERSION_PATH.is_file():
         with BUNDLER_VERSION_PATH.open() as bundler_vers_file:
@@ -168,7 +174,7 @@ def setup_bundler(ctx):
                 regex = r'^[\d]+(\.[\d]+)*$'
                 bundler_vers = re.search(regex, bundler_vers).group(0)
                 if bundler_vers:
-                    print('Using bundler version in .bundler-version')
+                    LOGGER.info('Using bundler version in .bundler-version')
                     ctx.run(f'gem install bundler --version "{bundler_vers}"')
             except Exception:
                 raise RuntimeError(f'Invalid .bundler-version')
@@ -182,7 +188,6 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
     '''
     Builds the cloned site with Jekyll
     '''
-
     JEKYLL_CONF_YML_PATH = CLONE_DIR_PATH / JEKYLL_CONFIG_YML
 
     # Add baseurl, branch, and the custom config to _config.yml.
@@ -203,15 +208,16 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
         GEMFILE_PATH = CLONE_DIR_PATH / GEMFILE
         if GEMFILE_PATH.is_file():
             setup_bundler(ctx)
-            print('Installing dependencies in Gemfile')
+            LOGGER.info('Installing dependencies in Gemfile')
             ctx.run('bundle install')
             jekyll_cmd = 'bundle exec ' + jekyll_cmd
 
         else:
-            print('Installing Jekyll')
+            LOGGER.info('Installing Jekyll')
             ctx.run('gem install jekyll --no-document')
 
-        ctx.run(f'echo Building using Jekyll version: $({jekyll_cmd} -v)')
+        jekyll_vers_res = ctx.run(f'{jekyll_cmd} -v')
+        LOGGER.info(f'Building using Jekyll version: {jekyll_vers_res.stdout}')
 
         jekyll_build_env = build_env(branch, owner, repository, site_prefix,
                                      base_url)
@@ -226,10 +232,9 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
 
 @task
 def download_hugo(ctx):
-
     HUGO_VERSION_PATH = CLONE_DIR_PATH / HUGO_VERSION
     if HUGO_VERSION_PATH.is_file():
-        print(f'.hugo-version found')
+        LOGGER.info(f'.hugo-version found')
         hugo_version = ''
         with HUGO_VERSION_PATH.open() as hugo_vers_file:
             try:
@@ -241,13 +246,13 @@ def download_hugo(ctx):
                 raise RuntimeError(f'Invalid .hugo-version')
 
         if hugo_version:
-            print(f'Using hugo version in .hugo-version: {hugo_version}')
+            LOGGER.info(f'Using hugo version in .hugo-version: {hugo_version}')
     else:
         raise RuntimeError(".hugo-version not found")
     '''
     Downloads the specified version of Hugo
     '''
-    print(f'Downloading hugo version {hugo_version}')
+    LOGGER.info(f'Downloading hugo version {hugo_version}')
     downloaded = False
     failed_attempts = 0
     while (not downloaded) and (failed_attempts < 5):
@@ -268,8 +273,8 @@ def download_hugo(ctx):
             downloaded = True
         except Exception:
             failed_attempts += 1
-            print(f'Failed attempt #{failed_attempts} '
-                  'to download hugo version: {hugo_version}')
+            LOGGER.warn(f'Failed attempt #{failed_attempts} '
+                        'to download hugo version: {hugo_version}')
             if failed_attempts == 5:
                 raise RuntimeError(f'Unable to download hugo version: '
                                    + hugo_version)
@@ -282,15 +287,15 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
     '''
     Builds the cloned site with Hugo
     '''
-
     # Note that no pre/post-tasks will be called when calling
     # the download_hugo task this way
     download_hugo(ctx)
 
     HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
 
-    ctx.run(f'echo hugo version: $({HUGO_BIN_PATH} version)')
-    print('Building site with hugo')
+    hugo_vers_res = ctx.run(f'{HUGO_BIN_PATH} version')
+    LOGGER.info(f'hugo version: {hugo_vers_res.stdout}')
+    LOGGER.info('Building site with hugo')
 
     with node_context(ctx):  # in case some hugo plugin needs node
         hugo_args = (f'--source {CLONE_DIR_PATH} '
@@ -311,8 +316,7 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
 ])
 def build_static(ctx):
     '''Moves all files from CLONE_DIR into SITE_BUILD_DIR'''
-
-    print(f'Moving files to {SITE_BUILD_DIR}')
+    LOGGER.info(f'Moving files to {SITE_BUILD_DIR}')
 
     # Make the site build directory first
     SITE_BUILD_DIR_PATH.mkdir(exist_ok=True)

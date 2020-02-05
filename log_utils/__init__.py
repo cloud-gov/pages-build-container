@@ -1,7 +1,5 @@
 '''Logging stuff'''
 
-from .get_logger import get_logger, init_logging, StreamToLogger
-from .delta_to_mins_secs import delta_to_mins_secs
+from .get_logger import get_logger
 
-__all__ = [
-    'delta_to_mins_secs', 'get_logger', 'init_logging', 'StreamToLogger']
+__all__ = ['get_logger']
