@@ -140,7 +140,6 @@ def main():
                     '--owner': SOURCE_OWNER,
                     '--repository': SOURCE_REPO,
                     '--branch': BRANCH,
-                    '--depth': '--depth 1',
                 }
 
                 run('clone-repo', clone_source_flags, clone_env)
