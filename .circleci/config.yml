@@ -15,7 +15,7 @@ jobs:
       - run:
           name: Start docker container
           command: |
-            docker run --name fgb -dt federalist-garden-build bash
+            docker run --name fgb -v ./coverage:/app/coverage -dt federalist-garden-build bash
 
       - run:
           name: Install test dependencies
