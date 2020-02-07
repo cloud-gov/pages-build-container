@@ -45,7 +45,7 @@ jobs:
       - run:
           name: Pytest
           command: |
-            docker exec -v ./coverage:/app/coverage fgb pytest
+            docker exec fgb pytest
 
       - run:
           name: CodeClimate after-build
