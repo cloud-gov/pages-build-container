@@ -56,7 +56,4 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
 
 ADD . ./
 
-ARG is_testing
-RUN if [ "$is_testing" ]; then pip install -r requirements-dev.txt; fi;
-
 CMD ["bash", "./run.sh"]
