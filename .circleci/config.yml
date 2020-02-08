@@ -2,10 +2,7 @@ version: 2
 jobs:
   build:
     environment:
-      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
-      REGISTRY_ACCESSKEY: $STAGING_REGISTRY_ACCESSKEY
-      REGISTRY_SECRETKEY: $STAGING_REGISTRY_SECRETKEY
-      REGISTRY_BUCKET: $STAGING_REGISTRY_BUCKET      
+      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665  
     machine: true
     steps:
       - checkout
@@ -70,14 +67,14 @@ jobs:
             docker run -d \
             -p 5000:5000 \
             -e REGISTRY_STORAGE="s3" \
-            -e REGISTRY_STORAGE_S3_ACCESSKEY="$REGISTRY_ACCESSKEY" \
-            -e REGISTRY_STORAGE_S3_SECRETKEY="$REGISTRY_SECRETKEY" \
-            -e REGISTRY_STORAGE_S3_BUCKET="$REGISTRY_BUCKET" \
+            -e REGISTRY_STORAGE_S3_ACCESSKEY="$STAGING_REGISTRY_ACCESSKEY" \
+            -e REGISTRY_STORAGE_S3_SECRETKEY="$STAGING_REGISTRY_SECRETKEY" \
+            -e REGISTRY_STORAGE_S3_BUCKET="$STAGING_REGISTRY_BUCKET" \
             -e REGISTRY_STORAGE_S3_REGION="us-gov-west-1" \
             registry:2
 
       - run:
-          name: Tag docker iamge for registry
+          name: Tag docker image for registry
           command: |
             docker tag federalist-garden-build localhost:5000/federalist-garden-build-test
 
