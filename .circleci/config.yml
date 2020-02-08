@@ -3,6 +3,9 @@ jobs:
   build:
     environment:
       CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
+      REGISTRY_ACCESSKEY: $STAGING_REGISTRY_ACCESSKEY
+      REGISTRY_SECRETKEY: $STAGING_REGISTRY_SECRETKEY
+      REGISTRY_BUCKET: $STAGING_REGISTRY_BUCKET      
     machine: true
     steps:
       - checkout
@@ -40,7 +43,8 @@ jobs:
 
       - run:
           name: CodeClimate before-build
-          command: ./cc-test-reporter before-build
+          command: |
+            ./cc-test-reporter before-build
 
       - run:
           name: Pytest
@@ -60,3 +64,24 @@ jobs:
       - store_artifacts:
           path: ./coverage/coverage.xml
 
+      - run:
+          name: Run local docker registry
+          command: |
+            docker run -d \
+            -p 5000:5000 \
+            -e REGISTRY_STORAGE="s3" \
+            -e REGISTRY_STORAGE_S3_ACCESSKEY="$REGISTRY_ACCESSKEY" \
+            -e REGISTRY_STORAGE_S3_SECRETKEY="$REGISTRY_SECRETKEY" \
+            -e REGISTRY_STORAGE_S3_BUCKET="$REGISTRY_BUCKET" \
+            -e REGISTRY_STORAGE_S3_REGION="us-gov-west-1" \
+            registry:2
+
+      - run:
+          name: Tag docker iamge for registry
+          command: |
+            docker tag federalist-garden-build localhost:5000/federalist-garden-build-test
+
+      - run:
+          name: Push docker image to registry
+          command: |
+            docker push localhost:5000/federalist-garden-build-test
