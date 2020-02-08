@@ -1,8 +1,20 @@
+registry: &registry
+  name: Run local docker registry
+  command: |
+    docker run -d \
+    -p 5000:5000 \
+    -e REGISTRY_STORAGE="s3" \
+    -e REGISTRY_STORAGE_S3_ACCESSKEY="$REGISTRY_ACCESSKEY" \
+    -e REGISTRY_STORAGE_S3_SECRETKEY="$REGISTRY_SECRETKEY" \
+    -e REGISTRY_STORAGE_S3_BUCKET="$REGISTRY_BUCKET" \
+    -e REGISTRY_STORAGE_S3_REGION="us-gov-west-1" \
+    registry:2
+
 version: 2
 jobs:
-  build:
+  build-and-test:
     environment:
-      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665  
+      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
     machine: true
     steps:
       - checkout
@@ -60,25 +72,98 @@ jobs:
 
       - store_artifacts:
           path: ./coverage/coverage.xml
-
+      
       - run:
-          name: Run local docker registry
+          name: Save docker image
           command: |
-            docker run -d \
-            -p 5000:5000 \
-            -e REGISTRY_STORAGE="s3" \
-            -e REGISTRY_STORAGE_S3_ACCESSKEY="$STAGING_REGISTRY_ACCESSKEY" \
-            -e REGISTRY_STORAGE_S3_SECRETKEY="$STAGING_REGISTRY_SECRETKEY" \
-            -e REGISTRY_STORAGE_S3_BUCKET="$STAGING_REGISTRY_BUCKET" \
-            -e REGISTRY_STORAGE_S3_REGION="us-gov-west-1" \
-            registry:2
+            docker save -o workspace/fgb federalist-garden-build
+
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - fgb
+  
+  deploy-staging:
+    machine: true
+    steps:
+      - run:
+          name: Set environment variables for staging registry
+          command: |
+            echo 'export REGISTRY_ACCESSKEY=$STAGING_REGISTRY_ACCESSKEY' >> $BASH_ENV
+            echo 'export REGISTRY_SECRETKEY=$STAGING_REGISTRY_SECRETKEY' >> $BASH_ENV
+            echo 'export REGISTRY_BUCKET=$STAGING_REGISTRY_BUCKET' >> $BASH_ENV
+            source $BASH_ENV
+
+      - attach_workspace:
+          at: /tmp/workspace
 
       - run:
-          name: Tag docker image for registry
+          name: Load docker image
+          command: |
+            docker load -i /tmp/workspace/fgb
+
+      - run:
+          <<: *registry
+
+      - run:
+          name: Tag docker image as latest for registry
           command: |
             docker tag federalist-garden-build localhost:5000/federalist-garden-build-test
-
+      
       - run:
           name: Push docker image to registry
           command: |
             docker push localhost:5000/federalist-garden-build-test
+      
+  deploy-production:
+    machine: true
+    steps:
+      - run:
+          name: Set environment variables for production registry
+          command: |
+            echo 'export REGISTRY_ACCESSKEY=$PRODUCTION_REGISTRY_ACCESSKEY' >> $BASH_ENV
+            echo 'export REGISTRY_SECRETKEY=$PRODUCTION_REGISTRY_SECRETKEY' >> $BASH_ENV
+            echo 'export REGISTRY_BUCKET=$PRODUCTION_REGISTRY_BUCKET' >> $BASH_ENV
+            source $BASH_ENV
+
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - run:
+          name: Load docker image
+          command: |
+            docker load -i /tmp/workspace/fgb
+            
+      - run:
+          <<: *registry
+
+      - run:
+          name: Tag docker image as latest for registry
+          command: |
+            docker tag federalist-garden-build localhost:5000/federalist-garden-build
+      
+      - run:
+          name: Push docker image to registry
+          command: |
+            docker push localhost:5000/federalist-garden-build
+
+workflows:
+  version: 2
+  build-test-deploy:
+    jobs:
+      - build-and-test
+      - deploy-staging:
+          requires:
+            - build-and-test
+          filters:
+            branches:
+              only:
+                - staging
+                - 221-deploy-from-ci
+      - deploy-production:
+          requires:
+            - build-and-test
+          filters:
+            branches:
+              only: master
+      
