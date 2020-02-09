@@ -76,6 +76,7 @@ jobs:
       - run:
           name: Save docker image
           command: |
+            mkdir workspace
             docker save -o workspace/fgb federalist-garden-build
 
       - persist_to_workspace:
