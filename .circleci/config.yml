@@ -158,8 +158,7 @@ workflows:
             - build-and-test
           filters:
             branches:
-              only:
-                - staging
+              only: staging
       - deploy-production:
           requires:
             - build-and-test
