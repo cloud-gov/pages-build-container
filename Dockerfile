@@ -43,7 +43,7 @@ RUN gpg --keyserver hkp://ipv4.pool.sks-keyservers.net --recv-keys 409B6B1796C27
 
 WORKDIR /app
 
-ADD requirements.txt ./
+COPY requirements.txt ./
 
 RUN pip install -r requirements.txt
 
@@ -54,6 +54,6 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
   && apt-get install -y google-chrome-unstable --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
-ADD . ./
+COPY . ./
 
 CMD ["bash", "./run.sh"]
