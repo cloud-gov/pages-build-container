@@ -1,33 +1,48 @@
+registry: &registry
+  name: Run local docker registry
+  command: |
+    docker run -d \
+    -p 5000:5000 \
+    -e REGISTRY_STORAGE="s3" \
+    -e REGISTRY_STORAGE_S3_ACCESSKEY="$REGISTRY_ACCESSKEY" \
+    -e REGISTRY_STORAGE_S3_SECRETKEY="$REGISTRY_SECRETKEY" \
+    -e REGISTRY_STORAGE_S3_BUCKET="$REGISTRY_BUCKET" \
+    -e REGISTRY_STORAGE_S3_REGION="us-gov-west-1" \
+    registry:2
+
 version: 2
 jobs:
-  build:
+  build-and-test:
     environment:
       CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
     machine: true
     steps:
       - checkout
-      - run:
-          name: Install Docker Compose
-          command: |
-            set -x
-            curl -L https://github.com/docker/compose/releases/download/1.16.1/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
-            chmod +x ~/docker-compose
-            sudo mv ~/docker-compose /usr/local/bin/docker-compose
 
       - run:
           name: Build docker image
           command: |
-            docker-compose -f docker-compose.test.yml build
+            docker build -t federalist-garden-build .
+
+      - run:
+          name: Start docker container
+          command: |
+            docker run --name fgb -v $(pwd)/coverage:/app/coverage -dt federalist-garden-build bash
+
+      - run:
+          name: Install test dependencies
+          command: |
+            docker exec fgb pip install -r requirements-dev.txt
 
       - run:
           name: Flake8
           command: |
-            docker-compose -f docker-compose.test.yml run app flake8
+            docker exec fgb flake8
 
       - run:
           name: Bandit
           command: |
-            docker-compose -f docker-compose.test.yml run app bandit publishing/*.py tasks/*.py log_utils/*.py repo_config/*.py
+            docker exec fgb bandit publishing/*.py tasks/*.py log_utils/*.py repo_config/*.py
 
       - run:
           name: Install cc-test-reporter
@@ -37,12 +52,13 @@ jobs:
 
       - run:
           name: CodeClimate before-build
-          command: ./cc-test-reporter before-build
+          command: |
+            ./cc-test-reporter before-build
 
       - run:
           name: Pytest
           command: |
-            docker-compose -f docker-compose.test.yml run app pytest
+            docker exec fgb pytest
 
       - run:
           name: CodeClimate after-build
@@ -56,4 +72,97 @@ jobs:
 
       - store_artifacts:
           path: ./coverage/coverage.xml
+      
+      - run:
+          name: Save docker image
+          command: |
+            mkdir workspace
+            docker save -o workspace/fgb federalist-garden-build
 
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - fgb
+  
+  deploy-staging:
+    machine: true
+    steps:
+      - run:
+          name: Set environment variables for staging registry
+          command: |
+            echo 'export REGISTRY_ACCESSKEY=$STAGING_REGISTRY_ACCESSKEY' >> $BASH_ENV
+            echo 'export REGISTRY_SECRETKEY=$STAGING_REGISTRY_SECRETKEY' >> $BASH_ENV
+            echo 'export REGISTRY_BUCKET=$STAGING_REGISTRY_BUCKET' >> $BASH_ENV
+            source $BASH_ENV
+
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - run:
+          name: Load docker image
+          command: |
+            docker load -i /tmp/workspace/fgb
+
+      - run:
+          <<: *registry
+
+      - run:
+          name: Tag docker image as latest for registry
+          command: |
+            docker tag federalist-garden-build localhost:5000/federalist-garden-build-test
+      
+      - run:
+          name: Push docker image to registry
+          command: |
+            docker push localhost:5000/federalist-garden-build-test
+      
+  deploy-production:
+    machine: true
+    steps:
+      - run:
+          name: Set environment variables for production registry
+          command: |
+            echo 'export REGISTRY_ACCESSKEY=$PRODUCTION_REGISTRY_ACCESSKEY' >> $BASH_ENV
+            echo 'export REGISTRY_SECRETKEY=$PRODUCTION_REGISTRY_SECRETKEY' >> $BASH_ENV
+            echo 'export REGISTRY_BUCKET=$PRODUCTION_REGISTRY_BUCKET' >> $BASH_ENV
+            source $BASH_ENV
+
+      - attach_workspace:
+          at: /tmp/workspace
+
+      - run:
+          name: Load docker image
+          command: |
+            docker load -i /tmp/workspace/fgb
+            
+      - run:
+          <<: *registry
+
+      - run:
+          name: Tag docker image as latest for registry
+          command: |
+            docker tag federalist-garden-build localhost:5000/federalist-garden-build
+      
+      - run:
+          name: Push docker image to registry
+          command: |
+            docker push localhost:5000/federalist-garden-build
+
+workflows:
+  version: 2
+  build-test-deploy:
+    jobs:
+      - build-and-test
+      - deploy-staging:
+          requires:
+            - build-and-test
+          filters:
+            branches:
+              only: staging
+      - deploy-production:
+          requires:
+            - build-and-test
+          filters:
+            branches:
+              only: master
+      

@@ -40,13 +40,6 @@ RUN gpg --keyserver hkp://ipv4.pool.sks-keyservers.net --recv-keys 409B6B1796C27
   && echo rvm_silence_path_mismatch_check_flag=1 >> /etc/rvmrc \
   && echo 'install: --no-document\nupdate: --no-document' >> "/etc/.gemrc"
 
-
-WORKDIR /app
-
-ADD requirements.txt ./
-
-RUN pip install -r requirements.txt
-
 # Install headless chrome
 RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
   && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
@@ -54,7 +47,8 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
   && apt-get install -y google-chrome-unstable --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
-ADD . ./
+WORKDIR /app
 
-ARG is_testing
-RUN if [ "$is_testing" ]; then pip install -r requirements-dev.txt; fi;
+COPY . ./
+
+RUN pip install -r requirements.txt
