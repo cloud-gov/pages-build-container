@@ -40,10 +40,9 @@ RUN gpg --keyserver hkp://ipv4.pool.sks-keyservers.net --recv-keys 409B6B1796C27
   && echo rvm_silence_path_mismatch_check_flag=1 >> /etc/rvmrc \
   && echo 'install: --no-document\nupdate: --no-document' >> "/etc/.gemrc"
 
-
 WORKDIR /app
 
-COPY requirements.txt ./
+COPY . ./
 
 RUN pip install -r requirements.txt
 
@@ -53,7 +52,5 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
   && apt-get update \
   && apt-get install -y google-chrome-unstable --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
-
-COPY . ./
 
 CMD ["bash", "./run.sh"]

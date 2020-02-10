@@ -9,3 +9,5 @@ Dockerfile
 tmp
 test-run.sh
 echo-server
+.circleci
+.vscode
