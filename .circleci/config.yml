@@ -160,7 +160,6 @@ workflows:
             branches:
               only:
                 - staging
-                - 221-deploy-from-ci
       - deploy-production:
           requires:
             - build-and-test
