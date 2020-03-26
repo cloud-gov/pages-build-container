@@ -5,7 +5,7 @@ defaults: &defaults
   memory: 1G
   disk_quota: 2G
   docker:
-    image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build-dev
+    image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build
   services:
     - federalist-dev-rds
   command: bash ./run.sh

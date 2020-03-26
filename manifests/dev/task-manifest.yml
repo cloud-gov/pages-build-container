@@ -5,6 +5,6 @@ applications:
     health-check-type: process
     instances: 0
     docker:
-      image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build-dev-task
+      image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build
     services:
       - federalist-dev-rds
