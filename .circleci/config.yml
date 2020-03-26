@@ -109,12 +109,12 @@ jobs:
       - run:
           name: Tag docker image as latest for registry
           command: |
-            docker tag federalist-garden-build localhost:5000/federalist-garden-build-test
+            docker tag federalist-garden-build localhost:5000/federalist-garden-build
       
       - run:
           name: Push docker image to registry
           command: |
-            docker push localhost:5000/federalist-garden-build-test
+            docker push localhost:5000/federalist-garden-build
       
   deploy-production:
     machine: true
