@@ -1,6 +1,5 @@
 import argparse
 import json
-import getopt
 import os
 from pathlib import Path
 import sys
@@ -31,7 +30,7 @@ if __name__ == "__main__":
                             metavar="'{\"foo\": \"bar\"}'")
         args = parser.parse_args()
         params = json.loads(args.params)
-        for k,v in params.items():
+        for k, v in params.items():
             os.environ[k] = v
 
     else:
