@@ -1,4 +1,5 @@
-import getopt
+import argparse
+import json
 import os
 from pathlib import Path
 import sys
@@ -21,43 +22,16 @@ def load_env():
         load_dotenv(DOTENV_PATH)
 
 
-flags = {
-    'aws-access-key': 'AWS_ACCESS_KEY_ID',
-    'aws-region': 'AWS_DEFAULT_REGION',
-    'aws-secret-access-key': 'AWS_SECRET_ACCESS_KEY',
-    'baseurl': 'BASEURL',
-    'branch': 'BRANCH',
-    'bucket': 'BUCKET',
-    'build-id': 'BUILD_ID',
-    'builder-callback': 'FEDERALIST_BUILDER_CALLBACK',
-    'cache-control': 'CACHE_CONTROL',
-    'config': 'CONFIG',
-    'generator': 'GENERATOR',
-    'github-token': 'GITHUB_TOKEN',
-    'owner': 'OWNER',
-    'repo': 'REPOSITORY',
-    'site-prefix': 'SITE_PREFIX',
-    'source-repo': 'SOURCE_REPO',
-    'source-owner': 'SOURCE_OWNER',
-    'status-callback': 'STATUS_CALLBACK',
-    'skip-logging': 'SKIP_LOGGING'
-}
-
-
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        print('Using command line arguments')
-        try:
-            short_opts = ':'.join(list(flags.keys())) + ':'
-            opts, args = getopt.getopt(sys.argv[1:], short_opts)
-        except getopt.GetoptError as err:
-            print(err)
-            print("Arguments:\n")
-            print(flags)
-            sys.exit(2)
-        for opt, arg in opts:
-            name = flags[opt[1:]]
-            os.environ[name] = arg
+        parser = argparse.ArgumentParser(description='Run a federalist build')
+        parser.add_argument('-p', '--params', dest='params', required=True,
+                            help='A JSON encoded string',
+                            metavar="'{\"foo\": \"bar\"}'")
+        args = parser.parse_args()
+        params = json.loads(args.params)
+        for k, v in params.items():
+            os.environ[k] = v
 
     else:
         load_env()
