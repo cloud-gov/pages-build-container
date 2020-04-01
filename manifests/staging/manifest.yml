@@ -1,0 +1,17 @@
+---
+defaults: &defaults
+  no-route: true
+  health-check-type: process
+  memory: 2G
+  disk_quota: 4G
+  docker:
+    image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build
+  services:
+    - federalist-staging-rds
+  command: bash ./run.sh
+
+applications:
+  - name: federalist-build-container-staging-1
+    <<: *defaults
+  - name: federalist-build-container-staging-2
+    <<: *defaults
