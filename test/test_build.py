@@ -1,7 +1,8 @@
 import json
 import os
+from io import StringIO
 from contextlib import ExitStack
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pytest
 import requests_mock
@@ -11,7 +12,7 @@ from invoke import Result, MockContext
 import tasks
 from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML, NVMRC,
                          PACKAGE_JSON, RUBY_VERSION, node_context,
-                         HUGO_VERSION, BUNDLER_VERSION)
+                         HUGO_VERSION, BUNDLER_VERSION, build_env)
 
 from .support import create_file, patch_dir
 
@@ -327,3 +328,64 @@ class TestBuildstatic():
 
         assert len(os.listdir(patch_clone_dir)) == 0
         assert len(os.listdir(patch_site_build_dir)) == 10
+
+
+class TestBuildEnv():
+    def test_it_includes_default_values(self):
+        branch = 'branch'
+        owner = 'owner'
+        repository = 'repo'
+        site_prefix = 'prefix'
+        base_url = 'url'
+
+        result = build_env(branch, owner, repository, site_prefix, base_url)
+
+        assert result == {
+            'BRANCH': branch,
+            'OWNER': owner,
+            'REPOSITORY': repository,
+            'SITE_PREFIX': site_prefix,
+            'BASEURL': base_url,
+            'LANG': 'en_US.UTF-8',
+            'GATSBY_TELEMETRY_DISABLED': '1',
+        }
+
+    def test_it_includes_user_env_vars(self):
+        branch = 'branch'
+        owner = 'owner'
+        repository = 'repo'
+        site_prefix = 'prefix'
+        base_url = 'url'
+        user_env_vars = json.dumps([
+            {'name': 'FOO', 'value': 'bar'}
+        ])
+
+        result = build_env(branch, owner, repository, site_prefix,
+                           base_url, user_env_vars)
+
+        assert result['FOO'] == 'bar'
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_it_ignores_and_warns_duplicate_user_env_vars(self, mock_stdout):
+        # and it is case insensitive
+        branch = 'branch'
+        owner = 'owner'
+        repository = 'repo'
+        site_prefix = 'prefix'
+        base_url = 'url'
+        user_env_vars = json.dumps([
+            {'name': 'BASEURL', 'value': 'bar'},
+            {'name': 'repository', 'value': 'baz'}
+        ])
+
+        result = build_env(branch, owner, repository, site_prefix,
+                           base_url, user_env_vars)
+
+        assert result['BASEURL'] == base_url
+        assert result['REPOSITORY'] == repository
+        assert ('WARNING - user environment variable name `BASEURL` conflicts'
+                ' with system environment variable, it will be ignored.'
+                ) in mock_stdout.getvalue()
+        assert ('WARNING - user environment variable name `repository`'
+                ' conflicts with system environment variable, it will be'
+                ' ignored.') in mock_stdout.getvalue()

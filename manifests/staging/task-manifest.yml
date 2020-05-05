@@ -8,3 +8,4 @@ applications:
       image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build
     services:
       - federalist-staging-rds
+      - federalist-staging-uev-key
