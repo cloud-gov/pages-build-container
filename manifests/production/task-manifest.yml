@@ -7,4 +7,5 @@ applications:
     docker:
       image: federalist-registry.fr.cloud.gov/federalist-garden-build
     services:
-      - federalist-production-rds      
+      - federalist-production-rds
+      - federalist-production-uev-key

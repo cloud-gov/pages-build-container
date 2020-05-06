@@ -101,9 +101,10 @@ def node_context(ctx, *more_contexts):
     return stack
 
 
-def build_env(branch, owner, repository, site_prefix, base_url):
+def build_env(branch, owner, repository, site_prefix, base_url,
+              user_env_vars='[]'):
     '''Creats a dict of environment variables to pass into a build context'''
-    return {
+    env = {
         'BRANCH': branch,
         'OWNER': owner,
         'REPOSITORY': repository,
@@ -114,10 +115,22 @@ def build_env(branch, owner, repository, site_prefix, base_url):
         'GATSBY_TELEMETRY_DISABLED': '1',
     }
 
+    for uev in json.loads(user_env_vars):
+        name = uev['name']
+        value = uev['value']
+        if name in env or name.upper() in env:
+            print(f'WARNING - user environment variable name `{name}` '
+                  'conflicts with system environment variable, it will be '
+                  'ignored.')
+        else:
+            env[name] = value
+
+    return env
+
 
 @task(pre=[setup_node])
 def run_federalist_script(ctx, branch, owner, repository, site_prefix,
-                          base_url=''):
+                          base_url='', user_env_vars='[]'):
     '''
     Runs the npm "federalist" script if it is defined
     '''
@@ -125,9 +138,9 @@ def run_federalist_script(ctx, branch, owner, repository, site_prefix,
     if has_federalist_script():
         with node_context(ctx, ctx.cd(str(CLONE_DIR_PATH))):
             print('Running federalist build script in package.json')
-            ctx.run('npm run federalist',
-                    env=build_env(branch, owner, repository, site_prefix,
-                                  base_url))
+            env = build_env(branch, owner, repository, site_prefix, base_url,
+                            user_env_vars)
+            ctx.run('npm run federalist', env=env)
 
 
 @task
@@ -178,7 +191,7 @@ def setup_bundler(ctx):
 
 @task(pre=[setup_ruby])
 def build_jekyll(ctx, branch, owner, repository, site_prefix,
-                 config='', base_url=''):
+                 config='', base_url='', user_env_vars='[]'):
     '''
     Builds the cloned site with Jekyll
     '''
@@ -214,7 +227,7 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
         ctx.run(f'echo Building using Jekyll version: $({jekyll_cmd} -v)')
 
         jekyll_build_env = build_env(branch, owner, repository, site_prefix,
-                                     base_url)
+                                     base_url, user_env_vars)
         # Use JEKYLL_ENV to tell jekyll to run in production mode
         jekyll_build_env['JEKYLL_ENV'] = 'production'
 
@@ -278,7 +291,7 @@ def download_hugo(ctx):
 
 @task
 def build_hugo(ctx, branch, owner, repository, site_prefix,
-               base_url=''):
+               base_url='', user_env_vars='[]'):
     '''
     Builds the cloned site with Hugo
     '''
@@ -301,7 +314,7 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
         ctx.run(
             f'{HUGO_BIN_PATH} {hugo_args}',
             env=build_env(branch, owner, repository,
-                          site_prefix, base_url)
+                          site_prefix, base_url, user_env_vars)
         )
 
 
