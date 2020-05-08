@@ -26,6 +26,8 @@ applications:
   - name: federalist-build-container-5
     <<: *defaults
     memory: 1G
+    disk_quota: 4G
   - name: federalist-build-container-6
     <<: *defaults
     memory: 1G
+    disk_quota: 4G
