@@ -1,5 +1,6 @@
 '''Main task entrypoint'''
 
+import json
 import os
 import shlex
 import logging
@@ -12,6 +13,8 @@ from log_utils import (delta_to_mins_secs, get_logger, init_logging,
 from log_utils.remote_logs import (
     post_build_complete, post_build_error, post_build_timeout,
     should_skip_logging, post_build_processing)
+
+from crypto.decrypt import decrypt
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
@@ -69,6 +72,10 @@ def main():
     GENERATOR = os.environ['GENERATOR']
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
     AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+    USER_ENVIRONMENT_VARIABLES = json.loads(
+        os.getenv('USER_ENVIRONMENT_VARIABLES', '[]')
+    )
+    USER_ENVIRONMENT_VARIABLE_KEY = os.environ['USER_ENVIRONMENT_VARIABLE_KEY']
 
     # Optional environment variables
     SOURCE_REPO = os.getenv('SOURCE_REPO', '')
@@ -83,14 +90,19 @@ def main():
     FEDERALIST_BUILDER_CALLBACK = os.environ['FEDERALIST_BUILDER_CALLBACK']
 
     # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/status/<token>
-    STATUS_CALLBACK = os.environ['STATUS_CALLBACK']
+    STATUS_CALLBACK = os.getenv('STATUS_CALLBACK', '')
 
     # Necessary to log to database
     DATABASE_URL = os.getenv('DATABASE_URL', '')
 
     BUILD_INFO = f'{OWNER}/{REPOSITORY}@id:{BUILD_ID}'
 
-    priv_vals = private_values()
+    decrypted_uevs = [{
+        'name': uev['name'],
+        'value': decrypt(uev['ciphertext'], USER_ENVIRONMENT_VARIABLE_KEY)
+    } for uev in USER_ENVIRONMENT_VARIABLES]
+
+    priv_vals = private_values([uev['value'] for uev in decrypted_uevs])
 
     logattrs = {
         'branch': BRANCH,
@@ -170,6 +182,7 @@ def main():
                 '--repository': REPOSITORY,
                 '--site-prefix': SITE_PREFIX,
                 '--base-url': BASEURL,
+                '--user-env-vars': json.dumps(decrypted_uevs),
             }
 
             # Run the npm `federalist` task (if it is defined)
@@ -247,7 +260,7 @@ def main():
                          err_message)
 
 
-def private_values():
+def private_values(user_values):
     priv_vals = [
         os.environ['AWS_ACCESS_KEY_ID'],
         os.environ['AWS_SECRET_ACCESS_KEY']
@@ -256,4 +269,4 @@ def private_values():
     if GITHUB_TOKEN:
         priv_vals.append(GITHUB_TOKEN)
 
-    return priv_vals
+    return priv_vals + user_values

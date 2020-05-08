@@ -8,6 +8,7 @@ defaults: &defaults
     image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build
   services:
     - federalist-staging-rds
+    - federalist-staging-uev-key
   command: bash ./run.sh
 
 applications:
