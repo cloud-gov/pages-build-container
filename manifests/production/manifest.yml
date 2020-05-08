@@ -2,7 +2,7 @@
 defaults: &defaults
   no-route: true
   health-check-type: process
-  disk_quota: 4G
+  disk_quota: 5G
   docker:
     image: federalist-registry.fr.cloud.gov/federalist-garden-build
   services:
