@@ -48,7 +48,7 @@ if __name__ == "__main__":
                             metavar="'{\"foo\": \"bar\"}'")
         args = parser.parse_args()
         params = json.loads(args.params)
-        for k, v in params.items() if v != None:
+        for k, v in params.items() if v is not None:
             os.environ[k] = v
     else:
         load_env()
