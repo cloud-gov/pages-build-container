@@ -6,6 +6,7 @@ import sys
 from dotenv import load_dotenv
 from tasks import main
 
+
 def load_vcap():
     if os.getenv('VCAP_APPLICATION', '') == '':
         return
