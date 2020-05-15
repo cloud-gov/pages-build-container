@@ -38,19 +38,6 @@ def load_env():
     if os.path.exists(DOTENV_PATH):
         print('Loading environment from .env file')
         load_dotenv(DOTENV_PATH)
-    else:
-        vcap_application = json.loads(os.getenv('VCAP_APPLICATION', '{}'))
-        vcap_services = json.loads(os.getenv('VCAP_SERVICES', '{}'))
-
-        space = vcap_application['space_name']
-
-        uev_ups = next(
-            ups for ups in vcap_services['user-provided']
-            if ups['name'] == f'federalist-{space}-uev-key'
-        )
-
-        uev_env_var = 'USER_ENVIRONMENT_VARIABLE_KEY'
-        os.environ[uev_env_var] = uev_ups['credentials']['key']
 
 
 if __name__ == "__main__":
