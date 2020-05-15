@@ -1,31 +1,11 @@
----
-defaults: &defaults
-  no-route: true
-  health-check-type: process
-  disk_quota: 4G
-  docker:
-    image: federalist-registry.fr.cloud.gov/federalist-garden-build
-  services:
-    - federalist-production-rds
-    - federalist-production-uev-key
-  command: bash ./run.sh
-    
+---    
 applications:
-  - name: federalist-build-container-1
-    <<: *defaults
-    memory: 8G
-  - name: federalist-build-container-2
-    <<: *defaults
-    memory: 8G
-  - name: federalist-build-container-3
-    <<: *defaults
-    memory: 6G
-  - name: federalist-build-container-4
-    <<: *defaults
-    memory: 6G
-  - name: federalist-build-container-5
-    <<: *defaults
-    memory: 1G
-  - name: federalist-build-container-6
-    <<: *defaults
-    memory: 1G
+  - name: federalist-build-container
+    no-route: true
+    health-check-type: process
+    instances: 0
+    docker:
+      image: federalist-registry.fr.cloud.gov/federalist-garden-build
+    services:
+      - federalist-production-rds
+      - federalist-production-uev-key
