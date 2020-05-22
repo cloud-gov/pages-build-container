@@ -49,7 +49,7 @@ class TestSetupNode():
             'echo Node version: $(node --version)': Result(),
             'echo NPM version: $(npm --version)': Result(),
             'npm set audit false': Result(),
-            'npm install --production': Result(),
+            'npm ci --production': Result(),
         })
         tasks.setup_node(ctx)
 

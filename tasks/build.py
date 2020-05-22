@@ -73,7 +73,7 @@ def setup_node(ctx):
             if PACKAGE_JSON_PATH.is_file():
                 print('Installing production dependencies in package.json')
                 ctx.run(f'{npm_command} set audit false')
-                ctx.run(f'{npm_command} install --production')
+                ctx.run(f'{npm_command} ci --production')
 
 
 def node_context(ctx, *more_contexts):
