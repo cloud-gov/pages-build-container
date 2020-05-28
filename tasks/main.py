@@ -77,10 +77,6 @@ def main():
     )
     USER_ENVIRONMENT_VARIABLE_KEY = os.environ['USER_ENVIRONMENT_VARIABLE_KEY']
 
-    # Optional environment variables
-    SOURCE_REPO = os.getenv('SOURCE_REPO', '')
-    SOURCE_OWNER = os.getenv('SOURCE_OWNER', '')
-
     # GITHUB_TOKEN can be empty if a non-Federalist user
     # makes a commit to a repo and thus initiates a build for a
     # Federalist site
@@ -141,37 +137,14 @@ def main():
             #
             clone_env = {'GITHUB_TOKEN': GITHUB_TOKEN}
 
-            if SOURCE_OWNER and SOURCE_REPO:
-                # First clone the source (ie, template) repository
+            clone_flags = {
+                '--owner': OWNER,
+                '--repository': REPOSITORY,
+                '--branch': BRANCH,
+                '--depth': '--depth 1',
+            }
 
-                clone_source_flags = {
-                    '--owner': SOURCE_OWNER,
-                    '--repository': SOURCE_REPO,
-                    '--branch': BRANCH,
-                }
-
-                run('clone-repo', clone_source_flags, clone_env)
-
-                # Then push the cloned source repo up to the destination repo.
-                # Note that the dest repo must already exist but be empty.
-                # The Federalist web app takes care of that operation.
-                push_repo_flags = {
-                    '--owner': OWNER,
-                    '--repository': REPOSITORY,
-                    '--branch': BRANCH,
-                }
-
-                run('push-repo-remote', push_repo_flags, clone_env)
-            else:
-                # Just clone the given repository
-                clone_flags = {
-                    '--owner': OWNER,
-                    '--repository': REPOSITORY,
-                    '--branch': BRANCH,
-                    '--depth': '--depth 1',
-                }
-
-                run('clone-repo', clone_flags, clone_env)
+            run('clone-repo', clone_flags, clone_env)
 
             ##
             # BUILD
