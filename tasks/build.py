@@ -37,6 +37,7 @@ GEMFILE = 'Gemfile'
 JEKYLL_CONFIG_YML = '_config.yml'
 BUNDLER_VERSION = '.bundler-version'
 
+
 def has_federalist_script():
     '''
     Checks for existence of the "federalist" script in the
@@ -75,8 +76,8 @@ def setup_node(ctx):
                             f'supports {", ".join(NODE_VERSIONS)}.'
                           )
                 if major_version != str(NODE_DEFAULT_VERSION):
-                    print(f'Found {nvmrc} in .nvmrc, switching to latest minor '
-                          f'version for {major_version}.')
+                    print(f'Found {nvmrc} in .nvmrc, switching to latest minor'
+                          f' version for {major_version}.')
                     ctx.run(f'nvm alias default {major_version}')
             else:
                 print(f'No .nvmrc found, using default node {NODE_DEFAULT_VERSION}')

@@ -16,6 +16,8 @@ from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML, NVMRC,
 
 from .support import create_file, patch_dir
 
+NODE_DEFAULT_VERSION = os.environ['NODE_DEFAULT_VERSION']
+
 # TODO: Figure out how to test/ensure that pre-tasks are properly
 # specified
 
@@ -36,22 +38,53 @@ def patch_site_build_dir(monkeypatch):
 
 
 class TestSetupNode():
-    def test_it_uses_nvmrc_file_if_it_exists(self, patch_clone_dir):
-        create_file(patch_clone_dir / NVMRC, contents='6')
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_uses_default_node_when_no_nvmrc(self, mock_stdout):
         ctx = MockContext(run={
-            'nvm install': Result(),
+            f'nvm alias default {NODE_DEFAULT_VERSION}': Result(),
+            'echo Using Node $(node --version)': Result(),
+            'echo Using NPM $(npm --version)': Result(),
         })
         tasks.setup_node(ctx)
 
-    def test_installs_production_deps(self, patch_clone_dir):
+        assert (
+            f'No .nvmrc found, using default node {NODE_DEFAULT_VERSION}\n'
+        ) == mock_stdout.getvalue()
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_uses_supported_major_version_in_nvmrc(self, mock_stdout, patch_clone_dir):
+        create_file(patch_clone_dir / NVMRC, contents='10.2.2')
+        ctx = MockContext(run={
+            'nvm alias default 10': Result(),
+            'echo Using Node $(node --version)': Result(),
+            'echo Using NPM $(npm --version)': Result(),
+        })
+        tasks.setup_node(ctx)
+
+        assert (
+            f'Found 10.2.2 in .nvmrc, switching to latest minor version for 10.\n'
+         ) == mock_stdout.getvalue()
+
+    def test_fails_when_unsupported_node_version_in_nvmrc(self, patch_clone_dir):
+        create_file(patch_clone_dir / NVMRC, contents='8')
+        ctx = MockContext(run=Result())
+        with pytest.raises(RuntimeError):
+            tasks.setup_node(ctx)
+
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_installs_production_deps(self, mock_stdout, patch_clone_dir):
         create_file(patch_clone_dir / PACKAGE_JSON)
         ctx = MockContext(run={
-            'echo Node version: $(node --version)': Result(),
-            'echo NPM version: $(npm --version)': Result(),
+            f'nvm alias default {NODE_DEFAULT_VERSION}': Result(),
+            'echo Using Node $(node --version)': Result(),
+            'echo Using NPM $(npm --version)': Result(),
             'npm set audit false': Result(),
             'npm ci --production': Result(),
         })
         tasks.setup_node(ctx)
+
+        assert (f'No .nvmrc found, using default node {NODE_DEFAULT_VERSION}\nInstalling'
+                ' production dependencies in package.json\n') == mock_stdout.getvalue()
 
 
 class TestNodeContext():
@@ -60,13 +93,6 @@ class TestNodeContext():
         context_stack = node_context(ctx)
         assert type(context_stack) == ExitStack
         assert len(context_stack._exit_callbacks) == 1
-
-    def test_it_appends_nvm_when_nvmrc_exists(self, patch_clone_dir):
-        create_file(patch_clone_dir / NVMRC, '4.2')
-        ctx = MockContext()
-        context_stack = node_context(ctx)
-        assert type(context_stack) == ExitStack
-        assert len(context_stack._exit_callbacks) == 2
 
     def test_node_context_accepts_more_contexts(self):
         ctx = MockContext()
