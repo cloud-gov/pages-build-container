@@ -21,15 +21,21 @@ NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
 CERTS_PATH = Path('/etc/ssl/certs/ca-certificates.crt')
 
+# Hugo
 HUGO_BIN = 'hugo'
+HUGO_VERSION = '.hugo-version'
+
+# Node
 NVMRC = '.nvmrc'
 PACKAGE_JSON = 'package.json'
+NODE_VERSIONS = ['10', '12']
+NODE_DEFAULT_VERSION = os.environ['NODE_DEFAULT_VERSION']
+
+# Jekyll
 RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
 JEKYLL_CONFIG_YML = '_config.yml'
-HUGO_VERSION = '.hugo-version'
 BUNDLER_VERSION = '.bundler-version'
-
 
 def has_federalist_script():
     '''
@@ -55,25 +61,35 @@ def setup_node(ctx):
     '''
     with ctx.cd(str(CLONE_DIR_PATH)):
         with ctx.prefix(f'source {NVM_SH_PATH}'):
-            npm_command = 'npm'
-
             NVMRC_PATH = CLONE_DIR_PATH / NVMRC
 
             if NVMRC_PATH.is_file():
-                # nvm will output the node and npm versions used
-                print('Using node version specified in .nvmrc')
-                ctx.run('nvm install')
-                npm_command = f'nvm use && {npm_command}'
+                nvmrc = ''
+                with open(NVMRC_PATH) as f:
+                    nvmrc = f.read()
+                major_version = nvmrc.split('.')[0]
+                if major_version not in NODE_VERSIONS:
+                    raise RuntimeError(
+                            f'Invalid node version specified in .nvmrc. '
+                            f'You specified {nvmrc} but Federalist only '
+                            f'supports {", ".join(NODE_VERSIONS)}.'
+                          )
+                if major_version != str(NODE_DEFAULT_VERSION):
+                    print(f'Found {nvmrc} in .nvmrc, switching to latest minor '
+                          f'version for {major_version}.')
+                    ctx.run(f'nvm alias default {major_version}')
             else:
-                # output node and npm versions if the defaults are used
-                ctx.run('echo Node version: $(node --version)')
-                ctx.run(f'echo NPM version: $({npm_command} --version)')
+                print(f'No .nvmrc found, using default node {NODE_DEFAULT_VERSION}')
+                ctx.run(f'nvm alias default {NODE_DEFAULT_VERSION}')
+
+            ctx.run('echo Using Node $(node --version)')
+            ctx.run('echo Using NPM $(npm --version)')
 
             PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
             if PACKAGE_JSON_PATH.is_file():
                 print('Installing production dependencies in package.json')
-                ctx.run(f'{npm_command} set audit false')
-                ctx.run(f'{npm_command} ci --production')
+                ctx.run('npm set audit false')
+                ctx.run('npm ci --production')
 
 
 def node_context(ctx, *more_contexts):
@@ -87,12 +103,6 @@ def node_context(ctx, *more_contexts):
     contexts = [
         ctx.prefix(f'source {NVM_SH_PATH}'),
     ]
-
-    # Only use `nvm use` if `.nvmrc` exists.
-    # The default node version will be used if `.nvmrc` is not present.
-    NVMRC_PATH = CLONE_DIR_PATH / NVMRC
-    if NVMRC_PATH.is_file():
-        contexts.append(ctx.prefix('nvm use'))
 
     contexts += more_contexts
     stack = ExitStack()
