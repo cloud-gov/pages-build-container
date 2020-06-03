@@ -67,7 +67,7 @@ def setup_node(ctx):
             if NVMRC_PATH.is_file():
                 nvmrc = ''
                 with open(NVMRC_PATH) as f:
-                    nvmrc = f.read()
+                    nvmrc = shlex.quote(f.readline().strip())
                 major_version = nvmrc.split('.')[0]
                 if major_version not in NODE_VERSIONS:
                     raise RuntimeError(
