@@ -14,6 +14,6 @@ echo "Logging in to $CF_ORGANIZATION org, $CF_SPACE space."
 cf7 login -u $CF_USERNAME -p $CF_PASSWORD -o $CF_ORGANIZATION -s $CF_SPACE
 
 echo "Deploying to $CF_SPACE space."
-cf7 push $CF_APP --vars-file $CF_VARS_FILE -f $CF_MANIFEST
+cf7 push $CF_APP --strategy rolling --vars-file $CF_VARS_FILE -f $CF_MANIFEST
 
 cf7 logout
