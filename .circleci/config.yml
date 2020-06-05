@@ -83,9 +83,9 @@ jobs:
             run:
               name: Setup Staging Environment
               command: |
-                echo 'export REGISTRY_ACCESSKEY=$STAGING_REGISTRY_ACCESSKEY' >> $BASH_ENV
-                echo 'export REGISTRY_SECRETKEY=$STAGING_REGISTRY_SECRETKEY' >> $BASH_ENV
-                echo 'export REGISTRY_BUCKET=$STAGING_REGISTRY_BUCKET' >> $BASH_ENV
+                echo "export REGISTRY_ACCESSKEY=$STAGING_REGISTRY_ACCESSKEY" >> $BASH_ENV
+                echo "export REGISTRY_SECRETKEY=$STAGING_REGISTRY_SECRETKEY" >> $BASH_ENV
+                echo "export REGISTRY_BUCKET=$STAGING_REGISTRY_BUCKET" >> $BASH_ENV
                 echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
                 echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
                 echo "export CF_SPACE=staging" >> $BASH_ENV
@@ -99,9 +99,9 @@ jobs:
             run:
               name: Setup Production Environment
               command: |
-                echo 'export REGISTRY_ACCESSKEY=$PRODUCTION_REGISTRY_ACCESSKEY' >> $BASH_ENV
-                echo 'export REGISTRY_SECRETKEY=$PRODUCTION_REGISTRY_SECRETKEY' >> $BASH_ENV
-                echo 'export REGISTRY_BUCKET=$PRODUCTION_REGISTRY_BUCKET' >> $BASH_ENV
+                echo "export REGISTRY_ACCESSKEY=$PRODUCTION_REGISTRY_ACCESSKEY" >> $BASH_ENV
+                echo "export REGISTRY_SECRETKEY=$PRODUCTION_REGISTRY_SECRETKEY" >> $BASH_ENV
+                echo "export REGISTRY_BUCKET=$PRODUCTION_REGISTRY_BUCKET" >> $BASH_ENV
                 echo "export CF_USERNAME=$CF_USERNAME_PRODUCTION" >> $BASH_ENV
                 echo "export CF_PASSWORD=$CF_PASSWORD_PRODUCTION" >> $BASH_ENV
                 echo "export CF_SPACE=production" >> $BASH_ENV
