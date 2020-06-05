@@ -1,0 +1,3 @@
+name: federalist-build-container-staging
+env: staging
+image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build
