@@ -76,6 +76,8 @@ jobs:
   deploy:
     machine: true
     steps:
+      - checkout
+      
       - when:
           condition:
             equal: [ staging, << pipeline.git.branch >> ]
