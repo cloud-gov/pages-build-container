@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from invoke import Context, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
+import subprocess
 
 from log_utils import (delta_to_mins_secs, get_logger, init_logging,
                        StreamToLogger)
@@ -15,6 +16,8 @@ from log_utils.remote_logs import (
     should_skip_logging, post_build_processing)
 
 from crypto.decrypt import decrypt
+
+from .clone import clone_repo
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
@@ -115,6 +118,31 @@ def main():
     def run(task, args=None, env=None):
         run_task(Context(), task, logattrs, args, env)
 
+    def run2(name):
+        logger = get_logger(name, logattrs)
+
+        def run_command(command, cwd=None, env=None):
+            p = subprocess.Popen(
+                command,
+                bufsize=1,
+                cwd=cwd,
+                encoding='utf-8',
+                env=env,
+                stderr=subprocess.STDOUT,
+                stdout=subprocess.PIPE,
+                universal_newlines=True
+            )
+            while p.poll() is None:
+                logger.info(p.stdout.readline())
+
+            extra_output = p.communicate()[0]
+            if extra_output:
+                logger.info(extra_output)
+
+            return p.returncode
+
+        return run_command
+
     try:
         post_build_processing(STATUS_CALLBACK)
         # throw a timeout exception after TIMEOUT_SECONDS
@@ -133,18 +161,9 @@ def main():
             # helper `run_task` method.
 
             ##
-            # CLONE and/or PUSH
+            # CLONE
             #
-            clone_env = {'GITHUB_TOKEN': GITHUB_TOKEN}
-
-            clone_flags = {
-                '--owner': OWNER,
-                '--repository': REPOSITORY,
-                '--branch': BRANCH,
-                '--depth': '--depth 1',
-            }
-
-            run('clone-repo', clone_flags, clone_env)
+            clone_repo(run2('clone'), OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN)
 
             ##
             # BUILD
@@ -220,7 +239,7 @@ def main():
         err_string = str(err)
 
         # log the original exception
-        LOGGER.warning(f'Unexpected exception raised during build('
+        LOGGER.warning('Unexpected exception raised during build('
                        + BUILD_INFO + '): '
                        + err_string)
 
