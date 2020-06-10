@@ -7,13 +7,14 @@ import logging
 from datetime import datetime
 from invoke import Context, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
-import subprocess
 
 from log_utils import (delta_to_mins_secs, get_logger, init_logging,
                        StreamToLogger)
 from log_utils.remote_logs import (
     post_build_complete, post_build_error, post_build_timeout,
     should_skip_logging, post_build_processing)
+
+from runner import create_runner
 
 from crypto.decrypt import decrypt
 
@@ -118,31 +119,6 @@ def main():
     def run(task, args=None, env=None):
         run_task(Context(), task, logattrs, args, env)
 
-    def run2(name):
-        logger = get_logger(name, logattrs)
-
-        def run_command(command, cwd=None, env=None):
-            p = subprocess.Popen(
-                command,
-                bufsize=1,
-                cwd=cwd,
-                encoding='utf-8',
-                env=env,
-                stderr=subprocess.STDOUT,
-                stdout=subprocess.PIPE,
-                universal_newlines=True
-            )
-            while p.poll() is None:
-                logger.info(p.stdout.readline())
-
-            extra_output = p.communicate()[0]
-            if extra_output:
-                logger.info(extra_output)
-
-            return p.returncode
-
-        return run_command
-
     try:
         post_build_processing(STATUS_CALLBACK)
         # throw a timeout exception after TIMEOUT_SECONDS
@@ -163,7 +139,15 @@ def main():
             ##
             # CLONE
             #
-            clone_repo(run2('clone'), OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN)
+            return_code = clone_repo(
+                create_runner('clone', logattrs),
+                OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN
+            )
+            if return_code != 0:
+                msg = 'There was a problem cloning the repository, see the above logs for details.'
+                LOGGER.error(msg)
+                post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
+                exit(1)
 
             ##
             # BUILD

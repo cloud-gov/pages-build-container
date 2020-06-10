@@ -30,13 +30,14 @@ def clone_repo(run, owner, repository, branch, github_token=''):  # nosec
     Clones the GitHub repository specified by owner and repository
     into CLONE_DIR_PATH.
     '''
-    print(f'Cloning {owner}/{repository}/{branch} to {CLONE_DIR_PATH}')
-
-    # escape-quote the value in case there's anything weird
+    owner = shlex.quote(owner)
+    repository = shlex.quote(repository)
     branch = shlex.quote(branch)
 
-    command = shlex.split(f'git clone -b {branch} --single-branch --depth 1')
-    command.append(clone_url(owner, repository, github_token))
-    command.append(CLONE_DIR_PATH)
+    command = shlex.split(
+        f'git clone -b {branch} --single-branch --depth 1 '
+        f'{clone_url(owner, repository, github_token)} '
+        f'{CLONE_DIR_PATH}'
+    )
 
     return run(command)
