@@ -18,7 +18,7 @@ from runner import create_runner
 
 from crypto.decrypt import decrypt
 
-from .clone import clone_repo
+from steps import fetch_repo
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
@@ -137,14 +137,14 @@ def main():
             # helper `run_task` method.
 
             ##
-            # CLONE
+            # FETCH
             #
-            return_code = clone_repo(
+            return_code = fetch_repo(
                 create_runner('clone', logattrs),
                 OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN
             )
             if return_code != 0:
-                msg = 'There was a problem cloning the repository, see the above logs for details.'
+                msg = 'There was a problem fetching the repository, see the above logs for details.'
                 LOGGER.error(msg)
                 post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
                 exit(1)

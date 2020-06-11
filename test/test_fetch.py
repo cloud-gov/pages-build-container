@@ -1,7 +1,7 @@
 import shlex
 from unittest.mock import Mock
 
-from tasks import clone_repo
+from steps import fetch_repo
 from tasks.common import CLONE_DIR_PATH
 
 
@@ -17,7 +17,7 @@ class TestCloneRepo():
                    f'https://github.com/{owner}/{repository}.git '
                    f'{CLONE_DIR_PATH}')
 
-        clone_repo(mockRun, owner, repository, branch)
+        fetch_repo(mockRun, owner, repository, branch)
 
         mockRun.assert_called_once_with(shlex.split(command))
 
@@ -33,6 +33,6 @@ class TestCloneRepo():
                    f'https://{github_token}@github.com/{owner}/{repository}.git '
                    f'{CLONE_DIR_PATH}')
 
-        clone_repo(mockRun, owner, repository, branch, github_token)
+        fetch_repo(mockRun, owner, repository, branch, github_token)
 
         mockRun.assert_called_once_with(shlex.split(command))
