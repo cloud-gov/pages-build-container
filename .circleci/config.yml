@@ -75,6 +75,8 @@ jobs:
   
   deploy:
     machine: true
+    environment:
+      CF_MANIFEST: ./.cloudgov/manifest.yml    
     steps:
       - checkout
       
