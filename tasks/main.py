@@ -14,7 +14,11 @@ from log_utils.remote_logs import (
     post_build_complete, post_build_error, post_build_timeout,
     should_skip_logging, post_build_processing)
 
+from runner import create_runner
+
 from crypto.decrypt import decrypt
+
+from steps import fetch_repo
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
@@ -133,18 +137,17 @@ def main():
             # helper `run_task` method.
 
             ##
-            # CLONE and/or PUSH
+            # FETCH
             #
-            clone_env = {'GITHUB_TOKEN': GITHUB_TOKEN}
-
-            clone_flags = {
-                '--owner': OWNER,
-                '--repository': REPOSITORY,
-                '--branch': BRANCH,
-                '--depth': '--depth 1',
-            }
-
-            run('clone-repo', clone_flags, clone_env)
+            return_code = fetch_repo(
+                create_runner('clone', logattrs),
+                OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN
+            )
+            if return_code != 0:
+                msg = 'There was a problem fetching the repository, see the above logs for details.'
+                LOGGER.error(msg)
+                post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
+                exit(1)
 
             ##
             # BUILD
@@ -220,7 +223,7 @@ def main():
         err_string = str(err)
 
         # log the original exception
-        LOGGER.warning(f'Unexpected exception raised during build('
+        LOGGER.warning('Unexpected exception raised during build('
                        + BUILD_INFO + '): '
                        + err_string)
 
