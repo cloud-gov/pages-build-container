@@ -212,8 +212,10 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
                 file.upload_to_s3(bucket, s3_client)
             except UnicodeEncodeError as err:
                 if err.reason == 'surrogates not allowed':
-                    logger.warn(f'... unable to upload {file.filename} due '
-                                f'to invalid characters in file name.')
+                    logger.warning(
+                        f'... unable to upload {file.filename} due '
+                        f'to invalid characters in file name.'
+                    )
                 else:
                     raise
 
