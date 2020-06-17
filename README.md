@@ -138,7 +138,7 @@ root@2006c3a10bb3:/# exit
 
 ## Deploying to cloud.gov
 
-For detailed instructions on deploying this build container to cloud.gov, see [https://federalist-docs.18f.gov/pages/how-federalist-works/cloud-gov-setup/](https://federalist-docs.18f.gov/pages/how-federalist-works/cloud-gov-setup/).
+For detailed instructions on deploying this build container to cloud.gov, see [https://federalist-docs.18f.gov/pages/how-federalist-works/cloud-gov-setup/](https://federalist.18f.gov/documentation/cloud-gov-setup/).
 
 ## Public domain
 
