@@ -11,6 +11,8 @@ from .db_handler import DBHandler
 
 DEFAULT_LOG_LEVEL = logging.INFO
 
+LOG_ATTRS = {}
+
 
 class LogFilter(logging.Filter):
     '''
@@ -77,23 +79,30 @@ class StreamToLogger:
         pass
 
 
-def get_logger(name, attrs={}):
+def get_logger(name, attrs=None):
     '''
     Gets a logger instance configured with our formatter and handler
     for the given name.
     '''
     logger = logging.getLogger(name)
 
+    if not attrs:
+        attrs = LOG_ATTRS
+
     return logging.LoggerAdapter(logger, attrs)
 
 
 def init_logging(private_values, attrs={}, db_url=None, skip_logging=False):
+    global LOG_ATTRS
+    LOG_ATTRS = attrs
+
     date_fmt = '%Y-%m-%d %H:%M:%S'
     style_fmt = '{'
     short_fmt = '{asctime} {levelname} [{name}] {message}'
     long_fmt = '{asctime} {levelname} [{name}] '
     for key in attrs.keys():
         long_fmt = long_fmt + '@' + key + ': {' + key + '} '
+
     long_fmt = long_fmt + '@message: {message}'
 
     extra_attrs = attrs.keys()

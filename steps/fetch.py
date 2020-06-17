@@ -3,6 +3,8 @@ Fetch tasks and helpers
 '''
 import shlex
 
+from log_utils import get_logger
+from runner import run
 from tasks.common import (REPO_BASE_URL, CLONE_DIR_PATH)
 
 
@@ -25,11 +27,13 @@ def fetch_url(owner, repository, access_token=''):  # nosec
     return f'https://{repo_url}'
 
 
-def fetch_repo(run, owner, repository, branch, github_token=''):  # nosec
+def fetch_repo(owner, repository, branch, github_token=''):  # nosec
     '''
     Clones the GitHub repository specified by owner and repository
     into CLONE_DIR_PATH.
     '''
+    logger = get_logger('clone')
+
     owner = shlex.quote(owner)
     repository = shlex.quote(repository)
     branch = shlex.quote(branch)
@@ -40,4 +44,4 @@ def fetch_repo(run, owner, repository, branch, github_token=''):  # nosec
         f'{CLONE_DIR_PATH}'
     )
 
-    return run(command)
+    return run(logger, command)
