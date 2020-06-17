@@ -16,7 +16,7 @@ from log_utils.remote_logs import (
 
 from crypto.decrypt import decrypt
 
-from steps import fetch_repo, publish
+from steps import build_static, fetch_repo, publish
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
@@ -168,7 +168,7 @@ def main():
                 run('build-hugo', build_flags)
             elif GENERATOR == 'static':
                 # no build arguments are needed
-                run('build-static')
+                build_static()
             elif (GENERATOR == 'node.js' or GENERATOR == 'script only'):
                 LOGGER.info('build already ran in \'npm run federalist\'')
             else:
