@@ -2,9 +2,7 @@
 Common variables, tasks, and functions
 '''
 
-import shutil
 from pathlib import Path
-from invoke import task
 
 REPO_BASE_URL = 'github.com'
 
@@ -22,11 +20,3 @@ SITE_BUILD_DIR_PATH = CLONE_DIR_PATH / SITE_BUILD_DIR
 STATUS_COMPLETE = 'success'
 STATUS_ERROR = 'error'
 STATUS_PROCESSING = 'processing'
-
-
-@task
-def clean(ctx, which=None):
-    '''Deletes the specified directory'''
-    which = which or CLONE_DIR_PATH
-    print(f'Cleaning {which}')
-    shutil.rmtree(which, ignore_errors=True)

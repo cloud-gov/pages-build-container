@@ -7,7 +7,8 @@ from unittest.mock import Mock
 from moto import mock_s3
 
 from steps import publish
-from tasks.common import SITE_BUILD_DIR_PATH
+from common import SITE_BUILD_DIR_PATH
+
 
 TEST_BUCKET = 'test-bucket'
 TEST_REGION = 'test-region'

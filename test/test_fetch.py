@@ -2,7 +2,7 @@ import shlex
 from unittest.mock import patch
 
 from steps import fetch_repo
-from tasks.common import CLONE_DIR_PATH
+from common import CLONE_DIR_PATH
 
 
 @patch('steps.fetch.run')

@@ -7,7 +7,7 @@ import boto3
 from publishing import s3publisher
 
 from log_utils import delta_to_mins_secs, get_logger
-from tasks.common import CLONE_DIR_PATH, SITE_BUILD_DIR_PATH
+from common import CLONE_DIR_PATH, SITE_BUILD_DIR_PATH
 
 
 def publish(base_url, site_prefix, bucket, cache_control,

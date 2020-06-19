@@ -5,7 +5,7 @@ import shlex
 
 from log_utils import get_logger
 from runner import run
-from tasks.common import (REPO_BASE_URL, CLONE_DIR_PATH)
+from common import (REPO_BASE_URL, CLONE_DIR_PATH)
 
 
 def fetch_url(owner, repository, access_token=''):  # nosec

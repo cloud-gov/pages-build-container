@@ -10,6 +10,8 @@ import requests
 from invoke import Result, MockContext
 
 import tasks
+import steps
+from steps import build_static
 from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML, NVMRC,
                          PACKAGE_JSON, RUBY_VERSION, node_context,
                          HUGO_VERSION, BUNDLER_VERSION, build_env)
@@ -33,6 +35,17 @@ def patch_working_dir(monkeypatch):
 @pytest.fixture
 def patch_site_build_dir(monkeypatch):
     yield from patch_dir(monkeypatch, tasks.build, 'SITE_BUILD_DIR_PATH')
+
+
+# These is not great, but it works...
+@pytest.fixture
+def patch_clone_dir2(monkeypatch):
+    yield from patch_dir(monkeypatch, steps.build, 'CLONE_DIR_PATH')
+
+
+@pytest.fixture
+def patch_site_build_dir2(monkeypatch):
+    yield from patch_dir(monkeypatch, steps.build, 'SITE_BUILD_DIR_PATH')
 
 
 class TestSetupNode():
@@ -196,7 +209,7 @@ class TestBuildJekyll():
             'bundle install': Result(),
             'echo Building using Jekyll version: '
             '$(bundle exec jekyll -v)': Result(),
-            f'bundle exec jekyll build --destination /boop': Result(),
+            'bundle exec jekyll build --destination /boop': Result(),
         })
         tasks.build_jekyll(ctx, branch='branch', owner='owner',
                            repository='repo', site_prefix='site/prefix')
@@ -306,7 +319,7 @@ class TestBuildHugo():
 
             # and with base_url specified
             kwargs['base_url'] = '/test_base'
-            hugo_call += f' --baseURL /test_base'
+            hugo_call += ' --baseURL /test_base'
             ctx = MockContext(run={
                 f'echo hugo version: $({hugo_path} version)': Result(),
                 hugo_call: Result(),
@@ -315,19 +328,17 @@ class TestBuildHugo():
 
 
 class TestBuildstatic():
-    def test_it_moves_files_correctly(self, patch_site_build_dir,
-                                      patch_clone_dir):
-        ctx = MockContext()
+    def test_it_moves_files_correctly(self, patch_site_build_dir2, patch_clone_dir2):
         for i in range(0, 10):
-            create_file(patch_clone_dir / f'file_{i}.txt', str(i))
+            create_file(patch_clone_dir2 / f'file_{i}.txt', str(i))
 
-        assert len(os.listdir(patch_clone_dir)) == 10
-        assert len(os.listdir(patch_site_build_dir)) == 0
+        assert len(os.listdir(patch_clone_dir2)) == 10
+        assert len(os.listdir(patch_site_build_dir2)) == 0
 
-        tasks.build_static(ctx)
+        build_static()
 
-        assert len(os.listdir(patch_clone_dir)) == 0
-        assert len(os.listdir(patch_site_build_dir)) == 10
+        assert len(os.listdir(patch_clone_dir2)) == 0
+        assert len(os.listdir(patch_site_build_dir2)) == 10
 
 
 class TestBuildEnv():
