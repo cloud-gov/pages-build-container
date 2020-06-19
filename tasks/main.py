@@ -18,6 +18,7 @@ from crypto.decrypt import decrypt
 
 from steps import build_static, fetch_repo, publish
 
+
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
 
