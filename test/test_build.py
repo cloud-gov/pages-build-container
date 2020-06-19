@@ -36,6 +36,7 @@ def patch_working_dir(monkeypatch):
 def patch_site_build_dir(monkeypatch):
     yield from patch_dir(monkeypatch, tasks.build, 'SITE_BUILD_DIR_PATH')
 
+
 # These is not great, but it works...
 @pytest.fixture
 def patch_clone_dir2(monkeypatch):
