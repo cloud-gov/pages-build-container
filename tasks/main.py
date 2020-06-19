@@ -14,11 +14,9 @@ from log_utils.remote_logs import (
     post_build_complete, post_build_error, post_build_timeout,
     should_skip_logging, post_build_processing)
 
-from runner import create_runner
-
 from crypto.decrypt import decrypt
 
-from steps import fetch_repo
+from steps import build_static, fetch_repo, publish
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
@@ -114,7 +112,7 @@ def main():
     init_logging(priv_vals, logattrs, db_url=DATABASE_URL,
                  skip_logging=should_skip_logging())
 
-    LOGGER = get_logger('main', logattrs)
+    LOGGER = get_logger('main')
 
     def run(task, args=None, env=None):
         run_task(Context(), task, logattrs, args, env)
@@ -139,10 +137,7 @@ def main():
             ##
             # FETCH
             #
-            return_code = fetch_repo(
-                create_runner('clone', logattrs),
-                OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN
-            )
+            return_code = fetch_repo(OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN)
             if return_code != 0:
                 msg = 'There was a problem fetching the repository, see the above logs for details.'
                 LOGGER.error(msg)
@@ -173,7 +168,7 @@ def main():
                 run('build-hugo', build_flags)
             elif GENERATOR == 'static':
                 # no build arguments are needed
-                run('build-static')
+                build_static()
             elif (GENERATOR == 'node.js' or GENERATOR == 'script only'):
                 LOGGER.info('build already ran in \'npm run federalist\'')
             else:
@@ -182,20 +177,8 @@ def main():
             ##
             # PUBLISH
             #
-            publish_flags = {
-                '--base-url': BASEURL,
-                '--site-prefix': SITE_PREFIX,
-                '--bucket': BUCKET,
-                '--cache-control': CACHE_CONTROL,
-                '--aws-region': AWS_DEFAULT_REGION,
-            }
-
-            publish_env = {
-                'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
-                'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
-            }
-
-            run('publish', publish_flags, publish_env)
+            publish(BASEURL, SITE_PREFIX, BUCKET, CACHE_CONTROL, AWS_DEFAULT_REGION,
+                    AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
 
             delta_string = delta_to_mins_secs(datetime.now() - start_time)
             LOGGER.info(f'Total build time: {delta_string}')

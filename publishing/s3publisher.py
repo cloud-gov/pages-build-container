@@ -9,6 +9,7 @@ import requests
 from os import path, makedirs
 
 from repo_config.repo_config import RepoConfig
+from log_utils import get_logger
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
 MAX_S3_KEYS_PER_REQUEST = 1000
@@ -90,6 +91,7 @@ def get_cache_control(repo_config, filename, dir_prefix):
 def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
                   s3_client, clone_dir, dry_run=False):
     '''Publishes the given directory to S3'''
+    logger = get_logger('publish')
 
     config_defaults = {
         'headers': {
@@ -193,33 +195,35 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
             len(local_files) <= 1):
         raise RuntimeError('Cannot unpublish all files')
 
-    print('Preparing to upload')
-    print(f'New: {len(new_objects)}')
-    print(f'Replaced: {len(replacement_objects)}')
-    print(f'Deleted: {len(deletion_objects)}')
+    logger.info('Preparing to upload')
+    logger.info(f'New: {len(new_objects)}')
+    logger.info(f'Replaced: {len(replacement_objects)}')
+    logger.info(f'Deleted: {len(deletion_objects)}')
 
     # Upload new and replacement files
     upload_objects = new_objects + replacement_objects
     for file in upload_objects:
         if dry_run:  # pragma: no cover
-            print(f'Dry-run uploading {file.s3_key}')
+            logger.info(f'Dry-run uploading {file.s3_key}')
         else:
-            print(f'Uploading {file.s3_key}')
+            logger.info(f'Uploading {file.s3_key}')
 
             try:
                 file.upload_to_s3(bucket, s3_client)
             except UnicodeEncodeError as err:
                 if err.reason == 'surrogates not allowed':
-                    print(f'... unable to upload {file.filename} due '
-                          f'to invalid characters in file name.')
+                    logger.warning(
+                        f'... unable to upload {file.filename} due '
+                        f'to invalid characters in file name.'
+                    )
                 else:
                     raise
 
     # Delete files not needed any more
     for file in deletion_objects:
         if dry_run:  # pragma: no cover
-            print(f'Dry run deleting {file.s3_key}')
+            logger.info(f'Dry run deleting {file.s3_key}')
         else:
-            print(f'Deleting {file.s3_key}')
+            logger.info(f'Deleting {file.s3_key}')
 
             file.delete_from_s3(bucket, s3_client)
