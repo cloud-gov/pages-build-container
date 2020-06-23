@@ -3,19 +3,15 @@ Build tasks and helpers
 '''
 
 import json
-import os
 import shlex
-import shutil
 import re
 import time
 from contextlib import ExitStack
-from os import path
 from pathlib import Path
 import requests
-from invoke import call, task
+from invoke import task
 
-from tasks.common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH,
-                          WORKING_DIR_PATH, clean)
+from common import (CLONE_DIR_PATH, SITE_BUILD_DIR_PATH, WORKING_DIR_PATH)
 
 NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
@@ -316,24 +312,3 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
             env=build_env(branch, owner, repository,
                           site_prefix, base_url, user_env_vars)
         )
-
-
-@task(pre=[
-    # Remove cloned repo's .git directory
-    call(clean, which=path.join(CLONE_DIR_PATH, '.git')),
-])
-def build_static(ctx):
-    '''Moves all files from CLONE_DIR into SITE_BUILD_DIR'''
-
-    print(f'Moving files to {SITE_BUILD_DIR}')
-
-    # Make the site build directory first
-    SITE_BUILD_DIR_PATH.mkdir(exist_ok=True)
-
-    files = os.listdir(CLONE_DIR_PATH)
-
-    for file in files:
-        # don't move the SITE_BUILD_DIR dir into itself
-        if file is not SITE_BUILD_DIR:
-            shutil.move(str(CLONE_DIR_PATH / file),
-                        str(SITE_BUILD_DIR_PATH))

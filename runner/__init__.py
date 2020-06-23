@@ -1,5 +1,4 @@
 import subprocess  # nosec
-from log_utils import get_logger
 
 
 def run(logger, command, cwd=None, env=None):
@@ -40,12 +39,3 @@ def run(logger, command, cwd=None, env=None):
         logger.error('Encountered a problem executing `' + ' '.join(command) + '`.')
         logger.error(str(err))
         return 1
-
-
-def create_runner(name, logattrs):
-    logger = get_logger(name, logattrs)
-
-    def runner(command, cwd=None, env=None):
-        return run(logger, command, cwd, env)
-
-    return runner
