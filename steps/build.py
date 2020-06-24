@@ -1,9 +1,41 @@
+import json
 import os
 import shutil
 from os import path
 
 from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH)
 from log_utils import get_logger
+from runner import run
+
+NVMRC = '.nvmrc'
+PACKAGE_JSON = 'package.json'
+
+
+def build_env(branch, owner, repository, site_prefix, base_url,
+              user_env_vars=[]):
+    '''Creats a dict of environment variables to pass into a build context'''
+    env = {
+        'BRANCH': branch,
+        'OWNER': owner,
+        'REPOSITORY': repository,
+        'SITE_PREFIX': site_prefix,
+        'BASEURL': base_url,
+        # necessary to make sure build engines use utf-8 encoding
+        'LANG': 'en_US.UTF-8',
+        'GATSBY_TELEMETRY_DISABLED': '1',
+    }
+
+    for uev in user_env_vars:
+        name = uev['name']
+        value = uev['value']
+        if name in env or name.upper() in env:
+            print(f'WARNING - user environment variable name `{name}` '
+                  'conflicts with system environment variable, it will be '
+                  'ignored.')
+        else:
+            env[name] = value
+
+    return env
 
 
 def build_static():
@@ -26,3 +58,66 @@ def build_static():
         if file is not SITE_BUILD_DIR:
             shutil.move(str(CLONE_DIR_PATH / file),
                         str(SITE_BUILD_DIR_PATH))
+
+
+def has_federalist_script():
+    '''
+    Checks for existence of the "federalist" script in the
+    cloned repo's package.json.
+    '''
+    PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
+    if PACKAGE_JSON_PATH.is_file():
+        with PACKAGE_JSON_PATH.open() as json_file:
+            package_json = json.load(json_file)
+            return 'federalist' in package_json.get('scripts', {})
+
+    return False
+
+
+def setup_node():
+    '''
+    Sets up node and installs production dependencies.
+
+    Uses the node version specified in the cloned repo's .nvmrc
+    file if it is present.
+    '''
+    logger = get_logger('run-federalist-script')
+
+    cwd = CLONE_DIR_PATH
+    # with ctx.prefix(f'source {NVM_SH_PATH}'):
+
+    NVMRC_PATH = CLONE_DIR_PATH / NVMRC
+
+    result = 1
+
+    if NVMRC_PATH.is_file():
+        # nvm will output the node and npm versions used
+        logger.info('Using node version specified in .nvmrc')
+        result = run(logger, 'nvm install', cwd=cwd)
+    else:
+        # output node and npm versions if the defaults are used
+        result = run(logger, 'echo Node version: $(node --version)', cwd=cwd)
+        result = run(logger, 'echo NPM version: $(npm --version)', cwd=cwd)
+
+    PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
+    if PACKAGE_JSON_PATH.is_file():
+        logger.info('Installing production dependencies in package.json')
+        run(logger, 'npm set audit false', cwd=cwd)
+        run(logger, 'npm ci --production', cwd=cwd)
+
+
+def run_federalist_script(branch, owner, repository, site_prefix,
+                          base_url='', user_env_vars=[]):
+    '''
+    Runs the npm "federalist" script if it is defined
+    '''
+    logger = get_logger('run-federalist-script')
+
+    setup_node()
+
+    if has_federalist_script():
+        with node_context(ctx, ctx.cd(str(CLONE_DIR_PATH))):
+            logger.info('Running federalist build script in package.json')
+            env = build_env(branch, owner, repository, site_prefix, base_url,
+                            user_env_vars)
+            return run(logger, 'npm run federalist', cwd=str(CLONE_DIR_PATH), env=env)
