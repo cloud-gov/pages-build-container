@@ -19,57 +19,11 @@ CERTS_PATH = Path('/etc/ssl/certs/ca-certificates.crt')
 
 HUGO_BIN = 'hugo'
 NVMRC = '.nvmrc'
-PACKAGE_JSON = 'package.json'
 RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
 JEKYLL_CONFIG_YML = '_config.yml'
 HUGO_VERSION = '.hugo-version'
 BUNDLER_VERSION = '.bundler-version'
-
-
-def has_federalist_script():
-    '''
-    Checks for existence of the "federalist" script in the
-    cloned repo's package.json.
-    '''
-    PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
-    if PACKAGE_JSON_PATH.is_file():
-        with PACKAGE_JSON_PATH.open() as json_file:
-            package_json = json.load(json_file)
-            return 'federalist' in package_json.get('scripts', {})
-
-    return False
-
-
-@task
-def setup_node(ctx):
-    '''
-    Sets up node and installs production dependencies.
-
-    Uses the node version specified in the cloned repo's .nvmrc
-    file if it is present.
-    '''
-    with ctx.cd(str(CLONE_DIR_PATH)):
-        with ctx.prefix(f'source {NVM_SH_PATH}'):
-            npm_command = 'npm'
-
-            NVMRC_PATH = CLONE_DIR_PATH / NVMRC
-
-            if NVMRC_PATH.is_file():
-                # nvm will output the node and npm versions used
-                print('Using node version specified in .nvmrc')
-                ctx.run('nvm install')
-                npm_command = f'nvm use && {npm_command}'
-            else:
-                # output node and npm versions if the defaults are used
-                ctx.run('echo Node version: $(node --version)')
-                ctx.run(f'echo NPM version: $({npm_command} --version)')
-
-            PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
-            if PACKAGE_JSON_PATH.is_file():
-                print('Installing production dependencies in package.json')
-                ctx.run(f'{npm_command} set audit false')
-                ctx.run(f'{npm_command} ci --production')
 
 
 def node_context(ctx, *more_contexts):
@@ -122,21 +76,6 @@ def build_env(branch, owner, repository, site_prefix, base_url,
             env[name] = value
 
     return env
-
-
-@task(pre=[setup_node])
-def run_federalist_script(ctx, branch, owner, repository, site_prefix,
-                          base_url='', user_env_vars='[]'):
-    '''
-    Runs the npm "federalist" script if it is defined
-    '''
-
-    if has_federalist_script():
-        with node_context(ctx, ctx.cd(str(CLONE_DIR_PATH))):
-            print('Running federalist build script in package.json')
-            env = build_env(branch, owner, repository, site_prefix, base_url,
-                            user_env_vars)
-            ctx.run('npm run federalist', env=env)
 
 
 @task

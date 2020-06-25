@@ -2,13 +2,15 @@ import json
 import os
 import shutil
 from os import path
+from subprocess import CalledProcessError  # nosec
 
 from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH)
 from log_utils import get_logger
-from runner import run
+from runner import run_with_node
 
 NVMRC = '.nvmrc'
 PACKAGE_JSON = 'package.json'
+NVM_SH_PATH = '/usr/local/nvm/nvm.sh'
 
 
 def build_env(branch, owner, repository, site_prefix, base_url,
@@ -81,29 +83,34 @@ def setup_node():
     Uses the node version specified in the cloned repo's .nvmrc
     file if it is present.
     '''
-    logger = get_logger('run-federalist-script')
+    logger = get_logger('setup-node')
 
-    cwd = CLONE_DIR_PATH
-    # with ctx.prefix(f'source {NVM_SH_PATH}'):
+    def runp(cmd):
+        return run_with_node(logger, cmd, cwd=CLONE_DIR_PATH, env={}, check=True)
 
-    NVMRC_PATH = CLONE_DIR_PATH / NVMRC
+    try:
+        NVMRC_PATH = CLONE_DIR_PATH / NVMRC
+        if NVMRC_PATH.is_file():
+            # nvm will output the node and npm versions used
+            logger.info('Using node version specified in .nvmrc')
+            runp('nvm install')
+            runp('nvm use')
+        else:
+            # output node and npm versions if the defaults are used
+            logger.info('Using default node version')
+            runp('echo Node version: $(node --version)')
+            runp('echo NPM version: $(npm --version)')
 
-    result = 1
+        PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
+        if PACKAGE_JSON_PATH.is_file():
+            logger.info('Installing production dependencies in package.json')
+            runp('npm set audit false')
+            runp('npm ci --production')
 
-    if NVMRC_PATH.is_file():
-        # nvm will output the node and npm versions used
-        logger.info('Using node version specified in .nvmrc')
-        result = run(logger, 'nvm install', cwd=cwd)
-    else:
-        # output node and npm versions if the defaults are used
-        result = run(logger, 'echo Node version: $(node --version)', cwd=cwd)
-        result = run(logger, 'echo NPM version: $(npm --version)', cwd=cwd)
+    except CalledProcessError as error:
+        return error.returncode
 
-    PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
-    if PACKAGE_JSON_PATH.is_file():
-        logger.info('Installing production dependencies in package.json')
-        run(logger, 'npm set audit false', cwd=cwd)
-        run(logger, 'npm ci --production', cwd=cwd)
+    return 0
 
 
 def run_federalist_script(branch, owner, repository, site_prefix,
@@ -111,13 +118,11 @@ def run_federalist_script(branch, owner, repository, site_prefix,
     '''
     Runs the npm "federalist" script if it is defined
     '''
-    logger = get_logger('run-federalist-script')
-
-    setup_node()
 
     if has_federalist_script():
-        with node_context(ctx, ctx.cd(str(CLONE_DIR_PATH))):
-            logger.info('Running federalist build script in package.json')
-            env = build_env(branch, owner, repository, site_prefix, base_url,
-                            user_env_vars)
-            return run(logger, 'npm run federalist', cwd=str(CLONE_DIR_PATH), env=env)
+        logger = get_logger('run-federalist-script')
+        logger.info('Running federalist build script in package.json')
+        env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
+        return run_with_node(logger, 'npm run federalist', cwd=CLONE_DIR_PATH, env=env)
+
+    return 0

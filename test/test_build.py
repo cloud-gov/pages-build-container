@@ -2,18 +2,20 @@ import json
 import os
 from io import StringIO
 from contextlib import ExitStack
-from unittest.mock import Mock, patch
+from unittest.mock import call, Mock, patch
 
 import pytest
 import requests_mock
 import requests
 from invoke import Result, MockContext
 
-import tasks
 import steps
-from steps import build_static
-from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML, NVMRC,
-                         PACKAGE_JSON, RUBY_VERSION, node_context,
+from steps import build_static, run_federalist_script, setup_node
+from steps.build import PACKAGE_JSON, NVMRC, build_env
+
+import tasks
+from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML,
+                         RUBY_VERSION, node_context,
                          HUGO_VERSION, BUNDLER_VERSION, build_env)
 
 from .support import create_file, patch_dir
@@ -48,23 +50,57 @@ def patch_site_build_dir2(monkeypatch):
     yield from patch_dir(monkeypatch, steps.build, 'SITE_BUILD_DIR_PATH')
 
 
+@patch('steps.build.run_with_node')
+@patch('steps.build.get_logger')
 class TestSetupNode():
-    def test_it_uses_nvmrc_file_if_it_exists(self, patch_clone_dir):
-        create_file(patch_clone_dir / NVMRC, contents='6')
-        ctx = MockContext(run={
-            'nvm install': Result(),
-        })
-        tasks.setup_node(ctx)
+    def test_it_uses_nvmrc_file_if_it_exists(self, mock_get_logger, mock_run, patch_clone_dir2):
+        create_file(patch_clone_dir2 / NVMRC, contents='6')
 
-    def test_installs_production_deps(self, patch_clone_dir):
-        create_file(patch_clone_dir / PACKAGE_JSON)
-        ctx = MockContext(run={
-            'echo Node version: $(node --version)': Result(),
-            'echo NPM version: $(npm --version)': Result(),
-            'npm set audit false': Result(),
-            'npm ci --production': Result(),
-        })
-        tasks.setup_node(ctx)
+        result = setup_node()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-node')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Using node version specified in .nvmrc'
+        )
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir2, env={}, check=True)
+
+        mock_run.assert_has_calls([
+            callp('nvm install'),
+            callp('nvm use')
+        ])
+
+    def test_installs_production_deps(self, mock_get_logger, mock_run, patch_clone_dir2):
+        create_file(patch_clone_dir2 / PACKAGE_JSON)
+
+        result = setup_node()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-node')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('Using default node version'),
+            call('Installing production dependencies in package.json')
+        ])
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir2, env={}, check=True)
+
+        mock_run.assert_has_calls([
+            callp('echo Node version: $(node --version)'),
+            callp('echo NPM version: $(npm --version)'),
+            callp('npm set audit false'),
+            callp('npm ci --production'),
+        ])
 
 
 class TestNodeContext():
@@ -88,29 +124,59 @@ class TestNodeContext():
         assert len(context_stack._exit_callbacks) == 2
 
 
+@patch('steps.build.run_with_node')
+@patch('steps.build.get_logger')
 class TestRunFederalistScript():
-    def test_it_runs_federalist_script_when_it_exists(self, patch_clone_dir):
+    def test_it_runs_federalist_script_when_it_exists(self, mock_get_logger, mock_run,
+                                                      patch_clone_dir2):
         package_json_contents = json.dumps({
             'scripts': {
                 'federalist': 'echo hi',
             },
         })
-        create_file(patch_clone_dir / PACKAGE_JSON, package_json_contents)
-        ctx = MockContext(run={
-            'npm run federalist': Result(),
-        })
-        tasks.run_federalist_script(ctx, branch='branch', owner='owner',
-                                    repository='repo',
-                                    site_prefix='site/prefix',
-                                    base_url='/site/prefix')
+        create_file(patch_clone_dir2 / PACKAGE_JSON, package_json_contents)
 
-    def test_it_does_not_run_otherwise(self, patch_clone_dir):
-        ctx = MockContext()
-        kwargs = dict(branch='branch', owner='owner',
-                      repository='repo',
-                      site_prefix='site/prefix',
-                      base_url='/site/prefix')
-        tasks.run_federalist_script(ctx, **kwargs)
+        kwargs = dict(
+            branch='branch',
+            owner='owner',
+            repository='repo',
+            site_prefix='site/prefix',
+            base_url='/site/prefix'
+        )
+
+        result = run_federalist_script(**kwargs)
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('run-federalist-script')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Running federalist build script in package.json'
+        )
+
+        mock_run.assert_called_once_with(
+            mock_logger,
+            'npm run federalist',
+            cwd=patch_clone_dir2,
+            env=build_env(*kwargs.values())
+        )
+
+    def test_it_does_not_run_otherwise(self, mock_get_logger, mock_run):
+        kwargs = dict(
+            branch='branch',
+            owner='owner',
+            repository='repo',
+            site_prefix='site/prefix',
+            base_url='/site/prefix'
+        )
+
+        result = run_federalist_script(**kwargs)
+
+        assert result == 0
+
+        mock_get_logger.assert_not_called()
 
 
 class TestSetupRuby():

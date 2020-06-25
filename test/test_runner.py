@@ -1,3 +1,4 @@
+import shlex
 import subprocess  # nosec
 from unittest.mock import Mock, patch
 
@@ -15,9 +16,11 @@ def test_run(mock_popen):
     result = run(mock_logger, command)
 
     mock_popen.assert_called_once_with(
-        command,
+        shlex.split(command),
         cwd=None,
         env=None,
+        shell=False,
+        executable=None,
         stderr=subprocess.STDOUT,
         stdout=subprocess.PIPE,
         bufsize=1,
@@ -40,9 +43,11 @@ def test_run_popen_failure(mock_popen):
     result = run(mock_logger, command)
 
     mock_popen.assert_called_once_with(
-        command,
+        shlex.split(command),
         cwd=None,
         env=None,
+        shell=False,
+        executable=None,
         stderr=subprocess.STDOUT,
         stdout=subprocess.PIPE,
         bufsize=1,
@@ -66,9 +71,11 @@ def test_run_command_failure(mock_popen):
     result = run(mock_logger, command)
 
     mock_popen.assert_called_once_with(
-        command,
+        shlex.split(command),
         cwd=None,
         env=None,
+        shell=False,
+        executable=None,
         stderr=subprocess.STDOUT,
         stdout=subprocess.PIPE,
         bufsize=1,
@@ -77,7 +84,7 @@ def test_run_command_failure(mock_popen):
     )
 
     mock_logger.error.assert_any_call(
-        'Encountered a problem executing `' + ' '.join(command) + '`.'
+        'Encountered a problem executing `' + ' '.join(shlex.split(command)) + '`.'
     )
     mock_logger.error.assert_any_call('ugh')
 
