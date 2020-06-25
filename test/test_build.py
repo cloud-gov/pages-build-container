@@ -3,6 +3,7 @@ import os
 from io import StringIO
 from contextlib import ExitStack
 from unittest.mock import call, Mock, patch
+from subprocess import CalledProcessError  # nosec
 
 import pytest
 import requests_mock
@@ -16,7 +17,7 @@ from steps.build import PACKAGE_JSON, NVMRC, build_env
 import tasks
 from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML,
                          RUBY_VERSION, node_context,
-                         HUGO_VERSION, BUNDLER_VERSION, build_env)
+                         HUGO_VERSION, BUNDLER_VERSION)
 
 from .support import create_file, patch_dir
 
@@ -102,6 +103,13 @@ class TestSetupNode():
             callp('npm ci --production'),
         ])
 
+    def test_returns_code_when_err(self, mock_get_logger, mock_run):
+        mock_run.side_effect = CalledProcessError(1, 'command')
+
+        result = setup_node()
+
+        assert result == 1
+
 
 class TestNodeContext():
     def test_default_node_context(self):
@@ -164,19 +172,12 @@ class TestRunFederalistScript():
         )
 
     def test_it_does_not_run_otherwise(self, mock_get_logger, mock_run):
-        kwargs = dict(
-            branch='branch',
-            owner='owner',
-            repository='repo',
-            site_prefix='site/prefix',
-            base_url='/site/prefix'
-        )
-
-        result = run_federalist_script(**kwargs)
+        result = run_federalist_script('b', 'o', 'r', 'sp')
 
         assert result == 0
 
         mock_get_logger.assert_not_called()
+        mock_run.assert_not_called()
 
 
 class TestSetupRuby():

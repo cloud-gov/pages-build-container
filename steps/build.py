@@ -107,8 +107,8 @@ def setup_node():
             runp('npm set audit false')
             runp('npm ci --production')
 
-    except CalledProcessError as error:
-        return error.returncode
+    except (CalledProcessError, OSError, ValueError):
+        return 1
 
     return 0
 

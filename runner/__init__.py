@@ -46,6 +46,10 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False):
     except ValueError as err:
         logger.error('Encountered a problem invoking Popen.')
         logger.error(str(err))
+
+        if check:
+            raise err
+
         return 1
 
     # This occurs when the command given to Popen cannot be executed.
@@ -53,6 +57,10 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False):
     except OSError as err:
         logger.error('Encountered a problem executing `' + ' '.join(command) + '`.')
         logger.error(str(err))
+
+        if check:
+            raise err
+
         return 1
 
 
