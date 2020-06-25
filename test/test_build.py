@@ -12,11 +12,11 @@ from invoke import Result, MockContext
 
 import steps
 from steps import build_static, run_federalist_script, setup_node
-from steps.build import PACKAGE_JSON, NVMRC, build_env
+from steps.build import PACKAGE_JSON, NVMRC, build_env as build_env2
 
 import tasks
 from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML,
-                         RUBY_VERSION, node_context,
+                         RUBY_VERSION, node_context, build_env,
                          HUGO_VERSION, BUNDLER_VERSION)
 
 from .support import create_file, patch_dir
@@ -168,7 +168,7 @@ class TestRunFederalistScript():
             mock_logger,
             'npm run federalist',
             cwd=patch_clone_dir2,
-            env=build_env(*kwargs.values())
+            env=build_env2(*kwargs.values())
         )
 
     def test_it_does_not_run_otherwise(self, mock_get_logger, mock_run):
