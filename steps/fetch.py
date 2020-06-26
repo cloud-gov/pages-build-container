@@ -38,7 +38,7 @@ def fetch_repo(owner, repository, branch, github_token=''):  # nosec
     repository = shlex.quote(repository)
     branch = shlex.quote(branch)
 
-    command = shlex.split(
+    command = (
         f'git clone -b {branch} --single-branch --depth 1 '
         f'{fetch_url(owner, repository, github_token)} '
         f'{CLONE_DIR_PATH}'

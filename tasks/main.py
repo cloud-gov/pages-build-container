@@ -17,8 +17,9 @@ from log_utils.remote_logs import (
 from crypto.decrypt import decrypt
 
 from steps import (
-    build_hugo, build_static, download_hugo,
-    fetch_repo, publish, run_federalist_script, setup_node
+    build_hugo, build_jekyll, build_static,
+    download_hugo, fetch_repo, publish, run_federalist_script,
+    setup_bundler, setup_node, setup_ruby
 )
 
 
@@ -168,19 +169,24 @@ def main():
                 'There was a problem running the federalist script, see the above logs for details.'
             )
 
-            build_flags = {
-                '--branch': BRANCH,
-                '--owner': OWNER,
-                '--repository': REPOSITORY,
-                '--site-prefix': SITE_PREFIX,
-                '--base-url': BASEURL,
-                '--user-env-vars': json.dumps(decrypted_uevs),
-            }
-
             # Run the appropriate build engine based on GENERATOR
             if GENERATOR == 'jekyll':
-                build_flags['--config'] = CONFIG
-                run('build-jekyll', build_flags)
+                handle_fail(
+                    setup_ruby(),
+                    'There was a problem setting up Ruby, see the above logs for details.'
+                )
+                
+                handle_fail(
+                    setup_bundler(),
+                    'There was a problem setting up Bundler, see the above logs for details.'
+                )
+
+                handle_fail(
+                    build_jekyll(
+                        BRANCH, OWNER, REPOSITORY, SITE_PREFIX, CONFIG, BASEURL, decrypted_uevs
+                    ),
+                    'There was a problem running Jekyll, see the above logs for details.'
+                )
 
             elif GENERATOR == 'hugo':
                 # extra: --hugo-version (not yet used)
