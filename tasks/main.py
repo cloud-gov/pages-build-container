@@ -16,7 +16,9 @@ from log_utils.remote_logs import (
 
 from crypto.decrypt import decrypt
 
-from steps import build_static, fetch_repo, publish
+from steps import (
+    build_static, fetch_repo, publish, run_federalist_script, setup_node
+)
 
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
@@ -148,6 +150,26 @@ def main():
             ##
             # BUILD
             #
+            return_code = setup_node()
+            if return_code != 0:
+                msg = 'There was a problem setting up Node, see the above logs for details.'
+                LOGGER.error(msg)
+                post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
+                exit(1)
+
+            # Run the npm `federalist` task (if it is defined)
+            return_code = run_federalist_script(
+                BRANCH, OWNER, REPOSITORY, SITE_PREFIX, BASEURL, decrypted_uevs
+            )
+            if return_code != 0:
+                msg = (
+                    'There was a problem running the federalist script, '
+                    'see the above logs for details.'
+                )
+                LOGGER.error(msg)
+                post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
+                exit(1)
+
             build_flags = {
                 '--branch': BRANCH,
                 '--owner': OWNER,
@@ -156,9 +178,6 @@ def main():
                 '--base-url': BASEURL,
                 '--user-env-vars': json.dumps(decrypted_uevs),
             }
-
-            # Run the npm `federalist` task (if it is defined)
-            run('run-federalist-script', build_flags)
 
             # Run the appropriate build engine based on GENERATOR
             if GENERATOR == 'jekyll':
