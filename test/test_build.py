@@ -11,13 +11,13 @@ import requests
 from invoke import Result, MockContext
 
 import steps
-from steps import build_static, run_federalist_script, setup_node
-from steps.build import PACKAGE_JSON, NVMRC, build_env as build_env2
+from steps import build_hugo, build_static, download_hugo, run_federalist_script, setup_node
+from steps.build import HUGO_BIN, HUGO_VERSION, PACKAGE_JSON, NVMRC, build_env as build_env2
 
 import tasks
-from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML,
+from tasks.build import (GEMFILE, JEKYLL_CONFIG_YML,
                          RUBY_VERSION, node_context, build_env,
-                         HUGO_VERSION, BUNDLER_VERSION)
+                         BUNDLER_VERSION)
 
 from .support import create_file, patch_dir
 
@@ -31,11 +31,6 @@ def patch_clone_dir(monkeypatch):
 
 
 @pytest.fixture
-def patch_working_dir(monkeypatch):
-    yield from patch_dir(monkeypatch, tasks.build, 'WORKING_DIR_PATH')
-
-
-@pytest.fixture
 def patch_site_build_dir(monkeypatch):
     yield from patch_dir(monkeypatch, tasks.build, 'SITE_BUILD_DIR_PATH')
 
@@ -44,6 +39,11 @@ def patch_site_build_dir(monkeypatch):
 @pytest.fixture
 def patch_clone_dir2(monkeypatch):
     yield from patch_dir(monkeypatch, steps.build, 'CLONE_DIR_PATH')
+
+
+@pytest.fixture
+def patch_working_dir(monkeypatch):
+    yield from patch_dir(monkeypatch, steps.build, 'WORKING_DIR_PATH')
 
 
 @pytest.fixture
@@ -282,116 +282,170 @@ class TestBuildJekyll():
                            repository='repo', site_prefix='site/prefix')
 
 
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
 class TestDownloadHugo():
-    def test_it_is_callable(self, patch_working_dir, patch_clone_dir):
-        create_file(patch_clone_dir / HUGO_VERSION, '0.44')
-        tar_cmd = (f'tar -xzf {patch_working_dir}/hugo.tar.gz -C '
-                   f'{patch_working_dir}')
+    def test_it_is_callable(self, mock_get_logger, mock_run, patch_working_dir, patch_clone_dir2):
+        version = '0.44'
+        tar_cmd = f'tar -xzf {patch_working_dir}/hugo.tar.gz -C {patch_working_dir}'
         chmod_cmd = f'chmod +x {patch_working_dir}/hugo'
-        ctx = MockContext(run={
-            tar_cmd: Result(),
-            chmod_cmd: Result(),
-        })
-        with requests_mock.Mocker() as m:
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz', text='fake-data')
-            tasks.download_hugo(ctx)
+        dl_url = (
+            'https://github.com/gohugoio/hugo/releases/download/v'
+            f'{version}/hugo_{version}_Linux-64bit.tar.gz'
+        )
 
-    def test_it_is_callable_retry(self, patch_working_dir, patch_clone_dir):
-        create_file(patch_clone_dir / HUGO_VERSION, '0.44')
-        tar_cmd = (f'tar -xzf {patch_working_dir}/hugo.tar.gz -C '
-                   f'{patch_working_dir}')
-        chmod_cmd = f'chmod +x {patch_working_dir}/hugo'
-        ctx = MockContext(run={
-            tar_cmd: Result(),
-            chmod_cmd: Result(),
-        })
-        with requests_mock.Mocker() as m:
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                exc=requests.exceptions.ConnectTimeout)
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                exc=requests.exceptions.ConnectTimeout)
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                exc=requests.exceptions.ConnectTimeout)
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                exc=requests.exceptions.ConnectTimeout)
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz', text='fake-data')
-            tasks.download_hugo(ctx)
+        create_file(patch_clone_dir2 / HUGO_VERSION, version)
 
-    def test_it_is_exception(self, patch_working_dir, patch_clone_dir):
-        create_file(patch_clone_dir / HUGO_VERSION, '0.44')
-        tar_cmd = (f'tar -xzf {patch_working_dir}/hugo.tar.gz -C '
-                   f'{patch_working_dir}')
+        with requests_mock.Mocker() as m:
+            m.get(dl_url, text='fake-data')
+            result = download_hugo()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('download-hugo')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('.hugo-version found'),
+            call(f'Using hugo version in .hugo-version: {version}'),
+            call(f'Downloading hugo version {version}')
+        ])
+
+        mock_run.assert_has_calls([
+            call(mock_logger, tar_cmd, env={}, check=True),
+            call(mock_logger, chmod_cmd, env={}, check=True)
+        ])
+
+    def test_it_is_callable_retry(self, mock_get_logger, mock_run, patch_working_dir,
+                                  patch_clone_dir2):
+        version = '0.44'
+        tar_cmd = f'tar -xzf {patch_working_dir}/hugo.tar.gz -C {patch_working_dir}'
         chmod_cmd = f'chmod +x {patch_working_dir}/hugo'
-        ctx = MockContext(run={
-            tar_cmd: Result(),
-            chmod_cmd: Result(),
-        })
+        dl_url = (
+            'https://github.com/gohugoio/hugo/releases/download/v'
+            f'{version}/hugo_{version}_Linux-64bit.tar.gz'
+        )
+
+        create_file(patch_clone_dir2 / HUGO_VERSION, version)
+
+        with requests_mock.Mocker() as m:
+            m.get(dl_url, [
+                dict(exc=requests.exceptions.ConnectTimeout),
+                dict(exc=requests.exceptions.ConnectTimeout),
+                dict(exc=requests.exceptions.ConnectTimeout),
+                dict(exc=requests.exceptions.ConnectTimeout),
+                dict(text='fake-data')
+            ])
+
+            result = download_hugo()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('download-hugo')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('.hugo-version found'),
+            call(f'Using hugo version in .hugo-version: {version}'),
+            call(f'Downloading hugo version {version}'),
+            call(f'Failed attempt #1 to download hugo version: {version}'),
+            call(f'Failed attempt #2 to download hugo version: {version}'),
+            call(f'Failed attempt #3 to download hugo version: {version}'),
+            call(f'Failed attempt #4 to download hugo version: {version}'),
+        ])
+
+        mock_run.assert_has_calls([
+            call(mock_logger, tar_cmd, env={}, check=True),
+            call(mock_logger, chmod_cmd, env={}, check=True)
+        ])
+
+    def test_it_is_exception(self, mock_get_logger, mock_run, patch_working_dir, patch_clone_dir2):
+        version = '0.44'
+        dl_url = (
+            'https://github.com/gohugoio/hugo/releases/download/v'
+            f'{version}/hugo_{version}_Linux-64bit.tar.gz'
+        )
+
+        create_file(patch_clone_dir2 / HUGO_VERSION, version)
+
         with pytest.raises(Exception):
             with requests_mock.Mocker() as m:
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                tasks.download_hugo(ctx)
+                m.get(dl_url, [
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                ])
+
+                download_hugo()
+
+        mock_get_logger.assert_called_once_with('download-hugo')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('.hugo-version found'),
+            call(f'Using hugo version in .hugo-version: {version}'),
+            call(f'Downloading hugo version {version}'),
+            call(f'Failed attempt #1 to download hugo version: {version}'),
+            call(f'Failed attempt #2 to download hugo version: {version}'),
+            call(f'Failed attempt #3 to download hugo version: {version}'),
+            call(f'Failed attempt #4 to download hugo version: {version}'),
+            call(f'Failed attempt #5 to download hugo version: {version}'),
+        ])
+
+        mock_run.assert_not_called()
 
 
+@patch('steps.build.run_with_node')
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
 class TestBuildHugo():
-    def test_it_calls_hugo_as_expected(self, monkeypatch, patch_working_dir):
-        def mock_download(ctx):
-            pass
+    def test_it_calls_hugo_as_expected(self, mock_get_logger, mock_run, mock_run_with_node,
+                                       patch_working_dir, patch_clone_dir2):
 
-        monkeypatch.setattr(tasks.build, 'download_hugo', mock_download)
         hugo_path = patch_working_dir / HUGO_BIN
-        hugo_call = (f'{hugo_path} --source /work/site_repo '
-                     f'--destination /work/site_repo/_site')
-        ctx = MockContext(run={
-            f'echo hugo version: $({hugo_path} version)': Result(),
-            hugo_call: Result(),
-        })
-        with requests_mock.Mocker() as m:
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.48/hugo_0.48_Linux-64bit.tar.gz')
-            kwargs = dict(branch='branch', owner='owner',
-                          repository='repo', site_prefix='site/prefix')
-            tasks.build_hugo(ctx, **kwargs)
+        hugo_call = (
+            f'{hugo_path} --source {patch_clone_dir2} --destination /work/site_repo/_site '
+            '--baseURL /site/prefix'
+        )
 
-            # and with base_url specified
-            kwargs['base_url'] = '/test_base'
-            hugo_call += ' --baseURL /test_base'
-            ctx = MockContext(run={
-                f'echo hugo version: $({hugo_path} version)': Result(),
-                hugo_call: Result(),
-            })
-            tasks.build_hugo(ctx, **kwargs)
+        kwargs = dict(
+            branch='branch',
+            owner='owner',
+            repository='repo',
+            site_prefix='site/prefix',
+            base_url='/site/prefix'
+        )
+
+        result = build_hugo(**kwargs)
+
+        assert result == mock_run_with_node.return_value
+
+        mock_get_logger.assert_called_once_with('build-hugo')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Building site with hugo'
+        )
+
+        mock_run.assert_called_once_with(
+            mock_logger,
+            f'echo hugo version: $({hugo_path} version)',
+            env={},
+            check=True
+        )
+
+        mock_run_with_node.assert_called_once_with(
+            mock_logger,
+            hugo_call,
+            cwd=patch_clone_dir2,
+            env=build_env2(*kwargs.values())
+        )
 
 
 class TestBuildstatic():

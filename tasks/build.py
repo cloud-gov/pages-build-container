@@ -5,24 +5,19 @@ Build tasks and helpers
 import json
 import shlex
 import re
-import time
 from contextlib import ExitStack
 from pathlib import Path
-import requests
 from invoke import task
 
-from common import (CLONE_DIR_PATH, SITE_BUILD_DIR_PATH, WORKING_DIR_PATH)
+from common import (CLONE_DIR_PATH, SITE_BUILD_DIR_PATH)
 
 NVM_SH_PATH = Path('/usr/local/nvm/nvm.sh')
 RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
-CERTS_PATH = Path('/etc/ssl/certs/ca-certificates.crt')
 
-HUGO_BIN = 'hugo'
 NVMRC = '.nvmrc'
 RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
 JEKYLL_CONFIG_YML = '_config.yml'
-HUGO_VERSION = '.hugo-version'
 BUNDLER_VERSION = '.bundler-version'
 
 
@@ -169,85 +164,4 @@ def build_jekyll(ctx, branch, owner, repository, site_prefix,
         ctx.run(
             f'{jekyll_cmd} build --destination {SITE_BUILD_DIR_PATH}',
             env=jekyll_build_env
-        )
-
-
-@task
-def download_hugo(ctx):
-
-    HUGO_VERSION_PATH = CLONE_DIR_PATH / HUGO_VERSION
-    if HUGO_VERSION_PATH.is_file():
-        print(f'.hugo-version found')
-        hugo_version = ''
-        with HUGO_VERSION_PATH.open() as hugo_vers_file:
-            try:
-                hugo_version = hugo_vers_file.readline().strip()
-                hugo_version = shlex.quote(hugo_version)
-                regex = r'^(extended_)?[\d]+(\.[\d]+)*$'
-                hugo_version = re.search(regex, hugo_version).group(0)
-            except Exception:
-                raise RuntimeError(f'Invalid .hugo-version')
-
-        if hugo_version:
-            print(f'Using hugo version in .hugo-version: {hugo_version}')
-    else:
-        raise RuntimeError(".hugo-version not found")
-    '''
-    Downloads the specified version of Hugo
-    '''
-    print(f'Downloading hugo version {hugo_version}')
-    downloaded = False
-    failed_attempts = 0
-    while (not downloaded) and (failed_attempts < 5):
-        try:
-            dl_url = (f'https://github.com/gohugoio/hugo/releases/download/v'
-                      + hugo_version.split('_')[-1] +
-                      f'/hugo_{hugo_version}_Linux-64bit.tar.gz')
-            response = requests.get(dl_url, verify=CERTS_PATH)
-
-            hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
-            with hugo_tar_path.open('wb') as hugo_tar:
-                for chunk in response.iter_content(chunk_size=128):
-                    hugo_tar.write(chunk)
-
-            HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
-            ctx.run(f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}')
-            ctx.run(f'chmod +x {HUGO_BIN_PATH}')
-            downloaded = True
-        except Exception:
-            failed_attempts += 1
-            print(f'Failed attempt #{failed_attempts} '
-                  'to download hugo version: {hugo_version}')
-            if failed_attempts == 5:
-                raise RuntimeError(f'Unable to download hugo version: '
-                                   + hugo_version)
-            time.sleep(2)  # try again in 2 secons
-
-
-@task
-def build_hugo(ctx, branch, owner, repository, site_prefix,
-               base_url='', user_env_vars='[]'):
-    '''
-    Builds the cloned site with Hugo
-    '''
-
-    # Note that no pre/post-tasks will be called when calling
-    # the download_hugo task this way
-    download_hugo(ctx)
-
-    HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
-
-    ctx.run(f'echo hugo version: $({HUGO_BIN_PATH} version)')
-    print('Building site with hugo')
-
-    with node_context(ctx):  # in case some hugo plugin needs node
-        hugo_args = (f'--source {CLONE_DIR_PATH} '
-                     f'--destination {SITE_BUILD_DIR_PATH}')
-        if base_url:
-            hugo_args += f' --baseURL {base_url}'
-
-        ctx.run(
-            f'{HUGO_BIN_PATH} {hugo_args}',
-            env=build_env(branch, owner, repository,
-                          site_prefix, base_url, user_env_vars)
         )
