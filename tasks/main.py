@@ -175,7 +175,7 @@ def main():
                     setup_ruby(),
                     'There was a problem setting up Ruby, see the above logs for details.'
                 )
-                
+
                 handle_fail(
                     setup_bundler(),
                     'There was a problem setting up Bundler, see the above logs for details.'
@@ -183,7 +183,7 @@ def main():
 
                 handle_fail(
                     build_jekyll(
-                        BRANCH, OWNER, REPOSITORY, SITE_PREFIX, CONFIG, BASEURL, decrypted_uevs
+                        BRANCH, OWNER, REPOSITORY, SITE_PREFIX, BASEURL, CONFIG, decrypted_uevs
                     ),
                     'There was a problem running Jekyll, see the above logs for details.'
                 )

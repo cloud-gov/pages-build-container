@@ -17,7 +17,6 @@ HUGO_BIN = 'hugo'
 HUGO_VERSION = '.hugo-version'
 NVMRC = '.nvmrc'
 PACKAGE_JSON = 'package.json'
-NVM_SH_PATH = '/usr/local/nvm/nvm.sh'
 RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
 JEKYLL_CONFIG_YML = '_config.yml'
@@ -288,7 +287,7 @@ def setup_bundler():
 
 
 def build_jekyll(branch, owner, repository, site_prefix,
-                 config='', base_url='', user_env_vars=[]):
+                 base_url='', config='', user_env_vars=[]):
     '''
     Builds the cloned site with Jekyll
     '''

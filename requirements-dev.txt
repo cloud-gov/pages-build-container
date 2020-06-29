@@ -10,4 +10,5 @@ pyflakes==2.1.1
 pylint==2.3.1
 pytest-cov==2.7.1
 pytest==5.0.1
+pyyaml==5.1
 requests-mock==1.6.0
