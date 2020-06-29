@@ -17,10 +17,12 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False, node=Fals
     See https://docs.python.org/3/library/subprocess.html#popen-constructor for details.
     '''
 
+    # TODO - refactor to put the appropriate node/npm binaries in PATH so this isn't necessary
     if node:
         command = f'source {NVM_PATH} && {command}'
         shell = True
 
+    # TODO - refactor to put the appropriate bundler binaries in PATH so this isn't necessary
     if ruby:
         command = f'source {RVM_PATH} && {command}'
         shell = True
@@ -74,19 +76,3 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False, node=Fals
             raise err
 
         return 1
-
-
-def run_with_node(logger, command, cwd=None, env=None, check=False):
-    '''
-    source nvm so node and npm are in the PATH
-
-    TODO - refactor to put the appropriate node/npm binaries in PATH so this isn't necessary
-    '''
-    return run(
-        logger,
-        f'source {NVM_PATH} && {command}',
-        cwd=cwd,
-        env=env,
-        shell=True,  # nosec
-        check=check,
-    )

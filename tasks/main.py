@@ -1,15 +1,12 @@
-'''Main task entrypoint'''
+'''Main entrypoint'''
 
 import json
 import os
 import shlex
-import logging
 from datetime import datetime
-from invoke import Context, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
 
-from log_utils import (delta_to_mins_secs, get_logger, init_logging,
-                       StreamToLogger)
+from log_utils import delta_to_mins_secs, get_logger, init_logging
 from log_utils.remote_logs import (
     post_build_complete, post_build_error, post_build_timeout,
     should_skip_logging, post_build_processing)
@@ -24,33 +21,6 @@ from steps import (
 
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
-
-
-def run_task(ctx, task_name, log_attrs={}, flags_dict=None, env=None):
-    '''
-    Uses `ctx.run` to call the specified `task_name` with the
-    argument flags given in `flags_dict` and `env`, if specified.
-
-    The result's stdout and stderr are routed to the logger.
-    '''
-    flag_args = []
-    if flags_dict:
-        for flag, val in flags_dict.items():
-            # quote val to prevent bash-breaking characters like '
-            quoted_val = shlex.quote(val)
-            flag_args.append(f"{flag}={quoted_val}")
-
-    command = f'inv {task_name} {" ".join(flag_args)}'
-
-    run_kwargs = {}
-    if env:
-        run_kwargs['env'] = env
-
-    logger = get_logger(task_name, log_attrs)
-    ctx.config.run.out_stream = StreamToLogger(logger)
-    ctx.config.run.err_stream = StreamToLogger(logger, logging.ERROR)
-
-    ctx.run(command, **run_kwargs)
 
 
 def main():
@@ -71,10 +41,10 @@ def main():
     BASEURL = os.environ['BASEURL']
     BUILD_ID = os.environ['BUILD_ID']
     CACHE_CONTROL = os.environ['CACHE_CONTROL']
-    BRANCH = os.environ['BRANCH']
+    BRANCH = shlex.quote(os.environ['BRANCH'])
     CONFIG = os.environ['CONFIG']
-    REPOSITORY = os.environ['REPOSITORY']
-    OWNER = os.environ['OWNER']
+    REPOSITORY = shlex.quote(os.environ['REPOSITORY'])
+    OWNER = shlex.quote(os.environ['OWNER'])
     SITE_PREFIX = os.environ['SITE_PREFIX']
     GENERATOR = os.environ['GENERATOR']
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
@@ -114,13 +84,9 @@ def main():
         'repository': REPOSITORY,
     }
 
-    init_logging(priv_vals, logattrs, db_url=DATABASE_URL,
-                 skip_logging=should_skip_logging())
+    init_logging(priv_vals, logattrs, db_url=DATABASE_URL, skip_logging=should_skip_logging())
 
     LOGGER = get_logger('main')
-
-    def run(task, args=None, env=None):
-        run_task(Context(), task, logattrs, args, env)
 
     def handle_fail(returncode, msg):
         if returncode != 0:
@@ -133,17 +99,6 @@ def main():
         # throw a timeout exception after TIMEOUT_SECONDS
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
             LOGGER.info(f'Running build for {OWNER}/{REPOSITORY}/{BRANCH}')
-
-            # Unfortunately, pyinvoke doesn't have a great way to call tasks
-            # from within other tasks. If you call them directly,
-            # their pre- and post-dependencies are not executed.
-            #
-            # Here's the GitHub issue about this:
-            # https://github.com/pyinvoke/invoke/issues/170
-            #
-            # So rather than calling the task functions through python, we'll
-            # call them instead using `ctx.run('invoke the_task ...')` via the
-            # helper `run_task` method.
 
             ##
             # FETCH
@@ -227,16 +182,7 @@ def main():
     except TimeoutException:
         LOGGER.warning(f'Build({BUILD_INFO}) has timed out')
         post_build_timeout(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
-    except UnexpectedExit as err:
-        err_string = str(err)
 
-        # log the original exception
-        LOGGER.warning(f'Exception raised during build({BUILD_INFO}):'
-                       + err_string)
-
-        post_build_error(STATUS_CALLBACK,
-                         FEDERALIST_BUILDER_CALLBACK,
-                         err_string)
     except Exception as err:  # pylint: disable=W0703
         # Getting here means something really weird has happened
         # since all errors caught during tasks should be caught

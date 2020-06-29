@@ -1,8 +1,8 @@
 import logging
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from log_utils.get_logger import (
-    LogFilter, Formatter, StreamToLogger, get_logger, init_logging,
+    LogFilter, Formatter, get_logger, init_logging,
     DEFAULT_LOG_LEVEL)
 from log_utils.db_handler import DBHandler
 
@@ -83,50 +83,6 @@ class TestFormatter():
 
         assert(record.foobar == 'Hello!')
         mock_format.assert_called_once_with(record)
-
-
-class TestStreamLogger():
-    def test_it_writes_to_provided_logger_with_default_level(self):
-        mock_logger = Mock()
-        mock_logger.log = Mock()
-        message = 'foo'
-
-        streamLogger = StreamToLogger(mock_logger)
-
-        streamLogger.write(message)
-        mock_logger.log.assert_called_once_with(StreamToLogger.DEFAULT_LEVEL,
-                                                message)
-
-    def test_it_writes_to_provided_logger_with_provided_level(self):
-        mock_logger = Mock()
-        mock_logger.log = Mock()
-        message = 'foo'
-        level = logging.WARN
-
-        streamLogger = StreamToLogger(mock_logger, level)
-
-        streamLogger.write(message)
-
-        mock_logger.log.assert_called_once_with(level, message)
-
-    def test_it_breaks_lines_and_strips_trailing_whitespace(self):
-        mock_logger = Mock()
-        mock_logger.log = Mock()
-        message = 'foo \nbar    '
-
-        streamLogger = StreamToLogger(mock_logger)
-
-        streamLogger.write(message)
-
-        assert(mock_logger.log.call_count == 2)
-        mock_logger.log.assert_any_call(StreamToLogger.DEFAULT_LEVEL, 'foo')
-        mock_logger.log.assert_any_call(StreamToLogger.DEFAULT_LEVEL, 'bar')
-
-    def test_it_has_a_flush_method(self):
-        streamLogger = StreamToLogger(Mock())
-
-        flush = getattr(streamLogger, 'flush')
-        assert(callable(flush) is True)
 
 
 class TestGetLogger():

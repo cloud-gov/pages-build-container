@@ -38,7 +38,7 @@ def patch_site_build_dir(monkeypatch):
     yield from patch_dir(monkeypatch, steps.build, 'SITE_BUILD_DIR_PATH')
 
 
-@patch('steps.build.run_with_node')
+@patch('steps.build.run')
 @patch('steps.build.get_logger')
 class TestSetupNode():
     def test_it_uses_nvmrc_file_if_it_exists(self, mock_get_logger, mock_run, patch_clone_dir):
@@ -57,7 +57,7 @@ class TestSetupNode():
         )
 
         def callp(cmd):
-            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True)
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True, node=True)
 
         mock_run.assert_has_calls([
             callp('nvm install'),
@@ -81,7 +81,7 @@ class TestSetupNode():
         ])
 
         def callp(cmd):
-            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True)
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True, node=True)
 
         mock_run.assert_has_calls([
             callp('echo Node version: $(node --version)'),
@@ -98,7 +98,7 @@ class TestSetupNode():
         assert result == 1
 
 
-@patch('steps.build.run_with_node')
+@patch('steps.build.run')
 @patch('steps.build.get_logger')
 class TestRunFederalistScript():
     def test_it_runs_federalist_script_when_it_exists(self, mock_get_logger, mock_run,
@@ -134,7 +134,8 @@ class TestRunFederalistScript():
             mock_logger,
             'npm run federalist',
             cwd=patch_clone_dir,
-            env=build_env(*kwargs.values())
+            env=build_env(*kwargs.values()),
+            node=True
         )
 
     def test_it_does_not_run_otherwise(self, mock_get_logger, mock_run):
@@ -552,11 +553,10 @@ class TestDownloadHugo():
         mock_run.assert_not_called()
 
 
-@patch('steps.build.run_with_node')
 @patch('steps.build.run')
 @patch('steps.build.get_logger')
 class TestBuildHugo():
-    def test_it_calls_hugo_as_expected(self, mock_get_logger, mock_run, mock_run_with_node,
+    def test_it_calls_hugo_as_expected(self, mock_get_logger, mock_run,
                                        patch_working_dir, patch_clone_dir):
 
         hugo_path = patch_working_dir / HUGO_BIN
@@ -575,7 +575,7 @@ class TestBuildHugo():
 
         result = build_hugo(**kwargs)
 
-        assert result == mock_run_with_node.return_value
+        assert result == mock_run.return_value
 
         mock_get_logger.assert_called_once_with('build-hugo')
 
@@ -585,19 +585,21 @@ class TestBuildHugo():
             'Building site with hugo'
         )
 
-        mock_run.assert_called_once_with(
-            mock_logger,
-            f'echo hugo version: $({hugo_path} version)',
-            env={},
-            check=True
-        )
-
-        mock_run_with_node.assert_called_once_with(
-            mock_logger,
-            hugo_call,
-            cwd=patch_clone_dir,
-            env=build_env(*kwargs.values())
-        )
+        mock_run.assert_has_calls([
+            call(
+                mock_logger,
+                f'echo hugo version: $({hugo_path} version)',
+                env={},
+                check=True
+            ),
+            call(
+                mock_logger,
+                hugo_call,
+                cwd=patch_clone_dir,
+                env=build_env(*kwargs.values()),
+                node=True
+            )
+        ])
 
 
 class TestBuildstatic():

@@ -11,7 +11,7 @@ import time
 
 from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH, WORKING_DIR_PATH)
 from log_utils import get_logger
-from runner import run, run_with_node
+from runner import run
 
 HUGO_BIN = 'hugo'
 HUGO_VERSION = '.hugo-version'
@@ -100,7 +100,7 @@ def setup_node():
     logger = get_logger('setup-node')
 
     def runp(cmd):
-        return run_with_node(logger, cmd, cwd=CLONE_DIR_PATH, env={}, check=True)
+        return run(logger, cmd, cwd=CLONE_DIR_PATH, env={}, check=True, node=True)
 
     try:
         NVMRC_PATH = CLONE_DIR_PATH / NVMRC
@@ -137,7 +137,7 @@ def run_federalist_script(branch, owner, repository, site_prefix,
         logger = get_logger('run-federalist-script')
         logger.info('Running federalist build script in package.json')
         env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
-        return run_with_node(logger, 'npm run federalist', cwd=CLONE_DIR_PATH, env=env)
+        return run(logger, 'npm run federalist', cwd=CLONE_DIR_PATH, env=env, node=True)
 
     return 0
 
@@ -211,7 +211,7 @@ def build_hugo(branch, owner, repository, site_prefix,
         hugo_args += f' --baseURL {base_url}'
 
     env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
-    return run_with_node(logger, f'{HUGO_BIN_PATH} {hugo_args}', cwd=CLONE_DIR_PATH, env=env)
+    return run(logger, f'{HUGO_BIN_PATH} {hugo_args}', cwd=CLONE_DIR_PATH, env=env, node=True)
 
 
 def setup_ruby():

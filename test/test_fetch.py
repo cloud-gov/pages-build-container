@@ -1,4 +1,3 @@
-import shlex
 from unittest.mock import patch
 
 from steps import fetch_repo
