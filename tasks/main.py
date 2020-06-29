@@ -17,7 +17,8 @@ from log_utils.remote_logs import (
 from crypto.decrypt import decrypt
 
 from steps import (
-    build_static, fetch_repo, publish, run_federalist_script, setup_node
+    build_hugo, build_static, download_hugo,
+    fetch_repo, publish, run_federalist_script, setup_node
 )
 
 
@@ -120,6 +121,12 @@ def main():
     def run(task, args=None, env=None):
         run_task(Context(), task, logattrs, args, env)
 
+    def handle_fail(returncode, msg):
+        if returncode != 0:
+            LOGGER.error(msg)
+            post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
+            exit(1)
+
     try:
         post_build_processing(STATUS_CALLBACK)
         # throw a timeout exception after TIMEOUT_SECONDS
@@ -140,35 +147,26 @@ def main():
             ##
             # FETCH
             #
-            return_code = fetch_repo(OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN)
-            if return_code != 0:
-                msg = 'There was a problem fetching the repository, see the above logs for details.'
-                LOGGER.error(msg)
-                post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
-                exit(1)
+            handle_fail(
+                fetch_repo(OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN),
+                'There was a problem fetching the repository, see the above logs for details.'
+            )
 
             ##
             # BUILD
             #
-            return_code = setup_node()
-            if return_code != 0:
-                msg = 'There was a problem setting up Node, see the above logs for details.'
-                LOGGER.error(msg)
-                post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
-                exit(1)
+            handle_fail(
+                setup_node(),
+                'There was a problem setting up Node, see the above logs for details.'
+            )
 
             # Run the npm `federalist` task (if it is defined)
-            return_code = run_federalist_script(
-                BRANCH, OWNER, REPOSITORY, SITE_PREFIX, BASEURL, decrypted_uevs
+            handle_fail(
+                run_federalist_script(
+                    BRANCH, OWNER, REPOSITORY, SITE_PREFIX, BASEURL, decrypted_uevs
+                ),
+                'There was a problem running the federalist script, see the above logs for details.'
             )
-            if return_code != 0:
-                msg = (
-                    'There was a problem running the federalist script, '
-                    'see the above logs for details.'
-                )
-                LOGGER.error(msg)
-                post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
-                exit(1)
 
             build_flags = {
                 '--branch': BRANCH,
@@ -183,14 +181,28 @@ def main():
             if GENERATOR == 'jekyll':
                 build_flags['--config'] = CONFIG
                 run('build-jekyll', build_flags)
+
             elif GENERATOR == 'hugo':
                 # extra: --hugo-version (not yet used)
-                run('build-hugo', build_flags)
+                handle_fail(
+                    download_hugo(),
+                    'There was a problem downloading Hugo, see the above logs for details.'
+                )
+
+                handle_fail(
+                    build_hugo(
+                        BRANCH, OWNER, REPOSITORY, SITE_PREFIX, BASEURL, decrypted_uevs
+                    ),
+                    'There was a problem running Hugo, see the above logs for details.'
+                )
+
             elif GENERATOR == 'static':
                 # no build arguments are needed
                 build_static()
+
             elif (GENERATOR == 'node.js' or GENERATOR == 'script only'):
                 LOGGER.info('build already ran in \'npm run federalist\'')
+
             else:
                 raise ValueError(f'Invalid GENERATOR: {GENERATOR}')
 

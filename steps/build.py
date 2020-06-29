@@ -2,15 +2,23 @@ import json
 import os
 import shutil
 from os import path
+from pathlib import Path
+import re
+import requests
+import shlex
 from subprocess import CalledProcessError  # nosec
+import time
 
-from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH)
+from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH, WORKING_DIR_PATH)
 from log_utils import get_logger
-from runner import run_with_node
+from runner import run, run_with_node
 
+HUGO_BIN = 'hugo'
+HUGO_VERSION = '.hugo-version'
 NVMRC = '.nvmrc'
 PACKAGE_JSON = 'package.json'
 NVM_SH_PATH = '/usr/local/nvm/nvm.sh'
+CERTS_PATH = Path('/etc/ssl/certs/ca-certificates.crt')
 
 
 def build_env(branch, owner, repository, site_prefix, base_url,
@@ -31,9 +39,10 @@ def build_env(branch, owner, repository, site_prefix, base_url,
         name = uev['name']
         value = uev['value']
         if name in env or name.upper() in env:
-            print(f'WARNING - user environment variable name `{name}` '
-                  'conflicts with system environment variable, it will be '
-                  'ignored.')
+            print(
+                f'user environment variable name `{name}` conflicts '
+                'with system environment variable, it will be ignored.'
+            )
         else:
             env[name] = value
 
@@ -126,3 +135,75 @@ def run_federalist_script(branch, owner, repository, site_prefix,
         return run_with_node(logger, 'npm run federalist', cwd=CLONE_DIR_PATH, env=env)
 
     return 0
+
+
+def download_hugo():
+    logger = get_logger('download-hugo')
+
+    HUGO_VERSION_PATH = CLONE_DIR_PATH / HUGO_VERSION
+    if HUGO_VERSION_PATH.is_file():
+        logger.info('.hugo-version found')
+        hugo_version = ''
+        with HUGO_VERSION_PATH.open() as hugo_vers_file:
+            try:
+                hugo_version = hugo_vers_file.readline().strip()
+                hugo_version = shlex.quote(hugo_version)
+                regex = r'^(extended_)?[\d]+(\.[\d]+)*$'
+                hugo_version = re.search(regex, hugo_version).group(0)
+            except Exception:
+                raise RuntimeError('Invalid .hugo-version')
+
+        if hugo_version:
+            logger.info(f'Using hugo version in .hugo-version: {hugo_version}')
+    else:
+        raise RuntimeError(".hugo-version not found")
+    '''
+    Downloads the specified version of Hugo
+    '''
+    logger.info(f'Downloading hugo version {hugo_version}')
+    failed_attempts = 0
+    while (failed_attempts < 5):
+        try:
+            dl_url = ('https://github.com/gohugoio/hugo/releases/download/v'
+                      + hugo_version.split('_')[-1] +
+                      f'/hugo_{hugo_version}_Linux-64bit.tar.gz')
+            response = requests.get(dl_url, verify=CERTS_PATH)
+
+            hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
+            with hugo_tar_path.open('wb') as hugo_tar:
+                for chunk in response.iter_content(chunk_size=128):
+                    hugo_tar.write(chunk)
+
+            HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
+            run(logger, f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}', env={}, check=True)
+            run(logger, f'chmod +x {HUGO_BIN_PATH}', env={}, check=True)
+            return 0
+        except Exception:
+            failed_attempts += 1
+            logger.info(
+                f'Failed attempt #{failed_attempts} to download hugo version: {hugo_version}'
+            )
+            if failed_attempts == 5:
+                raise RuntimeError(f'Unable to download hugo version: {hugo_version}')
+            time.sleep(2)  # try again in 2 seconds
+
+
+def build_hugo(branch, owner, repository, site_prefix,
+               base_url='', user_env_vars=[]):
+    '''
+    Builds the cloned site with Hugo
+    '''
+    logger = get_logger('build-hugo')
+
+    HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
+
+    run(logger, f'echo hugo version: $({HUGO_BIN_PATH} version)', env={}, check=True)
+
+    logger.info('Building site with hugo')
+
+    hugo_args = f'--source {CLONE_DIR_PATH} --destination {SITE_BUILD_DIR_PATH}'
+    if base_url:
+        hugo_args += f' --baseURL {base_url}'
+
+    env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
+    return run_with_node(logger, f'{HUGO_BIN_PATH} {hugo_args}', cwd=CLONE_DIR_PATH, env=env)
