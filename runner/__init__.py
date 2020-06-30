@@ -1,10 +1,11 @@
 import shlex
 import subprocess  # nosec
 
-NVM_SH_PATH = '/usr/local/nvm/nvm.sh'
+NVM_PATH = '/usr/local/nvm/nvm.sh'
+RVM_PATH = '/usr/local/rvm/scripts/rvm'
 
 
-def run(logger, command, cwd=None, env=None, shell=False, check=False):
+def run(logger, command, cwd=None, env=None, shell=False, check=False, node=False, ruby=False):
     '''
     Run an OS command with provided cwd or env, stream logs to logger, and return the exit code.
 
@@ -16,6 +17,16 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False):
     See https://docs.python.org/3/library/subprocess.html#popen-constructor for details.
     '''
 
+    # TODO - refactor to put the appropriate node/npm binaries in PATH so this isn't necessary
+    if node:
+        command = f'source {NVM_PATH} && {command}'
+        shell = True
+
+    # TODO - refactor to put the appropriate bundler binaries in PATH so this isn't necessary
+    if ruby:
+        command = f'source {RVM_PATH} && {command}'
+        shell = True
+
     if isinstance(command, str) and not shell:
         command = shlex.split(command)
 
@@ -23,7 +34,7 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False):
     executable = '/bin/bash' if shell else None
 
     try:
-        with subprocess.Popen(  # nosec
+        p = subprocess.Popen(  # nosec
             command,
             cwd=cwd,
             env=env,
@@ -34,8 +45,11 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False):
             bufsize=1,
             encoding='utf-8',
             text=True
-        ) as p:
-            logger.info(p.stdout.read())
+        )
+        while p.poll() is None:
+            logger.info(p.stdout.readline().strip())
+
+        logger.info(p.stdout.readline().strip())
 
         if check and p.returncode:
             raise subprocess.CalledProcessError(p.returncode, command)
@@ -62,19 +76,3 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False):
             raise err
 
         return 1
-
-
-def run_with_node(logger, command, cwd=None, env=None, check=False):
-    '''
-    source nvm so node and npm are in the PATH
-
-    TODO - refactor to put the appropriate node/npm binaries in PATH so this isn't necessary
-    '''
-    return run(
-        logger,
-        f'source {NVM_SH_PATH} && {command}',
-        cwd=cwd,
-        env=env,
-        shell=True,  # nosec
-        check=check,
-    )
