@@ -98,7 +98,7 @@ jobs:
            
       - when:
           condition:
-            equal: [ master, << pipeline.git.branch >> ]
+            equal: [ main, << pipeline.git.branch >> ]
           steps:
             run:
               name: Setup Production Environment
@@ -158,4 +158,4 @@ workflows:
             branches:
               only:
                 - staging
-                - master
+                - main
