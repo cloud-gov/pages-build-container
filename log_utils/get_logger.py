@@ -64,21 +64,6 @@ class Formatter(logging.Formatter):
         return super().format(record)
 
 
-class StreamToLogger:
-    DEFAULT_LEVEL = logging.INFO
-
-    def __init__(self, logger, log_level=DEFAULT_LEVEL):
-        self.logger = logger
-        self.log_level = log_level
-
-    def write(self, buf):
-        for line in buf.rstrip().splitlines():
-            self.logger.log(self.log_level, line.rstrip())
-
-    def flush(self):
-        pass
-
-
 def get_logger(name, attrs=None):
     '''
     Gets a logger instance configured with our formatter and handler

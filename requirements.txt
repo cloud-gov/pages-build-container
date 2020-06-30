@@ -1,4 +1,3 @@
-invoke==1.3.0
 python-dotenv==0.10.3
 requests==2.22.0
 boto3==1.9.203
