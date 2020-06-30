@@ -3,7 +3,7 @@ import shlex
 import subprocess  # nosec
 from unittest.mock import Mock, patch
 
-from runner import run, run_with_node, NVM_SH_PATH
+from runner import run, NVM_PATH, RVM_PATH
 
 
 @patch('subprocess.Popen', autospec=True)
@@ -11,8 +11,7 @@ def test_run(mock_popen):
     mock_logger = Mock()
     command = 'foobar'
 
-    mock_popen_context = Mock(returncode=0, stdout=Mock(read=Mock(return_value='foobar')))
-    mock_popen.return_value.__enter__.return_value = mock_popen_context
+    mock_popen.return_value = Mock(returncode=0, stdout=Mock(readline=Mock(return_value='foobar')))
 
     result = run(mock_logger, command)
 
@@ -154,7 +153,7 @@ def test_run_command_failure(mock_popen):
     command = 'foobar'
     return_code = 2
 
-    mock_popen.return_value.__enter__.return_value.returncode = return_code
+    mock_popen.return_value = Mock(returncode=return_code, stdout=Mock(readline=Mock()))
 
     result = run(mock_logger, command)
 
@@ -180,7 +179,7 @@ def test_run_command_failure_check_true(mock_popen):
     command = 'foobar'
     return_code = 2
 
-    mock_popen.return_value.__enter__.return_value.returncode = return_code
+    mock_popen.return_value = Mock(returncode=return_code, stdout=Mock(readline=Mock()))
 
     with raises(subprocess.CalledProcessError):
         run(mock_logger, command, check=True)
@@ -199,23 +198,51 @@ def test_run_command_failure_check_true(mock_popen):
     )
 
 
-@patch('runner.run', autospec=True)
-def test_run_with_node(mock_run):
+@patch('subprocess.Popen', autospec=True)
+def test_run_with_node(mock_popen):
     mock_logger = Mock()
     command = 'foobar'
     cwd = '/foo'
     env = {}
-    check = True
 
-    result = run_with_node(mock_logger, command, cwd=cwd, env=env, check=check)
+    mock_popen.return_value = Mock(returncode=0, stdout=Mock(readline=Mock(return_value='foobar')))
 
-    assert result == mock_run.return_value
+    run(mock_logger, command, cwd=cwd, env=env, node=True)
 
-    mock_run.assert_called_once_with(
-        mock_logger,
-        f'source {NVM_SH_PATH} && {command}',
+    mock_popen.assert_called_once_with(
+        f'source {NVM_PATH} && {command}',
         cwd=cwd,
         env=env,
         shell=True,  # nosec
-        check=check,
+        executable='/bin/bash',
+        stderr=subprocess.STDOUT,
+        stdout=subprocess.PIPE,
+        bufsize=1,
+        encoding='utf-8',
+        text=True
+    )
+
+
+@patch('subprocess.Popen', autospec=True)
+def test_run_with_ruby(mock_popen):
+    mock_logger = Mock()
+    command = 'foobar'
+    cwd = '/foo'
+    env = {}
+
+    mock_popen.return_value = Mock(returncode=0, stdout=Mock(readline=Mock(return_value='foobar')))
+
+    run(mock_logger, command, cwd=cwd, env=env, ruby=True)
+
+    mock_popen.assert_called_once_with(
+        f'source {RVM_PATH} && {command}',
+        cwd=cwd,
+        env=env,
+        shell=True,  # nosec
+        executable='/bin/bash',
+        stderr=subprocess.STDOUT,
+        stdout=subprocess.PIPE,
+        bufsize=1,
+        encoding='utf-8',
+        text=True
     )

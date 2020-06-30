@@ -11,14 +11,19 @@ import time
 
 from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH, WORKING_DIR_PATH)
 from log_utils import get_logger
-from runner import run, run_with_node
+from runner import run
 
 HUGO_BIN = 'hugo'
 HUGO_VERSION = '.hugo-version'
 NVMRC = '.nvmrc'
 PACKAGE_JSON = 'package.json'
-NVM_SH_PATH = '/usr/local/nvm/nvm.sh'
+RUBY_VERSION = '.ruby-version'
+GEMFILE = 'Gemfile'
+JEKYLL_CONFIG_YML = '_config.yml'
+BUNDLER_VERSION = '.bundler-version'
+
 CERTS_PATH = Path('/etc/ssl/certs/ca-certificates.crt')
+RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
 
 
 def build_env(branch, owner, repository, site_prefix, base_url,
@@ -95,7 +100,7 @@ def setup_node():
     logger = get_logger('setup-node')
 
     def runp(cmd):
-        return run_with_node(logger, cmd, cwd=CLONE_DIR_PATH, env={}, check=True)
+        return run(logger, cmd, cwd=CLONE_DIR_PATH, env={}, check=True, node=True)
 
     try:
         NVMRC_PATH = CLONE_DIR_PATH / NVMRC
@@ -132,7 +137,7 @@ def run_federalist_script(branch, owner, repository, site_prefix,
         logger = get_logger('run-federalist-script')
         logger.info('Running federalist build script in package.json')
         env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
-        return run_with_node(logger, 'npm run federalist', cwd=CLONE_DIR_PATH, env=env)
+        return run(logger, 'npm run federalist', cwd=CLONE_DIR_PATH, env=env, node=True)
 
     return 0
 
@@ -206,4 +211,124 @@ def build_hugo(branch, owner, repository, site_prefix,
         hugo_args += f' --baseURL {base_url}'
 
     env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
-    return run_with_node(logger, f'{HUGO_BIN_PATH} {hugo_args}', cwd=CLONE_DIR_PATH, env=env)
+    return run(logger, f'{HUGO_BIN_PATH} {hugo_args}', cwd=CLONE_DIR_PATH, env=env, node=True)
+
+
+def setup_ruby():
+    '''
+    Sets up RVM and installs ruby
+    Uses the ruby version specified in .ruby-version if present
+    '''
+    logger = get_logger('setup-ruby')
+
+    def runp(cmd):
+        return run(logger, cmd, cwd=CLONE_DIR_PATH, env={}, ruby=True)
+
+    returncode = 0
+
+    RUBY_VERSION_PATH = CLONE_DIR_PATH / RUBY_VERSION
+    if RUBY_VERSION_PATH.is_file():
+        ruby_version = ''
+        with RUBY_VERSION_PATH.open() as ruby_vers_file:
+            ruby_version = ruby_vers_file.readline().strip()
+            # escape-quote the value in case there's anything weird
+            # in the .ruby-version file
+            ruby_version = shlex.quote(ruby_version)
+        if ruby_version:
+            logger.info('Using ruby version in .ruby-version')
+            returncode = runp(f'rvm install {ruby_version}')
+
+    if returncode:
+        return returncode
+
+    return runp('echo Ruby version: $(ruby -v)')
+
+
+def setup_bundler():
+    logger = get_logger('setup-bundler')
+
+    def runp(cmd):
+        return run(logger, cmd, cwd=CLONE_DIR_PATH, env={}, ruby=True)
+
+    GEMFILE_PATH = CLONE_DIR_PATH / GEMFILE
+
+    if not GEMFILE_PATH.is_file():
+        logger.info('No Gemfile found, installing Jekyll.')
+        return runp('gem install jekyll --no-document')
+
+    logger.info('Gemfile found, setting up bundler')
+
+    version = '<2'
+
+    BUNDLER_VERSION_PATH = CLONE_DIR_PATH / BUNDLER_VERSION
+
+    if BUNDLER_VERSION_PATH.is_file():
+        with BUNDLER_VERSION_PATH.open() as bundler_vers_file:
+            try:
+                bundler_vers = bundler_vers_file.readline().strip()
+                # escape-quote the value in case there's anything weird
+                # in the .bundler-version file
+                bundler_vers = shlex.quote(bundler_vers)
+                regex = r'^[\d]+(\.[\d]+)*$'
+                bundler_vers = re.search(regex, bundler_vers).group(0)
+                if bundler_vers:
+                    logger.info('Using bundler version in .bundler-version')
+                    version = bundler_vers
+            except Exception:
+                raise RuntimeError('Invalid .bundler-version')
+
+    returncode = runp(f'gem install bundler --version "{version}"')
+
+    if returncode:
+        return returncode
+
+    logger.info('Installing dependencies in Gemfile')
+    return runp('bundle install')
+
+
+def build_jekyll(branch, owner, repository, site_prefix,
+                 base_url='', config='', user_env_vars=[]):
+    '''
+    Builds the cloned site with Jekyll
+    '''
+    logger = get_logger('build-jekyll')
+
+    JEKYLL_CONF_YML_PATH = CLONE_DIR_PATH / JEKYLL_CONFIG_YML
+
+    # Add baseurl, branch, and the custom config to _config.yml.
+    # Use the 'a' option to create or append to an existing config file.
+    with JEKYLL_CONF_YML_PATH.open('a') as jekyll_conf_file:
+        jekyll_conf_file.writelines([
+            '\n'
+            f'baseurl: {base_url}\n',
+            f'branch: {branch}\n',
+            config,
+            '\n',
+        ])
+
+    jekyll_cmd = 'jekyll'
+
+    GEMFILE_PATH = CLONE_DIR_PATH / GEMFILE
+    if GEMFILE_PATH.is_file():
+        jekyll_cmd = f'bundle exec {jekyll_cmd}'
+
+    run(
+        logger,
+        f'echo Building using Jekyll version: $({jekyll_cmd} -v)',
+        cwd=CLONE_DIR_PATH,
+        env={},
+        check=True,
+        ruby=True
+    )
+
+    env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
+    env['JEKYLL_ENV'] = 'production'
+
+    return run(
+        logger,
+        f'{jekyll_cmd} build --destination {SITE_BUILD_DIR_PATH}',
+        cwd=CLONE_DIR_PATH,
+        env=env,
+        node=True,
+        ruby=True
+    )

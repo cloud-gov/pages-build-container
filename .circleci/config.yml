@@ -31,7 +31,7 @@ jobs:
       - run:
           name: Bandit
           command: |
-            docker exec fgb bandit publishing/*.py tasks/*.py log_utils/*.py repo_config/*.py
+            docker exec fgb bandit publishing/*.py tasks/*.py log_utils/*.py repo_config/*.py steps/*.py
 
       - run:
           name: Install cc-test-reporter
