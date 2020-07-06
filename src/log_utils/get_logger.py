@@ -77,7 +77,7 @@ def get_logger(name, attrs=None):
     return logging.LoggerAdapter(logger, attrs)
 
 
-def init_logging(private_values, attrs={}, db_url=None, skip_logging=False):
+def init_logging(private_values, attrs={}, db_url=None, require_services=True):
     global LOG_ATTRS
     LOG_ATTRS = attrs
 
@@ -105,7 +105,7 @@ def init_logging(private_values, attrs={}, db_url=None, skip_logging=False):
 
     handlers = [stream_handler]
 
-    if not skip_logging and db_url:
+    if require_services and db_url:
         build_id = attrs['buildid']
         db_formatter = logging.Formatter(short_fmt, date_fmt, style_fmt)
 

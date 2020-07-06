@@ -46,6 +46,9 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
 
 WORKDIR /app
 
-COPY . ./
+COPY ./requirements.txt ./requirements.txt
 
 RUN pip install -r requirements.txt
+RUN rm ./requirements.txt
+
+COPY ./src ./

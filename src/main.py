@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 import sys
 from dotenv import load_dotenv
-from tasks import main
+
+from .build import build
 
 
 def load_vcap():
@@ -41,19 +42,30 @@ def load_env():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        parser = argparse.ArgumentParser(description='Run a federalist build')
-        parser.add_argument('-p', '--params', dest='params', required=True,
-                            help='A JSON encoded string',
-                            metavar="'{\"foo\": \"bar\"}'")
-        args = parser.parse_args()
+    # if len(sys.argv) > 1:
+    parser = argparse.ArgumentParser(description='Run a federalist build')
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-p', '--params', dest='params', required=True,
+                       help='A JSON encoded string',
+                       metavar="'{\"foo\": \"bar\"}'")
+    group.add_argument('-f', '--file', dest='file', required=True,
+                       help='A JSON encoded file', type=argparse.FileType('w'),
+                       metavar="'{\"foo\": \"bar\"}'")
+    args = parser.parse_args()
+
+    if args.params:
         params = json.loads(args.params)
-        for k, v in params.items():
-            if v is not None:
-                os.environ[k] = v
     else:
-        load_env()
+        params = json.load(args.file)
+
+    print(params)
+    exit(0)
+    # for k, v in params.items():
+    #     if v is not None:
+    #         os.environ[k] = v
+    # else:
+        # load_env()
 
     load_vcap()
 
-    main()
+    build()

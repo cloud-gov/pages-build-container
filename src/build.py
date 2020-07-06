@@ -9,21 +9,23 @@ from stopit import TimeoutException, SignalTimeout as Timeout
 from log_utils import delta_to_mins_secs, get_logger, init_logging
 from log_utils.remote_logs import (
     post_build_complete, post_build_error, post_build_timeout,
-    should_skip_logging, post_build_processing)
+    require_services, post_build_processing)
 
 from crypto.decrypt import decrypt
 
 from steps import (
     build_hugo, build_jekyll, build_static,
-    download_hugo, fetch_repo, publish, run_federalist_script,
-    setup_bundler, setup_node, setup_ruby
+    download_hugo, fetch_repo_step, publish, run_federalist_script,
+    setup_bundler, setup_node, setup_ruby, StepException
 )
 
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
+GENERATORS = ['hugo', 'jekyll', 'node.js', 'static']
 
-def main():
+
+def build():
     '''
     Main task to run a full site build process.
 
@@ -36,44 +38,47 @@ def main():
     # keep track of total time
     start_time = datetime.now()
 
-    AWS_DEFAULT_REGION = os.environ['AWS_DEFAULT_REGION']
-    BUCKET = os.environ['BUCKET']
-    BASEURL = os.environ['BASEURL']
-    BUILD_ID = os.environ['BUILD_ID']
-    CACHE_CONTROL = os.environ['CACHE_CONTROL']
-    BRANCH = shlex.quote(os.environ['BRANCH'])
-    CONFIG = os.environ['CONFIG']
-    REPOSITORY = shlex.quote(os.environ['REPOSITORY'])
-    OWNER = shlex.quote(os.environ['OWNER'])
-    SITE_PREFIX = os.environ['SITE_PREFIX']
-    GENERATOR = os.environ['GENERATOR']
-    AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
-    AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
-    USER_ENVIRONMENT_VARIABLES = json.loads(
-        os.getenv('USER_ENVIRONMENT_VARIABLES', '[]')
-    )
+    ##################################
+    #  Actual environment variables  #
+    ##################################
+    CACHE_CONTROL = os.getenv('CACHE_CONTROL', 'max-age=60')
     USER_ENVIRONMENT_VARIABLE_KEY = os.environ['USER_ENVIRONMENT_VARIABLE_KEY']
 
+    FEDERALIST_BUILDER_CALLBACK = None
+    STATUS_CALLBACK = None
+    DATABASE_URL = None
+
+    if require_services():
+        FEDERALIST_BUILDER_CALLBACK = os.environ['FEDERALIST_BUILDER_CALLBACK']
+        STATUS_CALLBACK = os.environ['STATUS_CALLBACK']
+        DATABASE_URL = os.getenv('DATABASE_URL', None)
+
+    #######################
+    #  Program Arguments  #
+    #######################
+    AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+    AWS_DEFAULT_REGION = os.environ['AWS_DEFAULT_REGION']
+    AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+    BASEURL = os.environ['BASEURL']
+    BRANCH = shlex.quote(os.environ['BRANCH'])
+    BUCKET = os.environ['BUCKET']
+    BUILD_ID = os.environ['BUILD_ID']
+    CONFIG = os.environ['CONFIG']
+    GENERATOR = os.environ['GENERATOR']
     # GITHUB_TOKEN can be empty if a non-Federalist user
     # makes a commit to a repo and thus initiates a build for a
     # Federalist site
     GITHUB_TOKEN = os.getenv('GITHUB_TOKEN', '')
-
-    # Ex: https://federalist-builder.fr.cloud.gov/builds/<token>/callback
-    FEDERALIST_BUILDER_CALLBACK = os.environ['FEDERALIST_BUILDER_CALLBACK']
-
-    # Ex: https://federalist-staging.18f.gov/v0/build/<build_id>/status/<token>
-    STATUS_CALLBACK = os.getenv('STATUS_CALLBACK', '')
-
-    # Necessary to log to database
-    DATABASE_URL = os.getenv('DATABASE_URL', '')
+    OWNER = shlex.quote(os.environ['OWNER'])
+    REPOSITORY = shlex.quote(os.environ['REPOSITORY'])
+    SITE_PREFIX = os.environ['SITE_PREFIX']
+    USER_ENVIRONMENT_VARIABLES = json.loads(
+        os.getenv('USER_ENVIRONMENT_VARIABLES', '[]')
+    )
 
     BUILD_INFO = f'{OWNER}/{REPOSITORY}@id:{BUILD_ID}'
 
-    decrypted_uevs = [{
-        'name': uev['name'],
-        'value': decrypt(uev['ciphertext'], USER_ENVIRONMENT_VARIABLE_KEY)
-    } for uev in USER_ENVIRONMENT_VARIABLES]
+    decrypted_uevs = decrypt_uevs(USER_ENVIRONMENT_VARIABLE_KEY, USER_ENVIRONMENT_VARIABLES)
 
     priv_vals = private_values([uev['value'] for uev in decrypted_uevs])
 
@@ -84,7 +89,7 @@ def main():
         'repository': REPOSITORY,
     }
 
-    init_logging(priv_vals, logattrs, db_url=DATABASE_URL, skip_logging=should_skip_logging())
+    init_logging(priv_vals, logattrs, db_url=DATABASE_URL, require_services=require_services())
 
     LOGGER = get_logger('main')
 
@@ -103,10 +108,7 @@ def main():
             ##
             # FETCH
             #
-            handle_fail(
-                fetch_repo(OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN),
-                'There was a problem fetching the repository, see the above logs for details.'
-            )
+            fetch_repo_step(OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN)
 
             ##
             # BUILD
@@ -179,6 +181,15 @@ def main():
             # Finished!
             post_build_complete(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
 
+    except StepException as err:
+        '''
+        Thrown when a step itself fails, usually because a command exited
+        with a non-zero return code
+        '''
+        LOGGER.error(str(err))
+        post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, str(err))
+        exit(1)
+
     except TimeoutException:
         LOGGER.warning(f'Build({BUILD_INFO}) has timed out')
         post_build_timeout(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
@@ -201,6 +212,13 @@ def main():
         post_build_error(STATUS_CALLBACK,
                          FEDERALIST_BUILDER_CALLBACK,
                          err_message)
+
+
+def decrypt_uevs(key, uevs):
+    return [{
+        'name': uev['name'],
+        'value': decrypt(uev['ciphertext'], key)
+    } for uev in uevs]
 
 
 def private_values(user_values):

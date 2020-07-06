@@ -24,7 +24,6 @@ Each site build is configured using a number of environment variables, as descri
 * `GENERATOR`: The static generator to use to build the site (`'jekyll'`, `'hugo'`, `'node.js'`, or `'static'`).
 * `FEDERALIST_BUILDER_CALLBACK`: The URL the container should use to let [federalist-builder](https://github.com/18F/federalist-builder) know that it has finished.
 * `STATUS_CALLBACK`: The URL the container should use to report the status of the completed build (ie, success or failure).
-* `LOG_CALLBACK`: The URL the container should use to post build logs periodically during the build.
 * `OWNER`: the GitHub account that owns the repository.
 * `REPOSITORY`: the repository name.
 * `BRANCH`: the branch being built.

@@ -7,6 +7,8 @@ from log_utils import get_logger
 from runner import run
 from common import (REPO_BASE_URL, CLONE_DIR_PATH)
 
+from .wrapper import wrap
+
 
 def fetch_url(owner, repository, access_token=''):  # nosec
     '''
@@ -45,3 +47,9 @@ def fetch_repo(owner, repository, branch, github_token=''):  # nosec
     )
 
     return run(logger, command)
+
+
+fetch_repo_step = wrap(
+    fetch_repo,
+    'There was a problem fetching the repository, see the above logs for details.'
+)

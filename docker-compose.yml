@@ -4,10 +4,9 @@ services:
     # main builder app
     build:
       context: .
-      args:
-        is_testing: 1
     volumes:
-      - .:/app:delegated
+      - ./src:/app:delegated
+      - ./.local:/app/.local:delegated
     links:
       - echoserver
       - db
@@ -15,9 +14,17 @@ services:
       - echoserver
       - db
     environment:
+      CACHE_CONTROL: max-age=60
+      USER_ENVIRONMENT_VARIABLE_KEY: shhhhhhh
+      # NO_SERVICES: 'True'
+
+      # Required only if NO_SERVICES is not 'True'
       FEDERALIST_BUILDER_CALLBACK: http://echoserver:8989/builder
       STATUS_CALLBACK: http://echoserver:8989/status
-      LOG_CALLBACK: http://echoserver:8989/log
+
+      # Optional, if provided AND NO_SERVICES is not 'True',
+      # logs will be written to database. Note that the database
+      # may have to be initialized by running ./bin/migrate.py
       DATABASE_URL: postgresql://postgres@db/federalist
 
   echoserver:
