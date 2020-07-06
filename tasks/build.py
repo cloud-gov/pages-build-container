@@ -305,7 +305,7 @@ def build_hugo(ctx, branch, owner, repository, site_prefix,
     ctx.run(f'echo hugo version: $({HUGO_BIN_PATH} version)')
     print('Building site with hugo')
 
-    with node_context(ctx, ctx.cd(str(CLONE_DIR_PATH))):  # in case some hugo plugin needs node
+    with node_context(ctx, ctx.cd(str(CLONE_DIR_PATH))):
         hugo_args = (f'--source {CLONE_DIR_PATH} '
                      f'--destination {SITE_BUILD_DIR_PATH}')
         if base_url:
