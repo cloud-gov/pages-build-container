@@ -1,4 +1,4 @@
-FROM python:3.6-stretch
+FROM python:3.8
 
 # Install general dependencies
 RUN apt-get update \
@@ -27,10 +27,7 @@ RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.31.3/install.sh | b
   && . "$NVM_DIR/nvm.sh" \
   && nvm install $NODE_DEFAULT_VERSION \
   && nvm install 8 \
-  && nvm use $NODE_DEFAULT_VERSION \
-  && echo 'export OLD_PREFIX=$PREFIX && unset PREFIX' > $HOME/.profile \
-  && echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> $HOME/.profile \
-  && echo 'export PREFIX=$OLD_PREFIX && unset OLD_PREFIX' >> $HOME/.profile
+  && nvm use $NODE_DEFAULT_VERSION
 
 # Install ruby via rvm
 ENV RUBY_VERSION 2.6.6

@@ -1,330 +1,616 @@
 import json
 import os
 from io import StringIO
-from contextlib import ExitStack
-from unittest.mock import Mock, patch
+from unittest.mock import call, patch
+from subprocess import CalledProcessError  # nosec
 
 import pytest
 import requests_mock
 import requests
-from invoke import Result, MockContext
+import yaml
 
-import tasks
-from tasks.build import (GEMFILE, HUGO_BIN, JEKYLL_CONFIG_YML, NVMRC,
-                         PACKAGE_JSON, RUBY_VERSION, node_context,
-                         HUGO_VERSION, BUNDLER_VERSION, build_env)
+import steps
+from steps import (
+    build_hugo, build_jekyll, build_static, download_hugo,
+    run_federalist_script, setup_bundler, setup_node, setup_ruby
+)
+from steps.build import (
+    build_env, BUNDLER_VERSION, GEMFILE,
+    HUGO_BIN, HUGO_VERSION, JEKYLL_CONFIG_YML,
+    NVMRC, PACKAGE_JSON, RUBY_VERSION
+)
 
 from .support import create_file, patch_dir
-
-# TODO: Figure out how to test/ensure that pre-tasks are properly
-# specified
 
 
 @pytest.fixture
 def patch_clone_dir(monkeypatch):
-    yield from patch_dir(monkeypatch, tasks.build, 'CLONE_DIR_PATH')
+    yield from patch_dir(monkeypatch, steps.build, 'CLONE_DIR_PATH')
 
 
 @pytest.fixture
 def patch_working_dir(monkeypatch):
-    yield from patch_dir(monkeypatch, tasks.build, 'WORKING_DIR_PATH')
+    yield from patch_dir(monkeypatch, steps.build, 'WORKING_DIR_PATH')
 
 
 @pytest.fixture
 def patch_site_build_dir(monkeypatch):
-    yield from patch_dir(monkeypatch, tasks.build, 'SITE_BUILD_DIR_PATH')
+    yield from patch_dir(monkeypatch, steps.build, 'SITE_BUILD_DIR_PATH')
 
 
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
 class TestSetupNode():
-    def test_it_uses_nvmrc_file_if_it_exists(self, patch_clone_dir):
+    def test_it_uses_nvmrc_file_if_it_exists(self, mock_get_logger, mock_run, patch_clone_dir):
         create_file(patch_clone_dir / NVMRC, contents='6')
-        ctx = MockContext(run={
-            'nvm install': Result(),
-        })
-        tasks.setup_node(ctx)
 
-    def test_installs_production_deps(self, patch_clone_dir):
+        result = setup_node()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-node')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Using node version specified in .nvmrc'
+        )
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True, node=True)
+
+        mock_run.assert_has_calls([
+            callp('nvm install'),
+            callp('nvm use')
+        ])
+
+    def test_installs_production_deps(self, mock_get_logger, mock_run, patch_clone_dir):
         create_file(patch_clone_dir / PACKAGE_JSON)
-        ctx = MockContext(run={
-            'echo Node version: $(node --version)': Result(),
-            'echo NPM version: $(npm --version)': Result(),
-            'npm set audit false': Result(),
-            'npm ci --production': Result(),
-        })
-        tasks.setup_node(ctx)
+
+        result = setup_node()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-node')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('Using default node version'),
+            call('Installing production dependencies in package.json')
+        ])
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True, node=True)
+
+        mock_run.assert_has_calls([
+            callp('echo Node version: $(node --version)'),
+            callp('echo NPM version: $(npm --version)'),
+            callp('npm set audit false'),
+            callp('npm ci --production'),
+        ])
+
+    def test_returns_code_when_err(self, mock_get_logger, mock_run):
+        mock_run.side_effect = CalledProcessError(1, 'command')
+
+        result = setup_node()
+
+        assert result == 1
 
 
-class TestNodeContext():
-    def test_default_node_context(self):
-        ctx = MockContext()
-        context_stack = node_context(ctx)
-        assert type(context_stack) == ExitStack
-        assert len(context_stack._exit_callbacks) == 1
-
-    def test_it_appends_nvm_when_nvmrc_exists(self, patch_clone_dir):
-        create_file(patch_clone_dir / NVMRC, '4.2')
-        ctx = MockContext()
-        context_stack = node_context(ctx)
-        assert type(context_stack) == ExitStack
-        assert len(context_stack._exit_callbacks) == 2
-
-    def test_node_context_accepts_more_contexts(self):
-        ctx = MockContext()
-        context_stack = node_context(ctx, ctx.cd('boop'))
-        assert type(context_stack) == ExitStack
-        assert len(context_stack._exit_callbacks) == 2
-
-
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
 class TestRunFederalistScript():
-    def test_it_runs_federalist_script_when_it_exists(self, patch_clone_dir):
+    def test_it_runs_federalist_script_when_it_exists(self, mock_get_logger, mock_run,
+                                                      patch_clone_dir):
         package_json_contents = json.dumps({
             'scripts': {
                 'federalist': 'echo hi',
             },
         })
         create_file(patch_clone_dir / PACKAGE_JSON, package_json_contents)
-        ctx = MockContext(run={
-            'npm run federalist': Result(),
-        })
-        tasks.run_federalist_script(ctx, branch='branch', owner='owner',
-                                    repository='repo',
-                                    site_prefix='site/prefix',
-                                    base_url='/site/prefix')
 
-    def test_it_does_not_run_otherwise(self, patch_clone_dir):
-        ctx = MockContext()
-        kwargs = dict(branch='branch', owner='owner',
-                      repository='repo',
-                      site_prefix='site/prefix',
-                      base_url='/site/prefix')
-        tasks.run_federalist_script(ctx, **kwargs)
+        kwargs = dict(
+            branch='branch',
+            owner='owner',
+            repository='repo',
+            site_prefix='site/prefix',
+            base_url='/site/prefix'
+        )
+
+        result = run_federalist_script(**kwargs)
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('run-federalist-script')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Running federalist build script in package.json'
+        )
+
+        mock_run.assert_called_once_with(
+            mock_logger,
+            'npm run federalist',
+            cwd=patch_clone_dir,
+            env=build_env(*kwargs.values()),
+            node=True
+        )
+
+    def test_it_does_not_run_otherwise(self, mock_get_logger, mock_run):
+        result = run_federalist_script('b', 'o', 'r', 'sp')
+
+        assert result == 0
+
+        mock_get_logger.assert_not_called()
+        mock_run.assert_not_called()
 
 
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
 class TestSetupRuby():
-    def test_it_is_callable(self):
-        ctx = MockContext(run={
-            'echo Ruby version: $(ruby -v)': Result(),
-        })
-        tasks.setup_ruby(ctx)
+    def test_no_ruby_version_file(self, mock_get_logger, mock_run, patch_clone_dir):
+        result = setup_ruby()
 
-    def test_it_uses_ruby_version_if_it_exists(self, patch_clone_dir):
-        create_file(patch_clone_dir / RUBY_VERSION, '2.3')
-        ctx = MockContext(run={
-            'rvm install 2.3': Result(),
-            'echo Ruby version: $(ruby -v)': Result(),
-        })
-        tasks.setup_ruby(ctx)
+        assert result == mock_run.return_value
 
-        # ruby_version should be strippeed and quoted as well
-        create_file(patch_clone_dir / RUBY_VERSION, '  $2.2  ')
-        ctx = MockContext(run={
-            "rvm install '$2.2'": Result(),
-            'echo Ruby version: $(ruby -v)': Result(),
-        })
-        tasks.setup_ruby(ctx)
+        mock_get_logger.assert_called_once_with('setup-ruby')
 
+        mock_logger = mock_get_logger.return_value
 
-class TestSetupBundler():
-    def test_it_uses_bundler_version_if_it_exists(self, patch_clone_dir):
-        ctx = MockContext(run={
-            'gem install bundler --version "<2"': Result(),
-        })
-        tasks.setup_bundler(ctx)
+        mock_run.assert_called_once_with(
+            mock_logger,
+            'echo Ruby version: $(ruby -v)',
+            cwd=patch_clone_dir,
+            env={},
+            ruby=True
+        )
 
-        create_file(patch_clone_dir / BUNDLER_VERSION, '2.0.1')
-        ctx = MockContext(run={
-            'gem install bundler --version "2.0.1"': Result(),
-        })
-        tasks.setup_bundler(ctx)
+    def test_it_uses_ruby_version_if_it_exists(self, mock_get_logger, mock_run, patch_clone_dir):
+        version = '2.3'
 
+        create_file(patch_clone_dir / RUBY_VERSION, version)
 
-class TestBuildJekyll():
-    def test_it_is_callable(self, patch_clone_dir):
-        ctx = MockContext(run=[
-            Result('gem install jekyll result'),
-            Result('jekyll version result'),
-            Result('jekyll build result'),
+        mock_run.return_value = 0
+
+        result = setup_ruby()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-ruby')
+
+        mock_logger = mock_get_logger.return_value
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True)
+
+        mock_run.assert_has_calls([
+            callp(f'rvm install {version}'),
+            callp('echo Ruby version: $(ruby -v)')
         ])
 
-        contents = 'hi: test'
-        create_file(patch_clone_dir / JEKYLL_CONFIG_YML, contents)
-        tasks.build_jekyll(ctx, branch='branch', owner='owner',
-                           repository='repo', site_prefix='site/prefix',
-                           config='boop: beep', base_url='/site/prefix')
+    def test_it_strips_and_quotes_ruby_version(self, mock_get_logger, mock_run, patch_clone_dir):
+        version = '  $2.3  '
 
-    def test_jekyll_build_is_called_correctly(self, patch_clone_dir):
-        ctx = MockContext()
-        ctx.run = Mock()
+        create_file(patch_clone_dir / RUBY_VERSION, version)
 
+        mock_run.return_value = 0
+
+        result = setup_ruby()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-ruby')
+
+        mock_logger = mock_get_logger.return_value
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True)
+
+        mock_logger.info.assert_has_calls([
+            call('Using ruby version in .ruby-version'),
+        ])
+
+        mock_run.assert_has_calls([
+            callp("rvm install '$2.3'"),
+            callp('echo Ruby version: $(ruby -v)'),
+        ])
+
+    def test_it_returns_error_code_when_rvm_install_fails(self, mock_get_logger, mock_run,
+                                                          patch_clone_dir):
+        version = '2.3'
+
+        mock_run.return_value = 1
+
+        create_file(patch_clone_dir / RUBY_VERSION, version)
+
+        result = setup_ruby()
+
+        assert result == 1
+
+        mock_get_logger.assert_called_once_with('setup-ruby')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('Using ruby version in .ruby-version'),
+        ])
+
+        mock_run.assert_called_once_with(
+            mock_logger, 'rvm install 2.3', cwd=patch_clone_dir, env={}, ruby=True
+        )
+
+
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
+class TestSetupBundler():
+    def test_when_no_gemfile_just_load_jekyll(self, mock_get_logger, mock_run, patch_clone_dir):
+        result = setup_bundler()
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('setup-bundler')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('No Gemfile found, installing Jekyll.')
+        ])
+
+        mock_run.assert_called_once_with(
+            mock_logger, 'gem install jekyll --no-document', cwd=patch_clone_dir, env={}, ruby=True
+        )
+
+    def test_it_uses_default_version_if_only_gemfile_exits(self, mock_get_logger,
+                                                           mock_run, patch_clone_dir):
+        default_version = '<2'
+        create_file(patch_clone_dir / GEMFILE, 'foo')
+
+        mock_run.return_value = 0
+
+        result = setup_bundler()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-bundler')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('Gemfile found, setting up bundler'),
+            call('Installing dependencies in Gemfile'),
+        ])
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True)
+
+        mock_run.assert_has_calls([
+            callp(f'gem install bundler --version "{default_version}"'),
+            callp('bundle install'),
+        ])
+
+    def test_it_uses_bundler_version_if_gemfile_and_bundler_file_exists(self, mock_get_logger,
+                                                                        mock_run, patch_clone_dir):
+        version = '2.0.1'
+
+        create_file(patch_clone_dir / GEMFILE, 'foo')
+        create_file(patch_clone_dir / BUNDLER_VERSION, version)
+
+        mock_run.return_value = 0
+
+        result = setup_bundler()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-bundler')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('Gemfile found, setting up bundler'),
+            call('Using bundler version in .bundler-version'),
+            call('Installing dependencies in Gemfile'),
+        ])
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True)
+
+        mock_run.assert_has_calls([
+            callp(f'gem install bundler --version "{version}"'),
+            callp('bundle install'),
+        ])
+
+
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
+class TestBuildJekyll():
+    def test_with_no_gemfile(self, mock_get_logger, mock_run, patch_clone_dir,
+                             patch_site_build_dir):
+        command = 'jekyll'
+
+        create_file(patch_clone_dir / JEKYLL_CONFIG_YML, 'hi: test')
+
+        kwargs = dict(
+            branch='branch', owner='owner',
+            repository='repo', site_prefix='site/prefix',
+            base_url='/site/prefix', config='boop: beep'
+        )
+
+        result = build_jekyll(**kwargs)
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('build-jekyll')
+
+        mock_logger = mock_get_logger.return_value
+
+        env = build_env(
+            kwargs['branch'], kwargs['owner'], kwargs['repository'],
+            kwargs['site_prefix'], kwargs['base_url']
+        )
+        env['JEKYLL_ENV'] = 'production'
+
+        mock_run.assert_has_calls([
+            call(
+                mock_logger,
+                f'echo Building using Jekyll version: $({command} -v)',
+                cwd=patch_clone_dir,
+                env={},
+                check=True,
+                ruby=True,
+            ),
+            call(
+                mock_logger,
+                f'{command} build --destination {patch_site_build_dir}',
+                cwd=patch_clone_dir,
+                env=env,
+                node=True,
+                ruby=True,
+            )
+        ])
+
+    def test_with_gemfile(self, mock_get_logger, mock_run, patch_clone_dir, patch_site_build_dir):
+        command = 'bundle exec jekyll'
+
+        create_file(patch_clone_dir / GEMFILE, 'foo')
+        create_file(patch_clone_dir / JEKYLL_CONFIG_YML, 'hi: test')
+
+        kwargs = dict(
+            branch='branch', owner='owner',
+            repository='repo', site_prefix='site/prefix',
+            base_url='/site/prefix', config='boop: beep'
+        )
+
+        result = build_jekyll(**kwargs)
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('build-jekyll')
+
+        mock_logger = mock_get_logger.return_value
+
+        env = build_env(
+            kwargs['branch'], kwargs['owner'], kwargs['repository'],
+            kwargs['site_prefix'], kwargs['base_url']
+        )
+        env['JEKYLL_ENV'] = 'production'
+
+        mock_run.assert_has_calls([
+            call(
+                mock_logger,
+                f'echo Building using Jekyll version: $({command} -v)',
+                cwd=patch_clone_dir,
+                env={},
+                check=True,
+                ruby=True,
+            ),
+            call(
+                mock_logger,
+                f'{command} build --destination {patch_site_build_dir}',
+                cwd=patch_clone_dir,
+                env=env,
+                node=True,
+                ruby=True,
+            )
+        ])
+
+    def test_config_file_is_updated(self, mock_get_logger, mock_run, patch_clone_dir,
+                                    patch_site_build_dir):
         conf_path = patch_clone_dir / JEKYLL_CONFIG_YML
-        conf_contents = 'hi: test'
-        create_file(conf_path, conf_contents)
+        create_file(conf_path, 'hi: test')
 
-        tasks.build_jekyll(ctx, branch='branch', owner='owner',
-                           repository='repo', site_prefix='site/prefix',
-                           config='boop: beep', base_url='/site/prefix')
+        kwargs = dict(
+            branch='branch', owner='owner',
+            repository='repo', site_prefix='site/prefix',
+            config='boop: beep', base_url='/site/prefix'
+        )
 
-        assert ctx.run.call_count == 3
+        build_jekyll(**kwargs)
 
-        jekyll_build_call_args = ctx.run.call_args_list[2]
-        args, kwargs = jekyll_build_call_args
-
-        # Make sure the call to jekyll build is correct
-        assert args[0] == 'jekyll build --destination /work/site_repo/_site'
-
-        # Make sure the env is as expected
-        assert kwargs['env'] == {'BRANCH': 'branch',
-                                 'OWNER': 'owner',
-                                 'REPOSITORY': 'repo',
-                                 'SITE_PREFIX': 'site/prefix',
-                                 'BASEURL': '/site/prefix',
-                                 'LANG': 'en_US.UTF-8',
-                                 'JEKYLL_ENV': 'production',
-                                 'GATSBY_TELEMETRY_DISABLED': '1'}
-
-        # Check that the config file has had baseurl, branch, and custom
-        # config added
         with conf_path.open() as f:
-            assert f.read() == ('hi: test\nbaseurl: /site/prefix\n'
-                                'branch: branch\nboop: beep\n')
-
-    def test_gemfile_is_used_if_it_exists(self, monkeypatch, patch_clone_dir):
-        monkeypatch.setattr(tasks.build, 'SITE_BUILD_DIR_PATH', '/boop')
-        create_file(patch_clone_dir / GEMFILE, '')
-        ctx = MockContext(run={
-            'gem install bundler --version "<2"': Result(),
-            'bundle install': Result(),
-            'echo Building using Jekyll version: '
-            '$(bundle exec jekyll -v)': Result(),
-            f'bundle exec jekyll build --destination /boop': Result(),
-        })
-        tasks.build_jekyll(ctx, branch='branch', owner='owner',
-                           repository='repo', site_prefix='site/prefix')
+            config = yaml.safe_load(f)
+            assert config['hi'] == 'test'
+            assert config['baseurl'] == kwargs['base_url']
+            assert config['branch'] == kwargs['branch']
 
 
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
 class TestDownloadHugo():
-    def test_it_is_callable(self, patch_working_dir, patch_clone_dir):
-        create_file(patch_clone_dir / HUGO_VERSION, '0.44')
-        tar_cmd = (f'tar -xzf {patch_working_dir}/hugo.tar.gz -C '
-                   f'{patch_working_dir}')
+    def test_it_is_callable(self, mock_get_logger, mock_run, patch_working_dir, patch_clone_dir):
+        version = '0.44'
+        tar_cmd = f'tar -xzf {patch_working_dir}/hugo.tar.gz -C {patch_working_dir}'
         chmod_cmd = f'chmod +x {patch_working_dir}/hugo'
-        ctx = MockContext(run={
-            tar_cmd: Result(),
-            chmod_cmd: Result(),
-        })
-        with requests_mock.Mocker() as m:
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz', text='fake-data')
-            tasks.download_hugo(ctx)
+        dl_url = (
+            'https://github.com/gohugoio/hugo/releases/download/v'
+            f'{version}/hugo_{version}_Linux-64bit.tar.gz'
+        )
 
-    def test_it_is_callable_retry(self, patch_working_dir, patch_clone_dir):
-        create_file(patch_clone_dir / HUGO_VERSION, '0.44')
-        tar_cmd = (f'tar -xzf {patch_working_dir}/hugo.tar.gz -C '
-                   f'{patch_working_dir}')
-        chmod_cmd = f'chmod +x {patch_working_dir}/hugo'
-        ctx = MockContext(run={
-            tar_cmd: Result(),
-            chmod_cmd: Result(),
-        })
-        with requests_mock.Mocker() as m:
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                exc=requests.exceptions.ConnectTimeout)
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                exc=requests.exceptions.ConnectTimeout)
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                exc=requests.exceptions.ConnectTimeout)
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                exc=requests.exceptions.ConnectTimeout)
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.44/hugo_0.44_Linux-64bit.tar.gz', text='fake-data')
-            tasks.download_hugo(ctx)
+        create_file(patch_clone_dir / HUGO_VERSION, version)
 
-    def test_it_is_exception(self, patch_working_dir, patch_clone_dir):
-        create_file(patch_clone_dir / HUGO_VERSION, '0.44')
-        tar_cmd = (f'tar -xzf {patch_working_dir}/hugo.tar.gz -C '
-                   f'{patch_working_dir}')
+        with requests_mock.Mocker() as m:
+            m.get(dl_url, text='fake-data')
+            result = download_hugo()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('download-hugo')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('.hugo-version found'),
+            call(f'Using hugo version in .hugo-version: {version}'),
+            call(f'Downloading hugo version {version}')
+        ])
+
+        mock_run.assert_has_calls([
+            call(mock_logger, tar_cmd, env={}, check=True),
+            call(mock_logger, chmod_cmd, env={}, check=True)
+        ])
+
+    def test_it_is_callable_retry(self, mock_get_logger, mock_run, patch_working_dir,
+                                  patch_clone_dir):
+        version = '0.44'
+        tar_cmd = f'tar -xzf {patch_working_dir}/hugo.tar.gz -C {patch_working_dir}'
         chmod_cmd = f'chmod +x {patch_working_dir}/hugo'
-        ctx = MockContext(run={
-            tar_cmd: Result(),
-            chmod_cmd: Result(),
-        })
+        dl_url = (
+            'https://github.com/gohugoio/hugo/releases/download/v'
+            f'{version}/hugo_{version}_Linux-64bit.tar.gz'
+        )
+
+        create_file(patch_clone_dir / HUGO_VERSION, version)
+
+        with requests_mock.Mocker() as m:
+            m.get(dl_url, [
+                dict(exc=requests.exceptions.ConnectTimeout),
+                dict(exc=requests.exceptions.ConnectTimeout),
+                dict(exc=requests.exceptions.ConnectTimeout),
+                dict(exc=requests.exceptions.ConnectTimeout),
+                dict(text='fake-data')
+            ])
+
+            result = download_hugo()
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('download-hugo')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('.hugo-version found'),
+            call(f'Using hugo version in .hugo-version: {version}'),
+            call(f'Downloading hugo version {version}'),
+            call(f'Failed attempt #1 to download hugo version: {version}'),
+            call(f'Failed attempt #2 to download hugo version: {version}'),
+            call(f'Failed attempt #3 to download hugo version: {version}'),
+            call(f'Failed attempt #4 to download hugo version: {version}'),
+        ])
+
+        mock_run.assert_has_calls([
+            call(mock_logger, tar_cmd, env={}, check=True),
+            call(mock_logger, chmod_cmd, env={}, check=True)
+        ])
+
+    def test_it_is_exception(self, mock_get_logger, mock_run, patch_working_dir, patch_clone_dir):
+        version = '0.44'
+        dl_url = (
+            'https://github.com/gohugoio/hugo/releases/download/v'
+            f'{version}/hugo_{version}_Linux-64bit.tar.gz'
+        )
+
+        create_file(patch_clone_dir / HUGO_VERSION, version)
+
         with pytest.raises(Exception):
             with requests_mock.Mocker() as m:
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                m.get(
-                    'https://github.com/gohugoio/hugo/releases/download'
-                    '/v0.44/hugo_0.44_Linux-64bit.tar.gz',
-                    exc=requests.exceptions.ConnectTimeout)
-                tasks.download_hugo(ctx)
+                m.get(dl_url, [
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                    dict(exc=requests.exceptions.ConnectTimeout),
+                ])
+
+                download_hugo()
+
+        mock_get_logger.assert_called_once_with('download-hugo')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('.hugo-version found'),
+            call(f'Using hugo version in .hugo-version: {version}'),
+            call(f'Downloading hugo version {version}'),
+            call(f'Failed attempt #1 to download hugo version: {version}'),
+            call(f'Failed attempt #2 to download hugo version: {version}'),
+            call(f'Failed attempt #3 to download hugo version: {version}'),
+            call(f'Failed attempt #4 to download hugo version: {version}'),
+            call(f'Failed attempt #5 to download hugo version: {version}'),
+        ])
+
+        mock_run.assert_not_called()
 
 
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
 class TestBuildHugo():
-    def test_it_calls_hugo_as_expected(self, monkeypatch, patch_working_dir):
-        def mock_download(ctx):
-            pass
+    def test_it_calls_hugo_as_expected(self, mock_get_logger, mock_run,
+                                       patch_working_dir, patch_clone_dir):
 
-        monkeypatch.setattr(tasks.build, 'download_hugo', mock_download)
         hugo_path = patch_working_dir / HUGO_BIN
-        hugo_call = (f'{hugo_path} --source /work/site_repo '
-                     f'--destination /work/site_repo/_site')
-        ctx = MockContext(run={
-            f'echo hugo version: $({hugo_path} version)': Result(),
-            hugo_call: Result(),
-        })
-        with requests_mock.Mocker() as m:
-            m.get(
-                'https://github.com/gohugoio/hugo/releases/download'
-                '/v0.48/hugo_0.48_Linux-64bit.tar.gz')
-            kwargs = dict(branch='branch', owner='owner',
-                          repository='repo', site_prefix='site/prefix')
-            tasks.build_hugo(ctx, **kwargs)
+        hugo_call = (
+            f'{hugo_path} --source {patch_clone_dir} --destination /work/site_repo/_site '
+            '--baseURL /site/prefix'
+        )
 
-            # and with base_url specified
-            kwargs['base_url'] = '/test_base'
-            hugo_call += f' --baseURL /test_base'
-            ctx = MockContext(run={
-                f'echo hugo version: $({hugo_path} version)': Result(),
-                hugo_call: Result(),
-            })
-            tasks.build_hugo(ctx, **kwargs)
+        kwargs = dict(
+            branch='branch',
+            owner='owner',
+            repository='repo',
+            site_prefix='site/prefix',
+            base_url='/site/prefix'
+        )
+
+        result = build_hugo(**kwargs)
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('build-hugo')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Building site with hugo'
+        )
+
+        mock_run.assert_has_calls([
+            call(
+                mock_logger,
+                f'echo hugo version: $({hugo_path} version)',
+                env={},
+                check=True
+            ),
+            call(
+                mock_logger,
+                hugo_call,
+                cwd=patch_clone_dir,
+                env=build_env(*kwargs.values()),
+                node=True
+            )
+        ])
 
 
 class TestBuildstatic():
-    def test_it_moves_files_correctly(self, patch_site_build_dir,
-                                      patch_clone_dir):
-        ctx = MockContext()
+    def test_it_moves_files_correctly(self, patch_site_build_dir, patch_clone_dir):
         for i in range(0, 10):
             create_file(patch_clone_dir / f'file_{i}.txt', str(i))
 
         assert len(os.listdir(patch_clone_dir)) == 10
         assert len(os.listdir(patch_site_build_dir)) == 0
 
-        tasks.build_static(ctx)
+        build_static()
 
         assert len(os.listdir(patch_clone_dir)) == 0
         assert len(os.listdir(patch_site_build_dir)) == 10
@@ -356,9 +642,9 @@ class TestBuildEnv():
         repository = 'repo'
         site_prefix = 'prefix'
         base_url = 'url'
-        user_env_vars = json.dumps([
+        user_env_vars = [
             {'name': 'FOO', 'value': 'bar'}
-        ])
+        ]
 
         result = build_env(branch, owner, repository, site_prefix,
                            base_url, user_env_vars)
@@ -373,19 +659,19 @@ class TestBuildEnv():
         repository = 'repo'
         site_prefix = 'prefix'
         base_url = 'url'
-        user_env_vars = json.dumps([
+        user_env_vars = [
             {'name': 'BASEURL', 'value': 'bar'},
             {'name': 'repository', 'value': 'baz'}
-        ])
+        ]
 
         result = build_env(branch, owner, repository, site_prefix,
                            base_url, user_env_vars)
 
         assert result['BASEURL'] == base_url
         assert result['REPOSITORY'] == repository
-        assert ('WARNING - user environment variable name `BASEURL` conflicts'
+        assert ('user environment variable name `BASEURL` conflicts'
                 ' with system environment variable, it will be ignored.'
                 ) in mock_stdout.getvalue()
-        assert ('WARNING - user environment variable name `repository`'
+        assert ('user environment variable name `repository`'
                 ' conflicts with system environment variable, it will be'
                 ' ignored.') in mock_stdout.getvalue()

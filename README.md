@@ -4,11 +4,11 @@
 
 # federalist-garden-build
 
-Docker image for building and publishing static sites as part of the [Federalist][] platform. Build steps are written using the [PyInvoke][] task running framework.
+Docker image for building and publishing static sites as part of the Federalist platform. Build steps are run using Python's `subprocess` library.
 
-Generally, site builds work in three stages: clone, build, and publish. Each stage is broken down into a number of [PyInvoke][] tasks. First, the container checks out the site from GitHub. Then it builds the site with the specified build engine. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3, and also creates redirect objects for directories, such as `/path` => `/path/`.
+Generally, site builds work in three stages: clone, build, and publish. Each stage is broken down into a number of steps. First, the container checks out the site from GitHub. Then it builds the site with the specified build engine. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3, and also creates redirect objects for directories, such as `/path` => `/path/`.
 
-The `main` [PyInvoke][] task is used to run a full build process when the container starts. After the container finishes (or times-out), the container then `sleep`s indefinitely (see [`run.sh`](run.sh)).
+The `main` task is used to run a full build process when the container starts.
 
 ## Environment Variables
 
@@ -21,8 +21,8 @@ Each site build is configured using a number of environment variables, as descri
 * `GITHUB_TOKEN` GitHub auth token for cloning the repository.
 * `CACHE_CONTROL`: Value to set for the `Cache-Control` header of all published files.
 * `CONFIG`: A yaml block of configuration to add to `_config.yml` before building. Currently only used in `jekyll` site builds.
-* `GENERATOR`: The static generator to use to build the site (`'jekyll'`, `'hugo'`, or `'static'`).
-* `FEDERALIST_BUILDER_CALLBACK`: The URL the container should use to let [federalist-builder][] know that it has finished.
+* `GENERATOR`: The static generator to use to build the site (`'jekyll'`, `'hugo'`, `'node.js'`, or `'static'`).
+* `FEDERALIST_BUILDER_CALLBACK`: The URL the container should use to let [federalist-builder](https://github.com/18F/federalist-builder) know that it has finished.
 * `STATUS_CALLBACK`: The URL the container should use to report the status of the completed build (ie, success or failure).
 * `LOG_CALLBACK`: The URL the container should use to post build logs periodically during the build.
 * `OWNER`: the GitHub account that owns the repository.
@@ -50,7 +50,7 @@ The following environment variables are available during site builds and when ru
 
 ## Development
 
-You'll need [Docker][] and [Docker Compose][] installed for development and testing.
+You'll need [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed for development and testing.
 
 ### Environment variables
 
@@ -77,28 +77,26 @@ docker-compose build
 
 2. Initialize the database to receive logs
 ```sh
-docker-compose run app python ./bin/migrate.py
+docker-compose run --rm app python ./bin/migrate.py
 ```
 
 The main builder application is called `app` within the Docker Compose environment.
-You can run any commands within the `app` container by prefixing them with `docker-compose run app <THE COMMAND>`.
+You can run any commands within the `app` container by prefixing them with `docker-compose run --rm app <THE COMMAND>`.
 
 One of the easiest ways to run the container's code during development is to start
 an interactive `bash` shell in the `app` container:
 
 ```sh
-docker-compose run app bash
+docker-compose run --rm app bash
 ```
 
-After running the above command, you will be in a shell inside of the `app` container. From there, you can easily run [PyInvoke][] tasks or execute the test suite.
+After running the above command, you will be in a shell inside of the `app` container. From there, you can easily run the build or execute the test suite.
 
 ```sh
 python main.py     # runs the full clone-build-publish pipeline
-invoke --help      # prints Invoke's usage
-invoke --list      # lists all the available tasks
-invoke clone-repo  # runs the clone-repo task
 pytest             # run all the python tests
 flake8             # run flake8 linter
+bandit publishing/*.py tasks/*.py log_utils/*.py repo_config/*.py steps/*.py # run bandit static analysis
 ```
 
 To view any logs pushed to the database:
@@ -138,7 +136,7 @@ root@2006c3a10bb3:/# exit
 
 ## Deploying to cloud.gov
 
-For detailed instructions on deploying this build container to cloud.gov, see [https://federalist-docs.18f.gov/pages/how-federalist-works/cloud-gov-setup/](https://federalist-docs.18f.gov/pages/how-federalist-works/cloud-gov-setup/).
+For detailed instructions on deploying this build container to cloud.gov, see [https://federalist-docs.18f.gov/pages/how-federalist-works/cloud-gov-setup/](https://federalist.18f.gov/documentation/cloud-gov-setup/).
 
 ## Public domain
 
@@ -148,7 +146,6 @@ This project is in the worldwide [public domain](LICENSE.md). As stated in [CONT
 >
 > All contributions to this project will be released under the CC0 dedication. By submitting a pull request, you are agreeing to comply with this waiver of copyright interest.
 
-[PyInvoke]: http://www.pyinvoke.org/
 [Federalist]: https://federalist.18f.gov
 [Docker Compose]: https://docs.docker.com/compose/install/
 [Docker]: https://docs.docker.com/engine/installation/

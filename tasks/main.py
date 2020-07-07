@@ -1,49 +1,26 @@
-'''Main task entrypoint'''
+'''Main entrypoint'''
 
 import json
 import os
 import shlex
-import logging
 from datetime import datetime
-from invoke import Context, UnexpectedExit
 from stopit import TimeoutException, SignalTimeout as Timeout
 
-from log_utils import (delta_to_mins_secs, get_logger, init_logging,
-                       StreamToLogger)
+from log_utils import delta_to_mins_secs, get_logger, init_logging
 from log_utils.remote_logs import (
     post_build_complete, post_build_error, post_build_timeout,
     should_skip_logging, post_build_processing)
 
 from crypto.decrypt import decrypt
 
+from steps import (
+    build_hugo, build_jekyll, build_static,
+    download_hugo, fetch_repo, publish, run_federalist_script,
+    setup_bundler, setup_node, setup_ruby
+)
+
+
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
-
-
-def run_task(ctx, task_name, log_attrs={}, flags_dict=None, env=None):
-    '''
-    Uses `ctx.run` to call the specified `task_name` with the
-    argument flags given in `flags_dict` and `env`, if specified.
-
-    The result's stdout and stderr are routed to the logger.
-    '''
-    flag_args = []
-    if flags_dict:
-        for flag, val in flags_dict.items():
-            # quote val to prevent bash-breaking characters like '
-            quoted_val = shlex.quote(val)
-            flag_args.append(f"{flag}={quoted_val}")
-
-    command = f'inv {task_name} {" ".join(flag_args)}'
-
-    run_kwargs = {}
-    if env:
-        run_kwargs['env'] = env
-
-    logger = get_logger(task_name, log_attrs)
-    ctx.config.run.out_stream = StreamToLogger(logger)
-    ctx.config.run.err_stream = StreamToLogger(logger, logging.ERROR)
-
-    ctx.run(command, **run_kwargs)
 
 
 def main():
@@ -64,10 +41,10 @@ def main():
     BASEURL = os.environ['BASEURL']
     BUILD_ID = os.environ['BUILD_ID']
     CACHE_CONTROL = os.environ['CACHE_CONTROL']
-    BRANCH = os.environ['BRANCH']
+    BRANCH = shlex.quote(os.environ['BRANCH'])
     CONFIG = os.environ['CONFIG']
-    REPOSITORY = os.environ['REPOSITORY']
-    OWNER = os.environ['OWNER']
+    REPOSITORY = shlex.quote(os.environ['REPOSITORY'])
+    OWNER = shlex.quote(os.environ['OWNER'])
     SITE_PREFIX = os.environ['SITE_PREFIX']
     GENERATOR = os.environ['GENERATOR']
     AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
@@ -107,13 +84,15 @@ def main():
         'repository': REPOSITORY,
     }
 
-    init_logging(priv_vals, logattrs, db_url=DATABASE_URL,
-                 skip_logging=should_skip_logging())
+    init_logging(priv_vals, logattrs, db_url=DATABASE_URL, skip_logging=should_skip_logging())
 
-    LOGGER = get_logger('main', logattrs)
+    LOGGER = get_logger('main')
 
-    def run(task, args=None, env=None):
-        run_task(Context(), task, logattrs, args, env)
+    def handle_fail(returncode, msg):
+        if returncode != 0:
+            LOGGER.error(msg)
+            post_build_error(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK, msg)
+            exit(1)
 
     try:
         post_build_processing(STATUS_CALLBACK)
@@ -121,78 +100,78 @@ def main():
         with Timeout(TIMEOUT_SECONDS, swallow_exc=False):
             LOGGER.info(f'Running build for {OWNER}/{REPOSITORY}/{BRANCH}')
 
-            # Unfortunately, pyinvoke doesn't have a great way to call tasks
-            # from within other tasks. If you call them directly,
-            # their pre- and post-dependencies are not executed.
-            #
-            # Here's the GitHub issue about this:
-            # https://github.com/pyinvoke/invoke/issues/170
-            #
-            # So rather than calling the task functions through python, we'll
-            # call them instead using `ctx.run('invoke the_task ...')` via the
-            # helper `run_task` method.
-
             ##
-            # CLONE and/or PUSH
+            # FETCH
             #
-            clone_env = {'GITHUB_TOKEN': GITHUB_TOKEN}
-
-            clone_flags = {
-                '--owner': OWNER,
-                '--repository': REPOSITORY,
-                '--branch': BRANCH,
-                '--depth': '--depth 1',
-            }
-
-            run('clone-repo', clone_flags, clone_env)
+            handle_fail(
+                fetch_repo(OWNER, REPOSITORY, BRANCH, GITHUB_TOKEN),
+                'There was a problem fetching the repository, see the above logs for details.'
+            )
 
             ##
             # BUILD
             #
-            build_flags = {
-                '--branch': BRANCH,
-                '--owner': OWNER,
-                '--repository': REPOSITORY,
-                '--site-prefix': SITE_PREFIX,
-                '--base-url': BASEURL,
-                '--user-env-vars': json.dumps(decrypted_uevs),
-            }
+            handle_fail(
+                setup_node(),
+                'There was a problem setting up Node, see the above logs for details.'
+            )
 
             # Run the npm `federalist` task (if it is defined)
-            run('run-federalist-script', build_flags)
+            handle_fail(
+                run_federalist_script(
+                    BRANCH, OWNER, REPOSITORY, SITE_PREFIX, BASEURL, decrypted_uevs
+                ),
+                'There was a problem running the federalist script, see the above logs for details.'
+            )
 
             # Run the appropriate build engine based on GENERATOR
             if GENERATOR == 'jekyll':
-                build_flags['--config'] = CONFIG
-                run('build-jekyll', build_flags)
+                handle_fail(
+                    setup_ruby(),
+                    'There was a problem setting up Ruby, see the above logs for details.'
+                )
+
+                handle_fail(
+                    setup_bundler(),
+                    'There was a problem setting up Bundler, see the above logs for details.'
+                )
+
+                handle_fail(
+                    build_jekyll(
+                        BRANCH, OWNER, REPOSITORY, SITE_PREFIX, BASEURL, CONFIG, decrypted_uevs
+                    ),
+                    'There was a problem running Jekyll, see the above logs for details.'
+                )
+
             elif GENERATOR == 'hugo':
                 # extra: --hugo-version (not yet used)
-                run('build-hugo', build_flags)
+                handle_fail(
+                    download_hugo(),
+                    'There was a problem downloading Hugo, see the above logs for details.'
+                )
+
+                handle_fail(
+                    build_hugo(
+                        BRANCH, OWNER, REPOSITORY, SITE_PREFIX, BASEURL, decrypted_uevs
+                    ),
+                    'There was a problem running Hugo, see the above logs for details.'
+                )
+
             elif GENERATOR == 'static':
                 # no build arguments are needed
-                run('build-static')
+                build_static()
+
             elif (GENERATOR == 'node.js' or GENERATOR == 'script only'):
                 LOGGER.info('build already ran in \'npm run federalist\'')
+
             else:
                 raise ValueError(f'Invalid GENERATOR: {GENERATOR}')
 
             ##
             # PUBLISH
             #
-            publish_flags = {
-                '--base-url': BASEURL,
-                '--site-prefix': SITE_PREFIX,
-                '--bucket': BUCKET,
-                '--cache-control': CACHE_CONTROL,
-                '--aws-region': AWS_DEFAULT_REGION,
-            }
-
-            publish_env = {
-                'AWS_ACCESS_KEY_ID': AWS_ACCESS_KEY_ID,
-                'AWS_SECRET_ACCESS_KEY': AWS_SECRET_ACCESS_KEY,
-            }
-
-            run('publish', publish_flags, publish_env)
+            publish(BASEURL, SITE_PREFIX, BUCKET, CACHE_CONTROL, AWS_DEFAULT_REGION,
+                    AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
 
             delta_string = delta_to_mins_secs(datetime.now() - start_time)
             LOGGER.info(f'Total build time: {delta_string}')
@@ -203,16 +182,7 @@ def main():
     except TimeoutException:
         LOGGER.warning(f'Build({BUILD_INFO}) has timed out')
         post_build_timeout(STATUS_CALLBACK, FEDERALIST_BUILDER_CALLBACK)
-    except UnexpectedExit as err:
-        err_string = str(err)
 
-        # log the original exception
-        LOGGER.warning(f'Exception raised during build({BUILD_INFO}):'
-                       + err_string)
-
-        post_build_error(STATUS_CALLBACK,
-                         FEDERALIST_BUILDER_CALLBACK,
-                         err_string)
     except Exception as err:  # pylint: disable=W0703
         # Getting here means something really weird has happened
         # since all errors caught during tasks should be caught
@@ -220,7 +190,7 @@ def main():
         err_string = str(err)
 
         # log the original exception
-        LOGGER.warning(f'Unexpected exception raised during build('
+        LOGGER.warning('Unexpected exception raised during build('
                        + BUILD_INFO + '): '
                        + err_string)
 
