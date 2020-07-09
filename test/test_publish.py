@@ -30,21 +30,6 @@ def s3_conn(monkeypatch):
 
 
 class TestPublish():
-    def test_it_is_callable(self, s3_conn):
-        # Create mock for default 404 page request
-        with requests_mock.mock() as m:
-            m.get(('https://raw.githubusercontent.com'
-                   '/18F/federalist-404-page/master/'
-                   '404-federalist-client.html'),
-                  text='default 404 page')
-
-            publish(
-                base_url='/site/prefix', site_prefix='site/prefix',
-                bucket=TEST_BUCKET, cache_control='max-age: boop',
-                aws_region=TEST_REGION, aws_access_key_id=TEST_ACCESS_KEY,
-                aws_secret_access_key=TEST_SECRET_KEY
-            )
-
     def test_it_calls_publish_to_s3(self, monkeypatch, s3_conn):
         mock_publish_to_s3 = Mock()
         monkeypatch.setattr('publishing.s3publisher.publish_to_s3',
