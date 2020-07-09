@@ -1,6 +1,5 @@
 import boto3
 import pytest
-import requests_mock
 
 from unittest.mock import Mock
 
