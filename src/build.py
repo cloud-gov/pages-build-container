@@ -4,6 +4,8 @@ import os
 from datetime import datetime
 from stopit import TimeoutException, SignalTimeout as Timeout
 
+from common import WORKING_DIR_PATH
+
 from log_utils import delta_to_mins_secs, get_logger, init_logging
 from log_utils.remote_logs import (
     post_build_complete, post_build_error,
@@ -48,6 +50,9 @@ def build(
     '''
     # keep track of total time
     start_time = datetime.now()
+
+    # Make the working directory if it doesn't exist
+    WORKING_DIR_PATH.mkdir(exist_ok=True)
 
     logger = None
 
