@@ -1,17 +1,12 @@
 import argparse
 import json
 import os
-from pathlib import Path
-import sys
-from dotenv import load_dotenv
+import shlex
 
-from .build import build
+from build import build
 
 
 def load_vcap():
-    if os.getenv('VCAP_APPLICATION', '') == '':
-        return
-
     vcap_application = json.loads(os.getenv('VCAP_APPLICATION', '{}'))
     vcap_services = json.loads(os.getenv('VCAP_SERVICES', '{}'))
 
@@ -26,31 +21,15 @@ def load_vcap():
     os.environ[uev_env_var] = uev_ups['credentials']['key']
 
 
-def load_env():
-    '''
-    Load the environment from a .env file using `dotenv`.
-    The file should only be present when running locally.
-
-    Otherwise these environment variables will be set into the environment
-    by federalist-builder.
-    '''
-    DOTENV_PATH = Path(os.path.dirname(__file__)) / '.env'
-
-    if os.path.exists(DOTENV_PATH):
-        print('Loading environment from .env file')
-        load_dotenv(DOTENV_PATH)
-
-
 if __name__ == "__main__":
-    # if len(sys.argv) > 1:
     parser = argparse.ArgumentParser(description='Run a federalist build')
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-p', '--params', dest='params', required=True,
+    group.add_argument('-p', '--params', dest='params',
                        help='A JSON encoded string',
                        metavar="'{\"foo\": \"bar\"}'")
-    group.add_argument('-f', '--file', dest='file', required=True,
-                       help='A JSON encoded file', type=argparse.FileType('w'),
-                       metavar="'{\"foo\": \"bar\"}'")
+    group.add_argument('-f', '--file', dest='file',
+                       help='A path to a JSON file', type=argparse.FileType('r'),
+                       metavar="./foo.json")
     args = parser.parse_args()
 
     if args.params:
@@ -58,14 +37,17 @@ if __name__ == "__main__":
     else:
         params = json.load(args.file)
 
-    print(params)
-    exit(0)
-    # for k, v in params.items():
-    #     if v is not None:
-    #         os.environ[k] = v
-    # else:
-        # load_env()
+    kwargs = {k.lower(): v for (k, v) in params.items() if v is not None}
 
-    load_vcap()
+    uevs = kwargs['user_environment_variables']
+    if uevs and isinstance(uevs, str):
+        kwargs['user_environment_variables'] = json.loads(uevs)
 
-    build()
+    kwargs['branch'] = shlex.quote(kwargs['branch'])
+    kwargs['owner'] = shlex.quote(kwargs['owner'])
+    kwargs['repository'] = shlex.quote(kwargs['repository'])
+
+    if os.getenv('VCAP_APPLICATION', None):
+        load_vcap()
+
+    build(**kwargs)

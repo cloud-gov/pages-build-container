@@ -191,12 +191,12 @@ class TestSiteRedirect():
         s3_client = Mock()
         model.upload_to_s3('test-bucket', s3_client)
 
-        expected_dest = f'/site/test/wherever/'
+        expected_dest = '/site/test/wherever/'
 
         s3_client.put_object.assert_called_once_with(
             Body=expected_dest,
             Bucket='test-bucket',
-            Key=f'site-prefix/wherever',
+            Key='site-prefix/wherever',
             ServerSideEncryption='AES256',
             WebsiteRedirectLocation=expected_dest
         )

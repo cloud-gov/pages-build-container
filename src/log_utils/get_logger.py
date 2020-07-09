@@ -64,20 +64,22 @@ class Formatter(logging.Formatter):
         return super().format(record)
 
 
-def get_logger(name, attrs=None):
+def get_logger(name):
     '''
     Gets a logger instance configured with our formatter and handler
     for the given name.
     '''
     logger = logging.getLogger(name)
 
-    if not attrs:
-        attrs = LOG_ATTRS
-
-    return logging.LoggerAdapter(logger, attrs)
+    return logging.LoggerAdapter(logger, LOG_ATTRS)
 
 
-def init_logging(private_values, attrs={}, db_url=None, require_services=True):
+def set_log_attrs(attrs):
+    global LOG_ATTRS
+    LOG_ATTRS = attrs
+
+
+def init_logging(private_values, attrs, db_url):
     global LOG_ATTRS
     LOG_ATTRS = attrs
 
@@ -105,15 +107,15 @@ def init_logging(private_values, attrs={}, db_url=None, require_services=True):
 
     handlers = [stream_handler]
 
-    if require_services and db_url:
-        build_id = attrs['buildid']
-        db_formatter = logging.Formatter(short_fmt, date_fmt, style_fmt)
+    # configure db logging
+    build_id = attrs['buildid']
+    db_formatter = logging.Formatter(short_fmt, date_fmt, style_fmt)
 
-        db_handler = DBHandler(db_url, build_id)
-        db_handler.setFormatter(db_formatter)
-        db_handler.setLevel(log_level)
-        db_handler.addFilter(log_filter)
+    db_handler = DBHandler(db_url, build_id)
+    db_handler.setFormatter(db_formatter)
+    db_handler.setLevel(log_level)
+    db_handler.addFilter(log_filter)
 
-        handlers.append(db_handler)
+    handlers.append(db_handler)
 
     logging.basicConfig(level=log_level, handlers=handlers)

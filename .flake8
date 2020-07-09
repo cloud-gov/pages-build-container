@@ -1,3 +1,2 @@
 [flake8]
-filename = src, test
 max-line-length = 100

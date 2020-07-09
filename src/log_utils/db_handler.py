@@ -13,7 +13,8 @@ class DBHandler(logging.Handler):
 
         try:
             self.conn = psycopg2.connect(self.conn_url)
-        except Exception:
+        except Exception as e:
+            print(e)
             raise Exception(f'Cannot connect to {self.conn_url}')
 
         logging.Handler.__init__(self)

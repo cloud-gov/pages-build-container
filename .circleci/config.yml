@@ -1,37 +1,24 @@
 version: 2.1
 
 jobs:
-  build-and-test:
+  test:
+    docker:
+      - image: circleci/python:3.8
     environment:
-      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
-    machine: true
+      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665      
     steps:
       - checkout
-
       - run:
-          name: Build docker image
-          command: |
-            docker build -t federalist-garden-build .
-
-      - run:
-          name: Start docker container
-          command: |
-            docker run --name fgb -v $(pwd)/coverage:/app/coverage -dt federalist-garden-build bash
-
-      - run:
-          name: Install test dependencies
-          command: |
-            docker exec fgb pip install -r requirements-dev.txt
+          name: Install dependencies
+          command: pip install -r requirements-dev.txt
 
       - run:
           name: Flake8
-          command: |
-            docker exec fgb flake8
+          command: flake8
 
       - run:
           name: Bandit
-          command: |
-            docker exec fgb bandit
+          command: bandit -r src
 
       - run:
           name: Install cc-test-reporter
@@ -42,44 +29,34 @@ jobs:
       - run:
           name: CodeClimate before-build
           command: |
-            ./cc-test-reporter before-build
+            ./cc-test-reporter before-build            
 
       - run:
           name: Pytest
-          command: |
-            docker exec fgb pytest
+          command: pytest
 
       - run:
           name: CodeClimate after-build
           command: |
-            # for whatever reason the current user doesn't have access
-            # to the directory that gets created for the docker-compose
-            # `coverage/` volume, so `chown` it
-            sudo chown -R $(whoami) ./coverage
             ./cc-test-reporter format-coverage -t coverage.py ./coverage/coverage.xml
             ./cc-test-reporter upload-coverage || true
 
       - store_artifacts:
           path: ./coverage/coverage.xml
-      
-      - run:
-          name: Save docker image
-          command: |
-            mkdir workspace
-            docker save -o workspace/fgb federalist-garden-build
 
-      - persist_to_workspace:
-          root: workspace
-          paths:
-            - fgb
   
-  deploy:
+  build-and-deploy:
     machine: true
     environment:
       CF_MANIFEST: ./.cloudgov/manifest.yml    
     steps:
       - checkout
-      
+
+      - run:
+          name: Build docker image
+          command: |
+            docker build -t federalist-garden-build .
+
       - when:
           condition:
             equal: [ staging, << pipeline.git.branch >> ]
@@ -112,14 +89,6 @@ jobs:
                 echo "export CF_APP=federalist-build-container" >> $BASH_ENV
                 echo "export CF_VARS_FILE=./.cloudgov/vars/production.yml" >> $BASH_ENV
 
-      - attach_workspace:
-          at: /tmp/workspace
-
-      - run:
-          name: Load docker image
-          command: |
-            docker load -i /tmp/workspace/fgb
-
       - run:
           name: Run local docker registry
           command: |
@@ -150,10 +119,10 @@ workflows:
   version: 2
   build-test-deploy:
     jobs:
-      - build-and-test
-      - deploy:
+      - test
+      - build-and-deploy:
           requires:
-            - build-and-test
+            - test
           filters:
             branches:
               only:
