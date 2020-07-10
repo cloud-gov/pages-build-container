@@ -164,9 +164,17 @@ docker-compose build test
 
 2. Run any testing steps
 ```sh
-docker-compose run --rm test pytest          # run all the python tests
-docker-compose run --rm test flake8          # run flake8 linter
-docker-compose run --rm test bandit -r src   # run bandit static analysis
+# unit tests
+docker-compose run --rm test pytest
+
+# unit tests with code coverage
+docker-compose run --rm test pytest --cov-report xml:./coverage/coverage.xml --cov-report html:./coverage --cov-report term --cov=src
+
+# lint
+docker-compose run --rm test flake8
+
+# static analysis
+docker-compose run --rm test bandit -r src
 ```
 
 ## Deployment

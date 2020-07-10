@@ -33,7 +33,7 @@ jobs:
 
       - run:
           name: Pytest
-          command: pytest
+          command: pytest --cov-report xml:./coverage/coverage.xml --cov-report html:./coverage --cov-report term --cov=src
 
       - run:
           name: CodeClimate after-build
