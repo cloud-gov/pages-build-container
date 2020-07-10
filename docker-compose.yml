@@ -1,13 +1,11 @@
 version: '3'
 services:
   app:
-    # main builder app
     build:
       context: .
-      args:
-        is_testing: 1
     volumes:
-      - .:/app:delegated
+      - ./src:/app:ro
+      - ./.local:/tmp/local:ro
     links:
       - echoserver
       - db
@@ -15,16 +13,18 @@ services:
       - echoserver
       - db
     environment:
+      CACHE_CONTROL: max-age=60
+      DATABASE_URL: postgresql://postgres:password@db/federalist
       FEDERALIST_BUILDER_CALLBACK: http://echoserver:8989/builder
       STATUS_CALLBACK: http://echoserver:8989/status
-      LOG_CALLBACK: http://echoserver:8989/log
-      DATABASE_URL: postgresql://postgres@db/federalist
+      USER_ENVIRONMENT_VARIABLE_KEY: shhhhhhh
 
   echoserver:
     # simple python server to log requests during development
     build:
       context: ./echo-server
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile
+    container_name: echoserver
     volumes:
       - ./echo-server:/code
     environment:
@@ -33,9 +33,26 @@ services:
       - "8989:8989"
 
   db:
-    image: postgres:latest
+    build:
+      context: .
+      dockerfile: Dockerfile-db
+    container_name: db
     volumes:
       - ./tmp/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d federalist"]
+      interval: 10s
+      timeout: 5s
+      retries: 5      
     environment:
+      POSTGRES_PASSWORD: password
       POSTGRES_USER: postgres
       POSTGRES_DB: federalist
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile-test
+    container_name: test
+    volumes:
+      - ./:/app

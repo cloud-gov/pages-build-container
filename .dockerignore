@@ -1,13 +1,1 @@
-_old
 __pycache__
-.git
-.cache
-.env
-*.pyc
-docker-compose.yml
-Dockerfile
-tmp
-test-run.sh
-echo-server
-.circleci
-.vscode

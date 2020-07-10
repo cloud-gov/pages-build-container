@@ -2,43 +2,81 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/b7ddc95a6745610b685b/maintainability)](https://codeclimate.com/github/18F/federalist-garden-build/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/b7ddc95a6745610b685b/test_coverage)](https://codeclimate.com/github/18F/federalist-garden-build/test_coverage)
 
-# federalist-garden-build
+# Federalist Garden Build
 
-Docker image for building and publishing static sites as part of the Federalist platform. Build steps are run using Python's `subprocess` library.
+Docker image for building and publishing static sites as part of the Federalist platform.
 
 Generally, site builds work in three stages: clone, build, and publish. Each stage is broken down into a number of steps. First, the container checks out the site from GitHub. Then it builds the site with the specified build engine. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3, and also creates redirect objects for directories, such as `/path` => `/path/`.
 
-The `main` task is used to run a full build process when the container starts.
+## Usage
+### Command
+```
+python main.py [options]
+```
 
-## Environment Variables
+### Command options
+One of the following flags *must* be specified:
 
-Each site build is configured using a number of environment variables, as described below:
+| Flag | Example | Description |
+| ---- | ------- | ----------- |
+| `-p`, `--params` | `-p '{"foo": "bar"}'` | A JSON encoded string containing the [build arguments](#build-arguments) |
+| `-f`, `--file` | `--file ./.local/my-build.json` | A path to a JSON file containing the [build arguments](#build-arguments) |
 
-* `AWS_ACCESS_KEY_ID`: AWS access key for accessing the S3 bucket.
-* `AWS_SECRET_ACCESS_KEY`: AWS secret key for accessing the S3 bucket.
-* `AWS_DEFAULT_REGION`: AWS region.
-* `BUCKET`: S3 bucket to upload the built site.
-* `GITHUB_TOKEN` GitHub auth token for cloning the repository.
-* `CACHE_CONTROL`: Value to set for the `Cache-Control` header of all published files.
-* `CONFIG`: A yaml block of configuration to add to `_config.yml` before building. Currently only used in `jekyll` site builds.
-* `GENERATOR`: The static generator to use to build the site (`'jekyll'`, `'hugo'`, `'node.js'`, or `'static'`).
-* `FEDERALIST_BUILDER_CALLBACK`: The URL the container should use to let [federalist-builder](https://github.com/18F/federalist-builder) know that it has finished.
-* `STATUS_CALLBACK`: The URL the container should use to report the status of the completed build (ie, success or failure).
-* `LOG_CALLBACK`: The URL the container should use to post build logs periodically during the build.
-* `OWNER`: the GitHub account that owns the repository.
-* `REPOSITORY`: the repository name.
-* `BRANCH`: the branch being built.
-* `SITE_PREFIX`: the S3 bucket "path" that the site files will be published to. It should **not** have a trailing or prefix slash.
-  * for the live site: `site/<OWNER>/<REPOSITORY>`.
-  * for the demo site: `demo/<OWNER>/<REPOSITORY>`.
-  * for branch previews: `preview/<OWNER>/<REPOSITORY>/<BRANCH>`.
-* `BASEURL`: the base URL that will be used by the build engine to determine the path for site assets.
-  * for a live site with a custom URL, this will be empty.
-  * for anything else, it will be the same as `SITE_PREFIX` but
-    with a `/` at the beginning. ex: `/site/<OWNER>/<REPOSITORY>`.
-* `SKIP_LOGGING`: if true-like, skip posting logs and status callbacks. This is used when launching builds from local development instances of the Federalist web application, which cannot be reached from the cloud.gov-hosted build containers. By skipping posting logs and status callbacks, the builds will be able to finish without throwing errors due to unreachable callback endpoints.
+### Using cloud.gov tasks
+```
+cf7 run-task <APP_NAME> "cd app && python main.py [options]"
+```
 
-### Variables exposed during builds
+### Using `docker-compose`
+```
+docker-compose run --rm app python main.py [options]
+```
+
+### Full examples
+```
+# build arguments provided as a JSON encoded string
+
+cf7 run-task federalist-build-container "python main.py -p '{\"foo\": \"bar\"}'" --name "build-123"
+```
+
+```
+# build arguments provided in a JSON encoded file
+
+docker-compose run --rm app python main.py -f /tmp/local/my-build.json
+```
+
+## Environment variables
+
+| Name | Optional? | VCAP Service | Description |
+| ---- | :-------: | ------------ | ----------- |
+| `CACHE_CONTROL` | Y | | Default value to set for the `Cache-Control` header of all published files, default is `max-age=60` |
+| `DATABASE_URL` | N | | The URL of the database for database logging |
+| `FEDERALIST_BUILDER_CALLBACK` | N | | The URL the container should use to let [federalist-builder](https://github.com/18F/federalist-builder) know that it has finished |
+| `STATUS_CALLBACK` | N | | The URL the container should use to report the status of the completed build (ie, success or failure) |
+| `USER_ENVIRONMENT_VARIABLE_KEY` | N |  `federalist-{space}-uev-key` | Encryption key to decrypt user environment variables |
+
+When running locally, environment variables are configured in `docker-compose.yml` under the `app` service.
+
+## Build arguments
+
+| Name | Optional? | Default | Description |
+| ---- | :-------: | ------- | ----------- |
+| `aws_access_key_id` | N | | AWS access key for the destination S3 bucket |
+| `aws_secret_access_key` | N | | AWS secret key for the destination S3 bucket |
+| `aws_default_region` | N | | AWS region for the destination S3 bucket |
+| `bucket` | N | | AWS S3 bucket name for the destination S3 bucket |
+| `github_token` | Y | `None` | GitHub auth token for cloning the repository |
+| `config` | Y | `None` | A yaml block of configuration to add to `_config.yml` before building. Currently only used in `jekyll` site builds |
+| `generator` | N | | The engine to use to build the site (`'jekyll'`, `'hugo'`, `'node.js'`, or `'static'`) |
+| `owner` | N | | The GitHub organization of the source repository |
+| `repository` | N | | The name of source the repository |
+| `branch` | N | | The branch of the source repository to build |
+| `site_prefix` | N | | The S3 bucket "path" that the site files will be published to. It should **not** have a trailing or prefix slash (Ex. `preview/<OWNER>/<REPOSITORY>/<BRANCH>`) |
+| `baseurl` | Y | `None` | The base URL that will be used by the build engine to determine the absolute path for site assets (blank for custom domains, the `site_prefix` with a preceding `/` for preview domains |
+| `user_environment_variables` | Y | | Array of objects containing the name and encrypted values of user-provided environment variables (Ex. `[{ name: "MY ENV VAR", ciphertext: "ABC123" }]`) |
+
+
+## Environment variables provided during builds
 
 The following environment variables are available during site builds and when running the `federalist` npm script. They may be useful for customizing the display of certain information in the published site, for example, to display the current published branch name.
 
@@ -50,93 +88,99 @@ The following environment variables are available during site builds and when ru
 
 ## Development
 
-You'll need [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed for development and testing.
+### Getting started
 
-### Environment variables
+#### Requirements
+- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
+- AWS S3 bucket name and associated credentials (key, secret, region)
+- A Github repository with a Federalist-compatible site
+- A Github Personal Access Token if building a private repository, see [creating a new personal token for your GitHub account](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/) for more information.
 
-To make setting environment variables easier for local development,
-create a new `.env` file based on the `.env.sample` and fill out the environment variables in it. Your `.env` file should **not be committed** to the repository
-because it will contain sensitive information. It is ignored by `.gitignore`.
+#### Clone the repository
+```sh
+  git clone git@github.com:18F/federalist-garden-build.git
+  cd federalist-garden-build
+```
+
+#### Create build arguments
+```sh
+  mkdir -p .local
+  cp .local.sample.json .local/my-build.json
+```
+
+#### Update build arguments
+Update the appropriate fields to contain the desired values for your build, see [build arguments](#build-arguments) for options. The `.local` folder should not be checked into version control (it is in `.gitignore`) and will be mounted into the Docker container at `/tmp/local`.
+
+#### Initialize the database
+This only needs to be once. To force a reinitialization of the database, remove the `tmp/db` folder in the project root and run the below command again.
 
 ```sh
-cp .env.sample .env
+  docker-compose run --rm db
 ```
+Then kill the process when it is done.
 
-For the AWS S3 values needed, you might find it helpful to
-spin up an [S3 service](https://cloud.gov/docs/services/s3/) in your [cloud.gov sandbox space](https://cloud.gov/overview/pricing/free-limited-sandbox/).
-
-For the `GITHUB_TOKEN`, create a new [personal token for your GitHub account](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/) and use that.
-
-### Building and running
-
-1. Build the development container using Docker Compose:
-
+#### Run the build
 ```sh
-docker-compose build
+  docker-compose build
+  docker-compose run --rm app python main.py -f /tmp/local/my-build.json
 ```
+If the database is not ready when running a build (despite the healthcheck), just try running the build again.
 
-2. Initialize the database to receive logs
+#### Interact with the build environment
 ```sh
-docker-compose run --rm app python ./bin/migrate.py
+  docker-compose run --rm app bash
+  python main.py -f /tmp/local/my-build.json
 ```
 
-The main builder application is called `app` within the Docker Compose environment.
-You can run any commands within the `app` container by prefixing them with `docker-compose run --rm app <THE COMMAND>`.
+### Inspecting the database
 
-One of the easiest ways to run the container's code during development is to start
-an interactive `bash` shell in the `app` container:
+1. Ensure the database is running (in the background)
+```
+docker-compose up -d --no-deps db
+```
 
+2. Run psql in the container
+```
+docker-compose exec db psql -U postgres -d federalist
+```
+
+### Inspecting logs
+During or after builds the echoserver and database logs can be viewed with:
 ```sh
-docker-compose run --rm app bash
+  # all logs
+  docker-compose logs
+
+  # only the echo server
+  docker-compose logs echoserver
+
+  # only the db
+  docker-compose logs db
 ```
 
-After running the above command, you will be in a shell inside of the `app` container. From there, you can easily run the build or execute the test suite.
-
+### Testing
+1. Build the test image
 ```sh
-python main.py     # runs the full clone-build-publish pipeline
-pytest             # run all the python tests
-flake8             # run flake8 linter
-bandit publishing/*.py tasks/*.py log_utils/*.py repo_config/*.py steps/*.py # run bandit static analysis
+docker-compose build test
 ```
 
-To view any logs pushed to the database:
-
-1. connect to the docker container containing the database.
+2. Run any testing steps
 ```sh
-docker exec -it federalist-garden-build_db_1 bash
+# unit tests
+docker-compose run --rm test pytest
+
+# unit tests with code coverage
+docker-compose run --rm test pytest --cov-report xml:./coverage/coverage.xml --cov-report html:./coverage --cov-report term --cov=src
+
+# lint
+docker-compose run --rm test flake8
+
+# static analysis
+docker-compose run --rm test bandit -r src
 ```
 
-2. connect to the database
-```sh
-psql -U postgred -d federalist
-```
+## Deployment
 
-and query away!
-
-Ex.
-```
-$ docker exec -it federalist-garden-build_db_1 bash
-
-root@2006c3a10bb3:/# psql -U postgres -d federalist
-psql (12.1 (Debian 12.1-1.pgdg100+1))
-Type "help" for help.
-
-federalist=# \d
-               List of relations
- Schema |      Name       |   Type   |  Owner
---------+-----------------+----------+----------
- public | buildlog        | table    | postgres
- public | buildlog_id_seq | sequence | postgres
-(2 rows)
-
-federalist=# \q
-
-root@2006c3a10bb3:/# exit
-```
-
-## Deploying to cloud.gov
-
-For detailed instructions on deploying this build container to cloud.gov, see [https://federalist-docs.18f.gov/pages/how-federalist-works/cloud-gov-setup/](https://federalist.18f.gov/documentation/cloud-gov-setup/).
+Deployment is done by in CircleCI automatically for merges into the `staging` and `main` branch.
 
 ## Public domain
 
