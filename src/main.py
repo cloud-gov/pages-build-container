@@ -67,5 +67,4 @@ if __name__ == "__main__":
     if os.getenv('VCAP_APPLICATION', None):
         load_vcap()
 
-    print(kwargs)
     build(**kwargs)
