@@ -20,7 +20,7 @@ One of the following flags *must* be specified:
 | Flag | Example | Description |
 | ---- | ------- | ----------- |
 | `-p`, `--params` | `-p '{"foo": "bar"}'` | A JSON encoded string containing the [build arguments](#build-arguments) |
-| `-f`, `--file` | `--file ./.local/foo.json` | A path to a JSON file containing the [build arguments](#build-arguments) |
+| `-f`, `--file` | `--file ./.local/my-build.json` | A path to a JSON file containing the [build arguments](#build-arguments) |
 
 ### Using cloud.gov tasks
 ```
@@ -42,7 +42,7 @@ cf7 run-task federalist-build-container "python main.py -p '{\"foo\": \"bar\"}'"
 ```
 # build arguments provided in a JSON encoded file
 
-docker-compose run --rm app python main.py -f /tmp/local/foo.json
+docker-compose run --rm app python main.py -f /tmp/local/my-build.json
 ```
 
 ## Environment variables
@@ -112,7 +112,7 @@ The following environment variables are available during site builds and when ru
 Update the appropriate fields to contain the desired values for your build, see [build arguments](#build-arguments) for options. The `.local` folder should not be checked into version control (it is in `.gitignore`) and will be mounted into the Docker container at `/tmp/local`.
 
 #### Initialize the database
-This only needs to be once. To force a reinitialization of the database, remove the `tmp/db` folder in the project root and run the below command again. If the database is not ready when running a build (despite the healthcheck), just try running the build again.
+This only needs to be once. To force a reinitialization of the database, remove the `tmp/db` folder in the project root and run the below command again.
 
 ```sh
   docker-compose run --rm db
@@ -124,11 +124,12 @@ Then kill the process when it is done.
   docker-compose build
   docker-compose run --rm app python main.py -f /tmp/local/my-build.json
 ```
+If the database is not ready when running a build (despite the healthcheck), just try running the build again.
 
 #### Interact with the build environment
 ```sh
   docker-compose run --rm app bash
-  python main.py -f /tmp/local/foo.json
+  python main.py -f /tmp/local/my-build.json
 ```
 
 ### Inspecting the database
