@@ -45,13 +45,16 @@ if __name__ == "__main__":
     if 'STATUS_CALLBACK' in params:
         os.environ['STATUS_CALLBACK'] = params['STATUS_CALLBACK']
 
+    kwargs = {k.lower(): v for (k, v) in params.items() if v is not None}
+
     build_arguments = inspect.getfullargspec(build)[0]
-    for k in params:
+    for k in kwargs:
         if k not in build_arguments:
-            # Warn for unused argments, but don't break
+            # Warn about unused arguments
             print(f'WARNING - Ignoring unused build argument: {k}')
 
-    kwargs = {k.lower(): v for (k, v) in params.items() if v is not None and k in build_arguments}
+    # Remove unused build arguments
+    kwargs = {k: v for (k, v) in params.items() if k in build_arguments}
 
     uevs = kwargs['user_environment_variables']
     if uevs and isinstance(uevs, str):
@@ -64,4 +67,5 @@ if __name__ == "__main__":
     if os.getenv('VCAP_APPLICATION', None):
         load_vcap()
 
+    print(kwargs)
     build(**kwargs)
