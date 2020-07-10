@@ -37,6 +37,15 @@ if __name__ == "__main__":
     else:
         params = json.load(args.file)
 
+    # TODO - move to env vars in production envs
+    if params['FEDERALIST_BUILDER_CALLBACK']:
+        os.environ['FEDERALIST_BUILDER_CALLBACK'] = params['FEDERALIST_BUILDER_CALLBACK']
+        del params['FEDERALIST_BUILDER_CALLBACK']
+
+    if params['STATUS_CALLBACK']:
+        os.environ['STATUS_CALLBACK'] = params['STATUS_CALLBACK']
+        del params['STATUS_CALLBACK']
+
     kwargs = {k.lower(): v for (k, v) in params.items() if v is not None}
 
     uevs = kwargs['user_environment_variables']
