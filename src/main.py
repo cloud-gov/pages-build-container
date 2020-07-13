@@ -49,9 +49,10 @@ if __name__ == "__main__":
     # Remove unused build arguments
     kwargs = {k: v for (k, v) in params.items() if k in build_arguments}
 
-    uevs = kwargs['user_environment_variables']
-    if uevs and isinstance(uevs, str):
-        kwargs['user_environment_variables'] = json.loads(uevs)
+    if 'user_environment_variables' in kwargs:
+        uevs = kwargs['user_environment_variables']
+        if uevs and isinstance(uevs, str):
+            kwargs['user_environment_variables'] = json.loads(uevs)
 
     kwargs['branch'] = shlex.quote(kwargs['branch'])
     kwargs['owner'] = shlex.quote(kwargs['owner'])
