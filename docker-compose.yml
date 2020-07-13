@@ -15,8 +15,6 @@ services:
     environment:
       CACHE_CONTROL: max-age=60
       DATABASE_URL: postgresql://postgres:password@db/federalist
-      FEDERALIST_BUILDER_CALLBACK: http://echoserver:8989/builder
-      STATUS_CALLBACK: http://echoserver:8989/status
       USER_ENVIRONMENT_VARIABLE_KEY: shhhhhhh
 
   echoserver:
