@@ -30,6 +30,8 @@ def build(
     aws_access_key_id,
     aws_default_region,
     aws_secret_access_key,
+    federalist_builder_callback,
+    status_callback,
     baseurl,
     branch,
     bucket,
@@ -58,8 +60,6 @@ def build(
 
     cache_control = os.getenv('CACHE_CONTROL', 'max-age=60')
     database_url = os.environ['DATABASE_URL']
-    federalist_builder_callback = os.environ['FEDERALIST_BUILDER_CALLBACK']
-    status_callback = os.environ['STATUS_CALLBACK']
     user_environment_variable_key = os.environ['USER_ENVIRONMENT_VARIABLE_KEY']
 
     try:
