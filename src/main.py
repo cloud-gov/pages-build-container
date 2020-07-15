@@ -38,13 +38,13 @@ if __name__ == "__main__":
     else:
         params = json.load(args.file)
 
-    kwargs = {k.lower(): v for (k, v) in params.items() if v is not None}
+    params = {k.lower(): v for (k, v) in params.items()}
 
     build_arguments = inspect.getfullargspec(build)[0]
-    for k in kwargs:
+    for k in params:
         if k not in build_arguments:
             # Warn about unused arguments
-            print(f'WARNING - Ignoring unused build argument: {k}')
+            print(f'WARNING - Ignoring unused parameter: {k}')
 
     # Remove unused build arguments
     kwargs = {k: v for (k, v) in params.items() if k in build_arguments}
