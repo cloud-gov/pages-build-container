@@ -1,6 +1,7 @@
 '''Main entrypoint'''
 
 import os
+import sys
 from datetime import datetime
 from stopit import TimeoutException, SignalTimeout as Timeout
 
@@ -175,7 +176,7 @@ def build(
             # Finished!
             post_build_complete(status_callback, federalist_builder_callback)
 
-            exit(0)
+            sys.exit(0)
 
     except StepException as err:
         '''
@@ -184,7 +185,7 @@ def build(
         '''
         logger.error(str(err))
         post_build_error(status_callback, federalist_builder_callback, str(err))
-        exit(1)
+        sys.exit(1)
 
     except TimeoutException:
         logger.warning(f'Build({build_info}) has timed out')

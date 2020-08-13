@@ -47,6 +47,13 @@ jobs:
   
   build-and-deploy:
     machine: true
+    parameters:
+      app:
+        type: string      
+      image:
+        type: string
+      dockerfile:
+        type: string
     environment:
       CF_MANIFEST: ./.cloudgov/manifest.yml    
     steps:
@@ -55,7 +62,7 @@ jobs:
       - run:
           name: Build docker image
           command: |
-            docker build -t federalist-garden-build .
+            docker build -t << parameters.image >> -f << parameters.dockerfile >> .
 
       - when:
           condition:
@@ -70,7 +77,7 @@ jobs:
                 echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
                 echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
                 echo "export CF_SPACE=staging" >> $BASH_ENV
-                echo "export CF_APP=federalist-build-container-staging" >> $BASH_ENV
+                echo "export CF_APP=<< parameters.app >>-staging" >> $BASH_ENV
                 echo "export CF_VARS_FILE=./.cloudgov/vars/staging.yml" >> $BASH_ENV     
            
       - when:
@@ -86,7 +93,7 @@ jobs:
                 echo "export CF_USERNAME=$CF_USERNAME_PRODUCTION" >> $BASH_ENV
                 echo "export CF_PASSWORD=$CF_PASSWORD_PRODUCTION" >> $BASH_ENV
                 echo "export CF_SPACE=production" >> $BASH_ENV
-                echo "export CF_APP=federalist-build-container" >> $BASH_ENV
+                echo "export CF_APP=<< parameters.app >>" >> $BASH_ENV
                 echo "export CF_VARS_FILE=./.cloudgov/vars/production.yml" >> $BASH_ENV
 
       - run:
@@ -104,12 +111,12 @@ jobs:
       - run:
           name: Tag docker image as latest for registry
           command: |
-            docker tag federalist-garden-build localhost:5000/federalist-garden-build
+            docker tag << parameters.image >> localhost:5000/<< parameters.image >>
       
       - run:
           name: Push docker image to registry
           command: |
-            docker push localhost:5000/federalist-garden-build
+            docker push localhost:5000/<< parameters.image >>
 
       - deploy:
           command: ./.cloudgov/deploy.sh
@@ -121,6 +128,9 @@ workflows:
     jobs:
       - test
       - build-and-deploy:
+          app: federalist-build-container
+          image: federalist-garden-build
+          dockerfile: Dockerfile
           requires:
             - test
           filters:
@@ -128,3 +138,14 @@ workflows:
               only:
                 - staging
                 - main
+      - build-and-deploy:
+          app: federalist-build-container-exp
+          image: federalist-garden-build-exp
+          dockerfile: Dockerfile-exp
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - staging
+                - main                

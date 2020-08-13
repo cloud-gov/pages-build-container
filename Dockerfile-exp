@@ -1,0 +1,61 @@
+#################
+#  Build Image  #
+#################
+FROM python:3.8-buster AS builder
+WORKDIR /app
+RUN pip install pyinstaller staticx patchelf-wrapper
+COPY ./src ./requirements.txt ./
+RUN pip install -r requirements.txt
+RUN \
+  pyinstaller -F -n tmp-build --distpath ./dist --hidden-import='pkg_resources.py2_warn' ./main.py \
+  && staticx ./dist/tmp-build ./dist/build
+
+#################
+#  Final Image  #
+#################
+FROM ruby:2.7-slim
+
+RUN \
+  apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    gnupg \
+    dirmngr \
+    wget \
+  && rm -rf /var/lib/apt/lists/*
+
+SHELL ["/bin/bash", "-l", "-c"]
+
+ENV RUBY_VERSION 2.7
+RUN \
+  gpg --keyserver hkp://ipv4.pool.sks-keyservers.net \
+    --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
+  && \curl -sSL https://get.rvm.io | bash -s stable \
+  && echo 'source /usr/local/rvm/scripts/rvm' >> $HOME/.bashrc
+
+RUN \
+  rvm install $RUBY_VERSION \
+  && rvm use --default $RUBY_VERSION \
+  && echo 'rvm_silence_path_mismatch_check_flag=1' >> /etc/rvmrc
+
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_DEFAULT_VERSION 10
+RUN \
+  curl https://raw.githubusercontent.com/creationix/nvm/v0.31.3/install.sh | bash \
+  && . "$NVM_DIR/nvm.sh" \
+  && nvm install $NODE_DEFAULT_VERSION \
+  && nvm use $NODE_DEFAULT_VERSION
+
+# Install headless chrome
+RUN \
+  wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+  && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
+  && apt-get update \
+  && apt-get install -y google-chrome-unstable --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=builder /app/dist/build .
+
+CMD ["./build"]
