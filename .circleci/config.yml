@@ -138,7 +138,7 @@ workflows:
               only:
                 - staging
                 - main
-      - build-and-deploy-exp:
+      - build-and-deploy:
           app: federalist-build-container-exp
           image: federalist-garden-build-exp
           dockerfile: Dockerfile-exp
