@@ -1,5 +1,22 @@
 version: '3'
 services:
+  exp:
+    build:
+      context: .
+      dockerfile: Dockerfile-exp
+    volumes:
+      - ./.local:/tmp/local:ro
+    links:
+      - echoserver
+      - db
+    depends_on:
+      - echoserver
+      - db
+    environment:
+      CACHE_CONTROL: max-age=60
+      DATABASE_URL: postgresql://postgres:password@db/federalist
+      USER_ENVIRONMENT_VARIABLE_KEY: shhhhhhh
+
   app:
     build:
       context: .
