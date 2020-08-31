@@ -9,6 +9,12 @@ applications:
     services:
       - federalist-((env))-rds
       - federalist-((env))-uev-key
+    metadata:
+      labels:
+        type: build-container
+        name: default
+      annotations:
+        command: cd app && python main.py -p
   - name: federalist-build-container-exp((env_postfix))
     no-route: true
     health-check-type: process
@@ -18,3 +24,9 @@ applications:
     services:
       - federalist-((env))-rds
       - federalist-((env))-uev-key
+    metadata:
+      labels:
+        type: build-container
+        name: exp
+      annotations:
+        command: cd app && ./build -p
