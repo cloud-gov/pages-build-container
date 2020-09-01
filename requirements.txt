@@ -3,3 +3,4 @@ boto3==1.14.20
 stopit==1.1.2
 psycopg2==2.8.5
 cryptography==2.9.2
+pyyaml==5.3.1

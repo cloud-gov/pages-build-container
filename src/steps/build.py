@@ -8,6 +8,7 @@ import requests
 import shlex
 from subprocess import CalledProcessError  # nosec
 import time
+import yaml
 
 from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH, WORKING_DIR_PATH)
 from log_utils import get_logger
@@ -286,6 +287,27 @@ def setup_bundler():
     return runp('bundle install')
 
 
+def update_jekyll_config(federalist_config={}, custom_config=''):
+    logger = get_logger('build-jekyll')
+
+    JEKYLL_CONF_YML_PATH = CLONE_DIR_PATH / JEKYLL_CONFIG_YML
+
+    config_yml = {}
+    with JEKYLL_CONF_YML_PATH.open('r') as jekyll_conf_file:
+        config_yml = yaml.safe_load(jekyll_conf_file)
+
+    if custom_config:
+        try:
+            custom_config = json.loads(custom_config)
+        except json.JSONDecodeError:
+            logger.warning('Could not load/parse custom yaml config.')
+
+    config_yml = {**config_yml, **custom_config, **federalist_config}
+
+    with JEKYLL_CONF_YML_PATH.open('w') as jekyll_conf_file:
+        yaml.dump(config_yml, jekyll_conf_file, default_flow_style=False)
+
+
 def build_jekyll(branch, owner, repository, site_prefix,
                  base_url='', config='', user_env_vars=[]):
     '''
@@ -293,18 +315,10 @@ def build_jekyll(branch, owner, repository, site_prefix,
     '''
     logger = get_logger('build-jekyll')
 
-    JEKYLL_CONF_YML_PATH = CLONE_DIR_PATH / JEKYLL_CONFIG_YML
-
-    # Add baseurl, branch, and the custom config to _config.yml.
-    # Use the 'a' option to create or append to an existing config file.
-    with JEKYLL_CONF_YML_PATH.open('a') as jekyll_conf_file:
-        jekyll_conf_file.writelines([
-            '\n'
-            f'baseurl: {base_url}\n',
-            f'branch: {branch}\n',
-            config,
-            '\n',
-        ])
+    update_jekyll_config(
+        dict(baseurl=base_url, branch=branch),
+        config
+    )
 
     jekyll_cmd = 'jekyll'
 
