@@ -557,11 +557,13 @@ class TestDownloadHugo():
 @patch('steps.build.get_logger')
 class TestBuildHugo():
     def test_it_calls_hugo_as_expected(self, mock_get_logger, mock_run,
-                                       patch_working_dir, patch_clone_dir):
+                                       patch_working_dir, patch_clone_dir,
+                                       patch_site_build_dir):
 
         hugo_path = patch_working_dir / HUGO_BIN
         hugo_call = (
-            f'{hugo_path} --source {patch_clone_dir} --destination /work/site_repo/_site '
+            f'{hugo_path} --source {patch_clone_dir} '
+            f'--destination {patch_site_build_dir} '
             '--baseURL /site/prefix'
         )
 

@@ -1,0 +1,18 @@
+{
+  "aws_access_key_id": "ACCESS KEY ID",
+  "aws_default_region": "REGION",
+  "aws_secret_access_key": "SECRET ACCESS KEY",
+  "bucket": "BUCKET",
+  "github_token": "TOKEN",
+  "federalist_builder_callback": "http://echoserver:8989/builder",
+  "status_callback": "http://echoserver:8989/status",
+  "baseurl": "/",
+  "config": "",
+  "build_id": "12345",
+  "generator": "GENERATOR",
+  "owner": "OWNER",
+  "branch": "BRANCH",
+  "repository": "REPOSITORY",
+  "site_prefix": "preview/OWNER/REPOSITORY",
+  "user_environment_variables": []
+}

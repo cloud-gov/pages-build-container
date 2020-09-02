@@ -3,6 +3,7 @@ from .build import (
     download_hugo, run_federalist_script, setup_bundler,
     setup_node, setup_ruby,
 )
+from .exceptions import StepException
 from .fetch import fetch_repo
 from .publish import publish
 
@@ -16,5 +17,6 @@ __all__ = [
     'run_federalist_script',
     'setup_bundler',
     'setup_node',
-    'setup_ruby'
+    'setup_ruby',
+    'StepException',
 ]

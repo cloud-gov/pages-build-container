@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from log_utils.get_logger import (
     LogFilter, Formatter, get_logger, init_logging,
-    DEFAULT_LOG_LEVEL)
+    set_log_attrs, DEFAULT_LOG_LEVEL)
 from log_utils.db_handler import DBHandler
 
 
@@ -89,8 +89,9 @@ class TestGetLogger():
     def test_it_returns_a_logger_with_an_adapter_with_extras(self):
         name = 'foobar'
         attrs = {'foo': 'bar'}
+        set_log_attrs(attrs)
 
-        adapter = get_logger(name, attrs)
+        adapter = get_logger(name)
 
         assert(type(adapter) == logging.LoggerAdapter)
         assert(adapter.logger.name == name)
@@ -100,18 +101,8 @@ class TestGetLogger():
 @patch('psycopg2.connect')
 @patch('logging.basicConfig')
 class TestInitLogging():
-    def test_it_adds_a_stream_handler(self, mock_basic_config, _):
-        init_logging([])
-
-        _, kwargs = mock_basic_config.call_args
-
-        assert(kwargs['level'] == DEFAULT_LOG_LEVEL)
-        assert(len(kwargs['handlers']) == 1)
-        assert(type(kwargs['handlers'][0]) == logging.StreamHandler)
-
-    def test_it_adds_db_handler_when_env_var_is_present(self,
-                                                        mock_basic_config, _):
-        init_logging([], attrs={'buildid': 1234}, db_url='foo')
+    def test_it_adds_a_stream_and_db_handlers(self, mock_basic_config, _):
+        init_logging([], {'buildid': 1234}, 'foo')
 
         _, kwargs = mock_basic_config.call_args
 
@@ -119,14 +110,3 @@ class TestInitLogging():
         assert(len(kwargs['handlers']) == 2)
         assert(type(kwargs['handlers'][0]) == logging.StreamHandler)
         assert(type(kwargs['handlers'][1]) == DBHandler)
-
-    def test_it_omits_db_handler_when_skip_logging_true(self,
-                                                        mock_basic_config, _):
-        init_logging([], attrs={'buildid': 1234}, db_url='foo',
-                     skip_logging=True)
-
-        _, kwargs = mock_basic_config.call_args
-
-        assert(kwargs['level'] == DEFAULT_LOG_LEVEL)
-        assert(len(kwargs['handlers']) == 1)
-        assert(type(kwargs['handlers'][0]) == logging.StreamHandler)

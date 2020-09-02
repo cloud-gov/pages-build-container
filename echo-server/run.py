@@ -30,16 +30,13 @@ class StoppableHTTPServer(HTTPServer):
 
 class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        flush_print("\n----- Request Start ----->\n")
-        flush_print(f"{self.command} : {self.path}")
-        flush_print("<----- Request End -----\n")
+        flush_print(f"\n{self.command} {self.path}")
 
         self.send_response(200)
         self.end_headers()
 
     def do_POST(self):
-        flush_print("\n----- Request Start ----->\n")
-        flush_print(f"{self.command} : {self.path}")
+        flush_print(f"\n{self.command} {self.path}")
 
         content_length = self.headers.get('Content-Length')
         length = int(content_length) if content_length else 0
@@ -47,7 +44,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         content_type = self.headers.get('Content-Type')
         if content_type == 'application/json':
-            flush_print('Decoding encoded JSON payload...')
             payload_json = json.loads(str(payload, 'utf-8'))
             if payload_json.get('output'):
                 payload_json['output'] = decodeb64(payload_json['output'])
@@ -56,8 +52,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             payload = json.dumps(payload_json)
 
-        flush_print(f"Request payload: {payload}")
-        flush_print("<----- Request End -----\n")
+        flush_print(f"  {payload}")
 
         self.send_response(200)
         self.end_headers()

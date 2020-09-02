@@ -1,6 +1,6 @@
 ---    
 applications:
-  - name: ((name))
+  - name: federalist-build-container((env_postfix))
     no-route: true
     health-check-type: process
     instances: 0
@@ -9,3 +9,24 @@ applications:
     services:
       - federalist-((env))-rds
       - federalist-((env))-uev-key
+    metadata:
+      labels:
+        type: build-container
+        name: default
+      annotations:
+        command: cd app && python main.py -p
+  - name: federalist-build-container-exp((env_postfix))
+    no-route: true
+    health-check-type: process
+    instances: 0
+    docker:
+      image: ((image))-exp
+    services:
+      - federalist-((env))-rds
+      - federalist-((env))-uev-key
+    metadata:
+      labels:
+        type: build-container
+        name: exp
+      annotations:
+        command: cd app && ./build -p
