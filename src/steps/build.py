@@ -300,12 +300,15 @@ def update_jekyll_config(federalist_config={}, custom_config=''):
         try:
             custom_config = json.loads(custom_config)
         except json.JSONDecodeError:
-            logger.warning('Could not load/parse custom yaml config.')
+            logger.error('Could not load/parse custom yaml config.')
+            return 1
 
     config_yml = {**config_yml, **custom_config, **federalist_config}
 
     with JEKYLL_CONF_YML_PATH.open('w') as jekyll_conf_file:
         yaml.dump(config_yml, jekyll_conf_file, default_flow_style=False)
+
+    return 0
 
 
 def build_jekyll(branch, owner, repository, site_prefix,
@@ -315,10 +318,13 @@ def build_jekyll(branch, owner, repository, site_prefix,
     '''
     logger = get_logger('build-jekyll')
 
-    update_jekyll_config(
+    result = update_jekyll_config(
         dict(baseurl=base_url, branch=branch),
         config
     )
+
+    if result != 0:
+        return result
 
     jekyll_cmd = 'jekyll'
 
