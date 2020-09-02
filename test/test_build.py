@@ -334,14 +334,14 @@ class TestBuildJekyll():
         kwargs = dict(
             branch='branch', owner='owner',
             repository='repo', site_prefix='site/prefix',
-            base_url='/site/prefix', config='boop: beep'
+            base_url='/site/prefix', config=json.dumps(dict(boop='beep'))
         )
 
         result = build_jekyll(**kwargs)
 
         assert result == mock_run.return_value
 
-        mock_get_logger.assert_called_once_with('build-jekyll')
+        mock_get_logger.assert_has_calls([call('build-jekyll'), call('build-jekyll')])
 
         mock_logger = mock_get_logger.return_value
 
@@ -379,14 +379,14 @@ class TestBuildJekyll():
         kwargs = dict(
             branch='branch', owner='owner',
             repository='repo', site_prefix='site/prefix',
-            base_url='/site/prefix', config='boop: beep'
+            base_url='/site/prefix', config=json.dumps(dict(boop='beep'))
         )
 
         result = build_jekyll(**kwargs)
 
         assert result == mock_run.return_value
 
-        mock_get_logger.assert_called_once_with('build-jekyll')
+        mock_get_logger.assert_has_calls([call('build-jekyll'), call('build-jekyll')])
 
         mock_logger = mock_get_logger.return_value
 
@@ -423,7 +423,7 @@ class TestBuildJekyll():
         kwargs = dict(
             branch='branch', owner='owner',
             repository='repo', site_prefix='site/prefix',
-            config='boop: beep', base_url='/site/prefix'
+            config=json.dumps(dict(boop='beep')), base_url='/site/prefix'
         )
 
         build_jekyll(**kwargs)
