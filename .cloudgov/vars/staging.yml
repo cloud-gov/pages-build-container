@@ -1,3 +1,3 @@
 env: staging
 env_postfix: -staging
-image: localhost:5000/federalist-garden-build
+image: 441879447884.dkr.ecr.us-gov-west-1.amazonaws.com/federalist/garden-build:staging
