@@ -131,6 +131,7 @@ jobs:
           command: |
             docker push localhost:5000/<< parameters.image >>
   
+
   build-and-deploy-ecr:
     machine: true
     parameters:
