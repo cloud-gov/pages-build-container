@@ -121,16 +121,6 @@ jobs:
       - deploy:
           command: ./.cloudgov/deploy.sh
 
-          - run:
-            name: Authenticate with ECR
-            command: |
-              aws ecr get-login-password --region us-gov-west-1 | docker login --username AWS --password-stdin 441879447884.dkr.ecr.us-gov-west-1.amazonaws.com
-
-      - run:
-          name: Authenticate with ECR
-          command: |
-            docker push localhost:5000/<< parameters.image >>
-  
 
   build-and-deploy-ecr:
     machine: true
