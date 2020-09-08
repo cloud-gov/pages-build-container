@@ -122,6 +122,74 @@ jobs:
           command: ./.cloudgov/deploy.sh
 
 
+  build-and-deploy-ecr:
+    machine: true
+    parameters:
+      app:
+        type: string      
+      image:
+        type: string
+      dockerfile:
+        type: string
+    environment:
+      CF_MANIFEST: ./.cloudgov/manifest.yml    
+    steps:
+      - checkout
+
+      - run:
+          name: Build docker image
+          command: |
+            docker build -t << parameters.image >> -f << parameters.dockerfile >> .
+
+      - when:
+          condition:
+            equal: [ staging, << pipeline.git.branch >> ]
+          steps:
+            run:
+              name: Setup Staging Environment
+              command: |
+                echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
+                echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
+                echo "export CF_SPACE=staging" >> $BASH_ENV
+                echo "export CF_APP=<< parameters.app >>-staging" >> $BASH_ENV
+                echo "export CF_VARS_FILE=./.cloudgov/vars/staging.yml" >> $BASH_ENV     
+           
+      # - when:
+      #     condition:
+      #       equal: [ main, << pipeline.git.branch >> ]
+      #     steps:
+      #       run:
+      #         name: Setup Production Environment
+      #         command: |
+      #           echo "export CF_USERNAME=$CF_USERNAME_PRODUCTION" >> $BASH_ENV
+      #           echo "export CF_PASSWORD=$CF_PASSWORD_PRODUCTION" >> $BASH_ENV
+      #           echo "export CF_SPACE=production" >> $BASH_ENV
+      #           echo "export CF_APP=<< parameters.app >>" >> $BASH_ENV
+      #           echo "export CF_VARS_FILE=./.cloudgov/vars/production.yml" >> $BASH_ENV
+
+      - run:
+          name: Authenticate with ECR
+          command: |
+            echo "export AWS_ACCESS_KEY_ID=$AWS_ECR_WRITE_KEY" >> $BASH_ENV
+            echo "export AWS_SECRET_ACCESS_KEY=$AWS_ECR_WRITE_SECRET" >> $BASH_ENV
+            aws ecr get-login-password --region us-gov-west-1 | docker login --username AWS --password-stdin 441879447884.dkr.ecr.us-gov-west-1.amazonaws.com
+
+      - run:
+          name: Tag docker image
+          command: |
+            docker tag << parameters.image >> 441879447884.dkr.ecr.us-gov-west-1.amazonaws.com/federalist/garden-build:staging
+                
+      - run:
+          name: Push docker image to registry
+          command: |
+            docker push 441879447884.dkr.ecr.us-gov-west-1.amazonaws.com/federalist/garden-build:staging
+
+      - deploy:
+          command: |
+            echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET" >> $BASH_ENV
+            ./.cloudgov/deploy.sh
+
+
 workflows:
   version: 2
   build-test-deploy:
@@ -136,7 +204,6 @@ workflows:
           filters:
             branches:
               only:
-                - staging
                 - main
       - build-and-deploy:
           app: federalist-build-container-exp
@@ -147,5 +214,24 @@ workflows:
           filters:
             branches:
               only:
+                - main
+      - build-and-deploy-ecr:
+          app: federalist-build-container
+          image: federalist-garden-build
+          dockerfile: Dockerfile
+          requires:
+            - test
+          filters:
+            branches:
+              only:
                 - staging
-                - main                
+      - build-and-deploy-ecr:
+          app: federalist-build-container-exp
+          image: federalist-garden-build-exp
+          dockerfile: Dockerfile-exp
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - staging
