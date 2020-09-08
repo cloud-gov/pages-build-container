@@ -123,7 +123,8 @@ jobs:
 
 
   build-and-deploy-ecr:
-    machine: true
+    docker:
+      - image: cimg/base:stable
     parameters:
       app:
         type: string      
@@ -225,6 +226,7 @@ workflows:
             branches:
               only:
                 - staging
+                - dc/fix-ecr-deploy
       - build-and-deploy-ecr:
           app: federalist-build-container-exp
           image: federalist-garden-build-exp
@@ -235,3 +237,4 @@ workflows:
             branches:
               only:
                 - staging
+                - dc/fix-ecr-deploy
