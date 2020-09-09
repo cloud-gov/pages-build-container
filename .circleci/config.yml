@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  aws-ecr: circleci/aws-ecr@6.12.2
+
 jobs:
   test:
     docker:
@@ -122,37 +125,24 @@ jobs:
           command: ./.cloudgov/deploy.sh
 
 
-  build-and-deploy-ecr:
-    machine: true
+  deploy-from-ecr:
+    docker:
+      - image: cimg/base:stable
     parameters:
       app:
-        type: string      
-      image:
-        type: string
-      dockerfile:
         type: string
     environment:
       CF_MANIFEST: ./.cloudgov/manifest.yml    
     steps:
       - checkout
-
       - run:
-          name: Build docker image
+          name: Setup Staging Environment
           command: |
-            docker build -t << parameters.image >> -f << parameters.dockerfile >> .
-
-      - when:
-          condition:
-            equal: [ staging, << pipeline.git.branch >> ]
-          steps:
-            run:
-              name: Setup Staging Environment
-              command: |
-                echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
-                echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
-                echo "export CF_SPACE=staging" >> $BASH_ENV
-                echo "export CF_APP=<< parameters.app >>-staging" >> $BASH_ENV
-                echo "export CF_VARS_FILE=./.cloudgov/vars/staging.yml" >> $BASH_ENV     
+            echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
+            echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
+            echo "export CF_SPACE=staging" >> $BASH_ENV
+            echo "export CF_APP=<< parameters.app >>-staging" >> $BASH_ENV
+            echo "export CF_VARS_FILE=./.cloudgov/vars/staging.yml" >> $BASH_ENV     
            
       # - when:
       #     condition:
@@ -168,23 +158,7 @@ jobs:
       #           echo "export CF_VARS_FILE=./.cloudgov/vars/production.yml" >> $BASH_ENV
 
       - run:
-          name: Authenticate with ECR
-          command: |
-            echo "export AWS_ACCESS_KEY_ID=$AWS_ECR_WRITE_KEY" >> $BASH_ENV
-            echo "export AWS_SECRET_ACCESS_KEY=$AWS_ECR_WRITE_SECRET" >> $BASH_ENV
-            aws ecr get-login-password --region us-gov-west-1 | docker login --username AWS --password-stdin 441879447884.dkr.ecr.us-gov-west-1.amazonaws.com
-
-      - run:
-          name: Tag docker image
-          command: |
-            docker tag << parameters.image >> 441879447884.dkr.ecr.us-gov-west-1.amazonaws.com/federalist/garden-build:staging
-                
-      - run:
-          name: Push docker image to registry
-          command: |
-            docker push 441879447884.dkr.ecr.us-gov-west-1.amazonaws.com/federalist/garden-build:staging
-
-      - deploy:
+          name: Deploy to cloud.gov
           command: |
             echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET" >> $BASH_ENV
             ./.cloudgov/deploy.sh
@@ -195,6 +169,7 @@ workflows:
   build-test-deploy:
     jobs:
       - test
+
       - build-and-deploy:
           app: federalist-build-container
           image: federalist-garden-build
@@ -205,6 +180,7 @@ workflows:
             branches:
               only:
                 - main
+
       - build-and-deploy:
           app: federalist-build-container-exp
           image: federalist-garden-build-exp
@@ -215,22 +191,54 @@ workflows:
             branches:
               only:
                 - main
-      - build-and-deploy-ecr:
-          app: federalist-build-container
-          image: federalist-garden-build
+
+      - aws-ecr/build-and-push-image:
+          name: BuildAndPushApp
+          account-url: AWS_ECR_URL
+          aws-access-key-id: AWS_ECR_WRITE_KEY
+          aws-secret-access-key: AWS_ECR_WRITE_SECRET
           dockerfile: Dockerfile
+          region: AWS_ECR_REGION
+          repo: federalist/garden-build
+          tag: staging
           requires:
             - test
           filters:
             branches:
               only:
                 - staging
-      - build-and-deploy-ecr:
-          app: federalist-build-container-exp
-          image: federalist-garden-build-exp
+
+      - deploy-from-ecr:
+          name: DeployApp
+          app: federalist-build-container
+          requires:
+            - BuildAndPushApp
+          filters:
+            branches:
+              only:
+                - staging
+
+      - aws-ecr/build-and-push-image:
+          name: BuildAndPushExp
+          account-url: AWS_ECR_URL
+          aws-access-key-id: AWS_ECR_WRITE_KEY
+          aws-secret-access-key: AWS_ECR_WRITE_SECRET
           dockerfile: Dockerfile-exp
+          region: AWS_ECR_REGION
+          repo: federalist/garden-build
+          tag: staging-exp
           requires:
             - test
+          filters:
+            branches:
+              only:
+                - staging
+
+      - deploy-from-ecr:
+          name: DeployExp
+          app: federalist-build-container-exp
+          requires:
+            - BuildAndPushExp
           filters:
             branches:
               only:
