@@ -207,21 +207,16 @@ workflows:
             branches:
               only:
                 - staging
-                - dc/fix-ecr-deploy
 
       - deploy-from-ecr:
           name: DeployApp
           app: federalist-build-container
-          # account-url: AWS_ECR_URL
-          # repo: federalist/garden-build
-          # tag: staging
           requires:
             - BuildAndPushApp
           filters:
             branches:
               only:
                 - staging
-                - dc/fix-ecr-deploy
 
       - aws-ecr/build-and-push-image:
           name: BuildAndPushExp
@@ -238,18 +233,13 @@ workflows:
             branches:
               only:
                 - staging
-                - dc/fix-ecr-deploy
 
       - deploy-from-ecr:
           name: DeployExp
           app: federalist-build-container-exp
-          # account-url: AWS_ECR_URL
-          # repo: federalist/garden-build
-          # tag: staging-exp
           requires:
             - BuildAndPushExp
           filters:
             branches:
               only:
                 - staging
-                - dc/fix-ecr-deploy
