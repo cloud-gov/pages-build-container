@@ -169,6 +169,7 @@ workflows:
   build-test-deploy:
     jobs:
       - test
+
       - build-and-deploy:
           app: federalist-build-container
           image: federalist-garden-build
@@ -179,6 +180,7 @@ workflows:
             branches:
               only:
                 - main
+
       - build-and-deploy:
           app: federalist-build-container-exp
           image: federalist-garden-build-exp
@@ -191,6 +193,7 @@ workflows:
                 - main
 
       - aws-ecr/build-and-push-image:
+          name: BuildAndPushApp
           account-url: AWS_ECR_URL
           aws-access-key-id: AWS_ECR_WRITE_KEY
           aws-secret-access-key: AWS_ECR_WRITE_SECRET
@@ -207,26 +210,46 @@ workflows:
                 - dc/fix-ecr-deploy
 
       - deploy-from-ecr:
+          name: DeployApp
           app: federalist-build-container
           # account-url: AWS_ECR_URL
           # repo: federalist/garden-build
           # tag: staging
           requires:
-            - aws-ecr/build-and-push-image
+            - BuildAndPushApp
           filters:
             branches:
               only:
                 - staging
                 - dc/fix-ecr-deploy
 
-      # - build-and-deploy-ecr:
-      #     app: federalist-build-container-exp
-      #     image: federalist-garden-build-exp
-      #     dockerfile: Dockerfile-exp
-      #     requires:
-      #       - test
-      #     filters:
-      #       branches:
-      #         only:
-      #           - staging
-      #           - dc/fix-ecr-deploy
+      - aws-ecr/build-and-push-image:
+          name: BuildAndPushExp
+          account-url: AWS_ECR_URL
+          aws-access-key-id: AWS_ECR_WRITE_KEY
+          aws-secret-access-key: AWS_ECR_WRITE_SECRET
+          dockerfile: Dockerfile-exp
+          region: AWS_ECR_REGION
+          repo: federalist/garden-build
+          tag: staging-exp
+          requires:
+            - test
+          filters:
+            branches:
+              only:
+                - staging
+                - dc/fix-ecr-deploy
+
+      - deploy-from-ecr:
+          name: DeployExp
+          app: federalist-build-container-exp
+          # account-url: AWS_ECR_URL
+          # repo: federalist/garden-build
+          # tag: staging-exp
+          requires:
+            - BuildAndPushExp
+          filters:
+            branches:
+              only:
+                - staging
+                - dc/fix-ecr-deploy
