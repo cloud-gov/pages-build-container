@@ -1,3 +1,2 @@
 env: dev
 env_postfix: -dev
-image: 441879447884.dkr.ecr.us-gov-west-1.amazonaws.com/federalist/garden-build:staging

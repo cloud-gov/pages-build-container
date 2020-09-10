@@ -1,3 +1,2 @@
 env: production
 env_postfix: ''
-image: federalist-registry.fr.cloud.gov/federalist-garden-build

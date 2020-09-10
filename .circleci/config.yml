@@ -91,7 +91,7 @@ jobs:
       - run:
           name: Deploy to cloud.gov
           command: |
-            echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET" >> $BASH_ENV
+            echo "export AWS_ECR_IMAGE=$AWS_ECR_URL/federalist/garden-build:<< parameters.space >><< parameters.extension >>" >> $BASH_ENV
             ./.cloudgov/deploy.sh
 
 
@@ -113,7 +113,9 @@ workflows:
             - test
           filters:
             branches:
-              only: staging
+              only:
+                - staging
+                - dc/update-aws-keys
 
       - build-push-deploy:
           app: federalist-build-container<< matrix.extension >>
