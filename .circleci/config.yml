@@ -113,9 +113,7 @@ workflows:
             - test
           filters:
             branches:
-              only:
-                - staging
-                - dc/update-aws-keys
+              only: staging
 
       - build-push-deploy:
           app: federalist-build-container<< matrix.extension >>
