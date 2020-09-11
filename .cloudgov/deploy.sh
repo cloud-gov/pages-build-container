@@ -27,6 +27,10 @@ cf7 login -u $CF_USERNAME -p $CF_PASSWORD -o $CF_ORGANIZATION -s $CF_SPACE
 
 echo "Deploying to $CF_SPACE space."
 DEPLOY_STARTED=true
-cf7 push $CF_APP --vars-file $CF_VARS_FILE -f $CF_MANIFEST
+CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET cf7 push $CF_APP \
+  --vars-file $CF_VARS_FILE \
+  -f $CF_MANIFEST \
+  --docker-image $AWS_ECR_IMAGE \
+  --docker-username $AWS_ECR_READ_KEY
 
 cf7 logout
