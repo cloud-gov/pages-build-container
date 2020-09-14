@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  aws-ecr: circleci/aws-ecr@6.12.2
+
 jobs:
   test:
     docker:
@@ -44,82 +47,52 @@ jobs:
       - store_artifacts:
           path: ./coverage/coverage.xml
 
-  
-  build-and-deploy:
-    machine: true
+
+  build-push-deploy:
+    executor: aws-ecr/default
+
+    environment:
+      CF_MANIFEST: ./.cloudgov/manifest.yml
+
     parameters:
       app:
-        type: string      
-      image:
         type: string
-      dockerfile:
-        type: string
-    environment:
-      CF_MANIFEST: ./.cloudgov/manifest.yml    
+      extension:
+        default: ""
+        type: enum
+        enum: ["", "-exp"]
+      space:
+        type: enum
+        enum: ["staging", "production"]
+      cf-username:
+        type: env_var_name
+      cf-password:
+        type: env_var_name
+
     steps:
-      - checkout
+      - aws-ecr/build-and-push-image:
+          account-url: AWS_ECR_URL
+          aws-access-key-id: AWS_ECR_WRITE_KEY
+          aws-secret-access-key: AWS_ECR_WRITE_SECRET
+          dockerfile: Dockerfile<< parameters.extension >>
+          region: AWS_ECR_REGION
+          repo: federalist/garden-build
+          tag: << parameters.space >><< parameters.extension >>
 
       - run:
-          name: Build docker image
+          name: Setup environment for space '<< parameters.space >>'
           command: |
-            docker build -t << parameters.image >> -f << parameters.dockerfile >> .
-
-      - when:
-          condition:
-            equal: [ staging, << pipeline.git.branch >> ]
-          steps:
-            run:
-              name: Setup Staging Environment
-              command: |
-                echo "export REGISTRY_ACCESSKEY=$STAGING_REGISTRY_ACCESSKEY" >> $BASH_ENV
-                echo "export REGISTRY_SECRETKEY=$STAGING_REGISTRY_SECRETKEY" >> $BASH_ENV
-                echo "export REGISTRY_BUCKET=$STAGING_REGISTRY_BUCKET" >> $BASH_ENV
-                echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
-                echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
-                echo "export CF_SPACE=staging" >> $BASH_ENV
-                echo "export CF_APP=<< parameters.app >>-staging" >> $BASH_ENV
-                echo "export CF_VARS_FILE=./.cloudgov/vars/staging.yml" >> $BASH_ENV     
-           
-      - when:
-          condition:
-            equal: [ main, << pipeline.git.branch >> ]
-          steps:
-            run:
-              name: Setup Production Environment
-              command: |
-                echo "export REGISTRY_ACCESSKEY=$PRODUCTION_REGISTRY_ACCESSKEY" >> $BASH_ENV
-                echo "export REGISTRY_SECRETKEY=$PRODUCTION_REGISTRY_SECRETKEY" >> $BASH_ENV
-                echo "export REGISTRY_BUCKET=$PRODUCTION_REGISTRY_BUCKET" >> $BASH_ENV
-                echo "export CF_USERNAME=$CF_USERNAME_PRODUCTION" >> $BASH_ENV
-                echo "export CF_PASSWORD=$CF_PASSWORD_PRODUCTION" >> $BASH_ENV
-                echo "export CF_SPACE=production" >> $BASH_ENV
-                echo "export CF_APP=<< parameters.app >>" >> $BASH_ENV
-                echo "export CF_VARS_FILE=./.cloudgov/vars/production.yml" >> $BASH_ENV
+            echo "export CF_USERNAME=$<< parameters.cf-username >>" >> $BASH_ENV
+            echo "export CF_PASSWORD=$<< parameters.cf-password >>" >> $BASH_ENV
+            echo "export CF_SPACE=<< parameters.space >>" >> $BASH_ENV
+            echo "export CF_APP=<< parameters.app >>" >> $BASH_ENV
+            echo "export CF_VARS_FILE=./.cloudgov/vars/<< parameters.space >>.yml" >> $BASH_ENV
 
       - run:
-          name: Run local docker registry
+          name: Deploy to cloud.gov
           command: |
-            docker run -d \
-            -p 5000:5000 \
-            -e REGISTRY_STORAGE="s3" \
-            -e REGISTRY_STORAGE_S3_ACCESSKEY="$REGISTRY_ACCESSKEY" \
-            -e REGISTRY_STORAGE_S3_SECRETKEY="$REGISTRY_SECRETKEY" \
-            -e REGISTRY_STORAGE_S3_BUCKET="$REGISTRY_BUCKET" \
-            -e REGISTRY_STORAGE_S3_REGION="us-gov-west-1" \
-            registry:2
-
-      - run:
-          name: Tag docker image as latest for registry
-          command: |
-            docker tag << parameters.image >> localhost:5000/<< parameters.image >>
-      
-      - run:
-          name: Push docker image to registry
-          command: |
-            docker push localhost:5000/<< parameters.image >>
-
-      - deploy:
-          command: ./.cloudgov/deploy.sh
+            echo "export AWS_ECR_IMAGE=$AWS_ECR_URL/federalist/garden-build:<< parameters.space >><< parameters.extension >>" >> $BASH_ENV
+            ./.cloudgov/deploy.sh
 
 
 workflows:
@@ -127,25 +100,31 @@ workflows:
   build-test-deploy:
     jobs:
       - test
-      - build-and-deploy:
-          app: federalist-build-container
-          image: federalist-garden-build
-          dockerfile: Dockerfile
+
+      - build-push-deploy:
+          app: federalist-build-container<< matrix.extension >>-staging
+          space: staging
+          cf-username: CF_USERNAME_STAGING
+          cf-password: CF_PASSWORD_STAGING
+          matrix:
+            parameters:
+              extension: ["", "-exp"]
           requires:
             - test
           filters:
             branches:
-              only:
-                - staging
-                - main
-      - build-and-deploy:
-          app: federalist-build-container-exp
-          image: federalist-garden-build-exp
-          dockerfile: Dockerfile-exp
+              only: staging
+
+      - build-push-deploy:
+          app: federalist-build-container<< matrix.extension >>
+          space: production
+          cf-username: CF_USERNAME_PRODUCTION
+          cf-password: CF_PASSWORD_PRODUCTION
+          matrix:
+            parameters:
+              extension: ["", "-exp"]
           requires:
             - test
           filters:
             branches:
-              only:
-                - staging
-                - main                
+              only: main

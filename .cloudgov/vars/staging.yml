@@ -1,3 +1,2 @@
 env: staging
 env_postfix: -staging
-image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build

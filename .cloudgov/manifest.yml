@@ -4,8 +4,6 @@ applications:
     no-route: true
     health-check-type: process
     instances: 0
-    docker:
-      image: ((image))
     services:
       - federalist-((env))-rds
       - federalist-((env))-uev-key
@@ -19,8 +17,6 @@ applications:
     no-route: true
     health-check-type: process
     instances: 0
-    docker:
-      image: ((image))-exp
     services:
       - federalist-((env))-rds
       - federalist-((env))-uev-key

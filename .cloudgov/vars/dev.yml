@@ -1,3 +1,2 @@
 env: dev
 env_postfix: -dev
-image: federalist-registry-staging.fr.cloud.gov/federalist-garden-build
