@@ -38,7 +38,7 @@ class TestPublish():
             base_url='/site/prefix',
             site_prefix='site/prefix',
             bucket=TEST_BUCKET,
-            cache_control='max-age: boop',
+            federalist_config={},
             aws_region=TEST_REGION,
             aws_access_key_id=TEST_ACCESS_KEY,
             aws_secret_access_key=TEST_SECRET_KEY
