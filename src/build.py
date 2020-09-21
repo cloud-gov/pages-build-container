@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from stopit import TimeoutException, SignalTimeout as Timeout
 
-from common import WORKING_DIR_PATH
+from common import CLONE_DIR_PATH, WORKING_DIR_PATH
 
 from log_utils import delta_to_mins_secs, get_logger, init_logging
 from log_utils.remote_logs import (
@@ -15,10 +15,12 @@ from log_utils.remote_logs import (
 
 from crypto.decrypt import decrypt
 
+import repo_config
+
 from steps import (
     build_hugo, build_jekyll, build_static,
     download_hugo, fetch_repo, publish, run_federalist_script,
-    setup_bundler, setup_node, setup_ruby, StepException
+    setup_bundler, setup_node, setup_ruby, StepException, update_repo
 )
 
 
@@ -105,6 +107,17 @@ def build(
                 'There was a problem fetching the repository, see the above logs for details.'
             )
 
+            federalist_config = repo_config.from_json_file(
+                CLONE_DIR_PATH,
+                dict(headers=dict([('cache-control', cache_control)]))
+            )
+
+            if federalist_config and federalist_config.full_clone():
+                run_step(
+                    update_repo(CLONE_DIR_PATH),
+                    'There was a problem updating the repository, see the above logs for details.'
+                )
+
             ##
             # BUILD
             #
@@ -167,7 +180,7 @@ def build(
             ##
             # PUBLISH
             #
-            publish(baseurl, site_prefix, bucket, cache_control, aws_default_region,
+            publish(baseurl, site_prefix, bucket, federalist_config, aws_default_region,
                     aws_access_key_id, aws_secret_access_key)
 
             delta_string = delta_to_mins_secs(datetime.now() - start_time)

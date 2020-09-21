@@ -3,12 +3,10 @@ Classes and methods for publishing a directory to S3
 '''
 
 import glob
-import json
 import requests
 
 from os import path, makedirs
 
-from repo_config.repo_config import RepoConfig
 from log_utils import get_logger
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
@@ -72,34 +70,18 @@ def list_remote_objects(bucket, site_prefix, s3_client):
     return remote_objects
 
 
-def load_federalist_json(clone_dir):
-    federalist_json_path = path.join(clone_dir, FEDERALIST_JSON)
-    if path.isfile(federalist_json_path):
-        with open(federalist_json_path) as json_file:
-            return json.load(json_file)
-    return {}
-
-
-def get_cache_control(repo_config, filename, dir_prefix):
+def get_cache_control(federalist_config, filename, dir_prefix):
     filepath = filename
     if dir_prefix and filepath.startswith(dir_prefix):
         filepath = filepath[len(dir_prefix):]
 
-    return repo_config.get_headers_for_path(filepath).get('cache-control')
+    return federalist_config.get_headers_for_path(filepath).get('cache-control')
 
 
-def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
-                  s3_client, clone_dir, dry_run=False):
+def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
+                  s3_client, dry_run=False):
     '''Publishes the given directory to S3'''
     logger = get_logger('publish')
-
-    config_defaults = {
-        'headers': {
-            'cache-control': cache_control
-        }
-    }
-
-    repo_config = RepoConfig(load_federalist_json(clone_dir), config_defaults)
 
     # With glob, dotfiles are ignored by default
     # Note that the filenames will include the `directory` prefix
@@ -114,7 +96,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
     local_files = []
     for filename in files_and_dirs:
         if path.isfile(filename):
-            cache_control = get_cache_control(repo_config, filename, directory)
+            cache_control = get_cache_control(federalist_config, filename, directory)
 
             site_file = SiteFile(filename=filename,
                                  dir_prefix=directory,
@@ -133,7 +115,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, cache_control,
         with open(filename_404, "w+") as f:
             f.write(default_404.text)
 
-        cache_control = get_cache_control(repo_config, filename_404, directory)
+        cache_control = get_cache_control(federalist_config, filename_404, directory)
 
         file_404 = SiteFile(filename=filename_404,
                             dir_prefix=directory,

@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from steps import fetch_repo
+from steps import fetch_repo, update_repo
 from common import CLONE_DIR_PATH
 
 
@@ -37,3 +37,18 @@ class TestCloneRepo():
         mock_get_logger.assert_called_once_with('clone')
 
         mock_run.assert_called_once_with(mock_get_logger.return_value, command)
+
+
+@patch('steps.fetch.run')
+@patch('steps.fetch.get_logger')
+class TestUpdateRepo():
+    def test_runs_expected_cmds(self, mock_get_logger, mock_run):
+        clone_dir = 'clone_dir'
+
+        command = 'git pull --unshallow'
+
+        update_repo(clone_dir)
+
+        mock_get_logger.assert_called_once_with('update')
+
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, cwd=clone_dir)
