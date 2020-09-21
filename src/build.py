@@ -112,7 +112,7 @@ def build(
                 dict(headers=dict([('cache-control', cache_control)]))
             )
 
-            if federalist_config and federalist_config.full_clone():
+            if federalist_config.full_clone():
                 run_step(
                     update_repo(CLONE_DIR_PATH),
                     'There was a problem updating the repository, see the above logs for details.'

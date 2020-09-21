@@ -40,7 +40,7 @@ class RepoConfig:
         return resolved_headers
 
     def full_clone(self):
-        return 'fullClone' in self.config and self.config['fullClone'] is True
+        return self.config.get('fullClone', False) is True
 
 
 def find_first_matching_cfg(headers, path_to_match):
