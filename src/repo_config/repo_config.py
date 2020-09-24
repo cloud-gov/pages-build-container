@@ -4,6 +4,7 @@ class RepoConfig:
 
     The file should look something like:
     {
+        "fullClone": true,
         "headers": [
             "/*": {
                 "cache-control": "no-cache"
@@ -11,7 +12,7 @@ class RepoConfig:
         ]
     }
 
-    Currently, only the `headers` key is read and used/
+    Currently, only the `headers` and `fullClone` keys is read and used
     '''
 
     def __init__(self, config={}, defaults={}):
@@ -37,6 +38,9 @@ class RepoConfig:
                 resolved_headers[key.strip().lower()] = value.strip()
 
         return resolved_headers
+
+    def full_clone(self):
+        return self.config.get('fullClone', False) is True
 
 
 def find_first_matching_cfg(headers, path_to_match):

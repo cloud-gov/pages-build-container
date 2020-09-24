@@ -7,10 +7,10 @@ import boto3
 from publishing import s3publisher
 
 from log_utils import delta_to_mins_secs, get_logger
-from common import CLONE_DIR_PATH, SITE_BUILD_DIR_PATH
+from common import SITE_BUILD_DIR_PATH
 
 
-def publish(base_url, site_prefix, bucket, cache_control,
+def publish(base_url, site_prefix, bucket, federalist_config,
             aws_region, aws_access_key_id, aws_secret_access_key,
             dry_run=False):
     '''
@@ -34,9 +34,8 @@ def publish(base_url, site_prefix, bucket, cache_control,
         base_url=base_url,
         site_prefix=site_prefix,
         bucket=bucket,
-        cache_control=cache_control,
+        federalist_config=federalist_config,
         s3_client=s3_client,
-        clone_dir=str(CLONE_DIR_PATH),
         dry_run=dry_run
     )
 

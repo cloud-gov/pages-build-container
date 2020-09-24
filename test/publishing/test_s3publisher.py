@@ -1,5 +1,4 @@
 import boto3
-import json
 import pytest
 import requests_mock
 
@@ -7,6 +6,8 @@ from moto import mock_s3
 
 from publishing.s3publisher import list_remote_objects, publish_to_s3
 from publishing.models import SiteObject
+
+import repo_config
 
 TEST_BUCKET = 'test-bucket'
 TEST_REGION = 'test-region'
@@ -84,26 +85,23 @@ def test_publish_to_s3(tmpdir, s3_client):
 
     _make_fake_files(test_dir, filenames)
 
-    # Make a federalist.json file!
-    repo_config = {
-        'headers': [
-            {'/index.html': {'cache-control': 'no-cache'}},
-            {'/*.txt': {'cache-control': 'max-age=1000'}}
-        ]
-    }
-    clone_dir = tmpdir.mkdir('clone_dir')
-    federalist_json_file = clone_dir.join('federalist.json')
-    with federalist_json_file.open('w') as json_file:
-        return json.dump(repo_config, json_file)
+    federalist_config = repo_config.from_object(
+        {
+            'headers': [
+                {'/index.html': {'cache-control': 'no-cache'}},
+                {'/*.txt': {'cache-control': 'max-age=1000'}}
+            ]
+        },
+        dict(headers=dict([('cache-control', 'max-age=60')]))
+    )
 
     publish_kwargs = {
         'directory': str(test_dir),
         'base_url': '/base_url',
         'site_prefix': site_prefix,
         'bucket': TEST_BUCKET,
-        'cache_control': 'max-age=10',
+        'federalist_config': federalist_config,
         's3_client': s3_client,
-        'clone_dir': str(clone_dir)
     }
 
     # Create mock for default 404 page request

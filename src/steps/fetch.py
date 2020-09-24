@@ -45,3 +45,16 @@ def fetch_repo(owner, repository, branch, github_token=''):  # nosec
     )
 
     return run(logger, command)
+
+
+def update_repo(clone_dir):
+    '''
+    Updates the repo with the full git history
+    '''
+    logger = get_logger('update')
+
+    logger.info('Fetching full git history')
+
+    command = 'git pull --unshallow'
+
+    return run(logger, command, cwd=clone_dir)
