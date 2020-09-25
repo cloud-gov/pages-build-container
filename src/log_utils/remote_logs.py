@@ -29,47 +29,33 @@ def post_status(status_callback_url, status, output=''):
     )
 
 
-def post_build_complete(status_callback_url, builder_callback_url):
+def post_build_complete(status_callback_url):
     '''
-    POSTs a STATUS_CODE_COMPLETE status to the status_callback_url
-    and issues a DELETE to the builder_callback_url.
+    POST a STATUS_COMPLETE status to the status_callback_url
     '''
     post_status(status_callback_url, status=STATUS_COMPLETE)
 
-    # Send a DELETE to the Federalist build scheduler to alert that the
-    # container is available
-    requests.delete(builder_callback_url)
 
-
-def post_build_error(status_callback_url, builder_callback_url, error_output):
+def post_build_error(status_callback_url, error_output):
     '''
-    Sends build error notifications and output to the given callbacks.
+    POST a STATUS_ERROR status with message to the status_callback_url
     '''
     # Post to the Federalist web application endpoint with status and output
     post_status(status_callback_url, status=STATUS_ERROR, output=error_output)
 
-    # Send a DELETE to the Federalist build scheduler to alert that
-    # the container is available
-    requests.delete(builder_callback_url)
-
 
 def post_build_processing(status_callback_url):
     '''
-    POSTs a STATUS_CODE_BEGIN status to the status_callback_url
-    and issues a DELETE to the builder_callback_url.
+    POST a STATUS_PROCESSING status to the status_callback_url
     '''
     post_status(status_callback_url, status=STATUS_PROCESSING)
 
 
-def post_build_timeout(status_callback_url, builder_callback_url):
+def post_build_timeout(status_callback_url):
     '''
-    Sends timeout error notifications to the given callbacks.
+    POST a STATUS_ERROR status with timeout message to the status_callback_url
     '''
     output = 'The build did not complete. It may have timed out.'
 
     # Post to the Federalist web application with status and output
     post_status(status_callback_url, status=STATUS_ERROR, output=output)
-
-    # Send a DELETE to the Federalist build scheduler to alert that the
-    # container is available
-    requests.delete(builder_callback_url)
