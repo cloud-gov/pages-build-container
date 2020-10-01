@@ -64,7 +64,6 @@ When running locally, environment variables are configured in `docker-compose.ym
 | `aws_default_region` | N | | AWS region for the destination S3 bucket |
 | `bucket` | N | | AWS S3 bucket name for the destination S3 bucket |
 | `github_token` | Y | `None` | GitHub auth token for cloning the repository |
-| `federalist_builder_callback` | N | | The URL the container should use to let [federalist-builder](https://github.com/18F/federalist-builder) know that it has finished |
 | `status_callback` | N | | The URL the container should use to report the status of the completed build (ie, success or failure) |
 | `config` | Y | `None` | A yaml block of configuration to add to `_config.yml` before building. Currently only used in `jekyll` site builds |
 | `generator` | N | | The engine to use to build the site (`'jekyll'`, `'hugo'`, `'node.js'`, or `'static'`) |

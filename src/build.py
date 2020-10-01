@@ -33,7 +33,6 @@ def build(
     aws_access_key_id,
     aws_default_region,
     aws_secret_access_key,
-    federalist_builder_callback,
     status_callback,
     baseurl,
     branch,
@@ -187,7 +186,7 @@ def build(
             logger.info(f'Total build time: {delta_string}')
 
             # Finished!
-            post_build_complete(status_callback, federalist_builder_callback)
+            post_build_complete(status_callback)
 
             sys.exit(0)
 
@@ -197,12 +196,12 @@ def build(
         with a non-zero return code
         '''
         logger.error(str(err))
-        post_build_error(status_callback, federalist_builder_callback, str(err))
+        post_build_error(status_callback, str(err))
         sys.exit(1)
 
     except TimeoutException:
         logger.warning(f'Build({build_info}) has timed out')
-        post_build_timeout(status_callback, federalist_builder_callback)
+        post_build_timeout(status_callback)
 
     except Exception as err:  # pylint: disable=W0703
         # Getting here means something really weird has happened
@@ -222,9 +221,7 @@ def build(
             'again and contact federalist-support if it persists.'
         )
 
-        post_build_error(status_callback,
-                         federalist_builder_callback,
-                         err_message)
+        post_build_error(status_callback, err_message)
 
 
 def decrypt_uevs(key, uevs):
