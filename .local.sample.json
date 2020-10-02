@@ -4,7 +4,6 @@
   "aws_secret_access_key": "SECRET ACCESS KEY",
   "bucket": "BUCKET",
   "github_token": "TOKEN",
-  "federalist_builder_callback": "http://echoserver:8989/builder",
   "status_callback": "http://echoserver:8989/status",
   "baseurl": "/",
   "config": "",
