@@ -44,6 +44,17 @@ RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key
   && apt-get install -y google-chrome-unstable --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
+# Install Yarn
+ENV YARN_VERSION 1.22.5
+RUN curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz" \
+  && curl -fsSLO --compressed "https://yarnpkg.com/downloads/$YARN_VERSION/yarn-v$YARN_VERSION.tar.gz.asc" \
+  && gpg --batch --verify yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz \
+  && mkdir -p /opt \
+  && tar -xzf yarn-v$YARN_VERSION.tar.gz -C /opt/ \
+  && ln -s /opt/yarn-v$YARN_VERSION/bin/yarn /usr/local/bin/yarn \
+  && ln -s /opt/yarn-v$YARN_VERSION/bin/yarnpkg /usr/local/bin/yarnpkg \
+  && rm yarn-v$YARN_VERSION.tar.gz.asc yarn-v$YARN_VERSION.tar.gz
+
 WORKDIR /app
 
 COPY ./requirements.txt ./requirements.txt
