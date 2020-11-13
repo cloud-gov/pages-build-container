@@ -120,7 +120,7 @@ def setup_node():
                     echo "Please upgrade to LTS major version 12 or 14, see https://nodejs.org/en/about/releases/ for details."
                     exit 1
                 fi
-            """)
+            """)  # noqa: E501
         else:
             # output node and npm versions if the defaults are used
             logger.info('Using default node version')
