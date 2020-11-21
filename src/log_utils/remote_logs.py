@@ -16,7 +16,7 @@ def b64string(text):
     return base64.b64encode(text.encode('utf-8')).decode('utf-8')
 
 
-def post_status(status_callback_url, status, output=''):
+def post_status(status_callback_url, status, output='', commit_sha=None):
     '''
     POSTs `status` and `output` to the `status_callback_url`
     '''
@@ -25,23 +25,24 @@ def post_status(status_callback_url, status, output=''):
         json={
             'status': status,
             'message': b64string(output),
+            'commit_sha': commit_sha,
         }
     )
 
 
-def post_build_complete(status_callback_url):
+def post_build_complete(status_callback_url, commit_sha):
     '''
     POST a STATUS_COMPLETE status to the status_callback_url
     '''
-    post_status(status_callback_url, status=STATUS_COMPLETE)
+    post_status(status_callback_url, status=STATUS_COMPLETE, commit_sha=commit_sha)
 
 
-def post_build_error(status_callback_url, error_output):
+def post_build_error(status_callback_url, error_output, commit_sha=None):
     '''
     POST a STATUS_ERROR status with message to the status_callback_url
     '''
     # Post to the Federalist web application endpoint with status and output
-    post_status(status_callback_url, status=STATUS_ERROR, output=error_output)
+    post_status(status_callback_url, status=STATUS_ERROR, output=error_output, commit_sha=commit_sha)
 
 
 def post_build_processing(status_callback_url):
@@ -51,11 +52,11 @@ def post_build_processing(status_callback_url):
     post_status(status_callback_url, status=STATUS_PROCESSING)
 
 
-def post_build_timeout(status_callback_url):
+def post_build_timeout(status_callback_url, commit_sha=None):
     '''
     POST a STATUS_ERROR status with timeout message to the status_callback_url
     '''
     output = 'The build did not complete. It may have timed out.'
 
     # Post to the Federalist web application with status and output
-    post_status(status_callback_url, status=STATUS_ERROR, output=output)
+    post_status(status_callback_url, status=STATUS_ERROR, output=output, commit_sha=commit_sha)
