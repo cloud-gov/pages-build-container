@@ -17,7 +17,9 @@ class TestPostBuildComplete():
         commit_sha = 'testSha1'
         post_build_complete(MOCK_STATUS_URL, commit_sha)
         mock_post.assert_called_once_with(
-            MOCK_STATUS_URL, json={'status': STATUS_COMPLETE, 'message': '', 'commit_sha': commit_sha})
+            MOCK_STATUS_URL,
+            json={'status': STATUS_COMPLETE, 'message': '', 'commit_sha': commit_sha}
+        )
 
 
 class TestPostBuildProcessing():
@@ -39,7 +41,9 @@ class TestPostBuildError():
 
         mock_post.assert_any_call(
             MOCK_STATUS_URL,
-            json={'status': STATUS_ERROR, 'message': b64string('error msg'), 'commit_sha': commit_sha}
+            json={
+                'status': STATUS_ERROR, 'message': b64string('error msg'), 'commit_sha': commit_sha
+            }
         )
 
 

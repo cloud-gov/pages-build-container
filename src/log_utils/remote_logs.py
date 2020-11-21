@@ -42,7 +42,9 @@ def post_build_error(status_callback_url, error_output, commit_sha=None):
     POST a STATUS_ERROR status with message to the status_callback_url
     '''
     # Post to the Federalist web application endpoint with status and output
-    post_status(status_callback_url, status=STATUS_ERROR, output=error_output, commit_sha=commit_sha)
+    post_status(
+        status_callback_url, status=STATUS_ERROR, output=error_output, commit_sha=commit_sha
+    )
 
 
 def post_build_processing(status_callback_url):

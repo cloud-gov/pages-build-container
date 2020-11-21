@@ -60,6 +60,7 @@ def update_repo(clone_dir):
 
     return run(logger, command, cwd=clone_dir)
 
+
 def fetch_commit_sha(clone_dir):
     '''
     fetch the last commitSHA
@@ -67,7 +68,10 @@ def fetch_commit_sha(clone_dir):
     logger = get_logger('clone')
     logger.info('Fetching commit details')
     command = 'git log -1'  # get last commit only
-    process = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=clone_dir)
+    process = subprocess.run(
+        command, shell=True, check=True, stdout=subprocess.PIPE,
+        universal_newlines=True, cwd=clone_dir
+    )
     commit_log = process.stdout
     logger.info(commit_log)  # display last commit details in log
     commit_sha = shlex.split(commit_log)[1]
