@@ -62,12 +62,12 @@ class TestFetchCommitSHA():
         mock_run.return_value = subprocess.CompletedProcess([], 0, 'commit testSha blah blah blah')
         clone_dir = 'clone_dir'
 
-        command = 'git log -1'
+        command = ['git', 'log', '-1']
         commit_sha = fetch_commit_sha(clone_dir)
 
         mock_get_logger.assert_called_once_with('clone')
         mock_run.assert_called_once_with(
-            command, shell=True, check=True, stdout=subprocess.PIPE,
+            command, check=True, stdout=subprocess.PIPE,
             universal_newlines=True, cwd=clone_dir
         )
         assert commit_sha == 'testSha'
