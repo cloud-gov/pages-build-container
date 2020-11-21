@@ -68,7 +68,7 @@ def fetch_commit_sha(clone_dir):
     logger = get_logger('clone')
     logger.info('Fetching commit details')
     command = shlex.split('git log -1')  # get last commit only
-    process = subprocess.run(# nosec
+    process = subprocess.run(  # nosec
         command,
         shell=False,
         check=True,
