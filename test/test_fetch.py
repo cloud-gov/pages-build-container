@@ -67,7 +67,11 @@ class TestFetchCommitSHA():
 
         mock_get_logger.assert_called_once_with('clone')
         mock_run.assert_called_once_with(
-            command, shell=True, check=True, stdout=subprocess.PIPE,
-            universal_newlines=True, cwd=clone_dir
+            command,
+            shell=False,  # nosec
+            check=True,
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
+            cwd=clone_dir
         )
         assert commit_sha == 'testSha'
