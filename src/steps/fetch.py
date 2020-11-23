@@ -7,6 +7,7 @@ import subprocess  # nosec
 from log_utils import get_logger
 from runner import run
 from common import (REPO_BASE_URL, CLONE_DIR_PATH)
+from steps import StepException
 
 
 def fetch_url(owner, repository, access_token=''):  # nosec
@@ -65,18 +66,21 @@ def fetch_commit_sha(clone_dir):
     '''
     fetch the last commitSHA
     '''
-    logger = get_logger('clone')
-    logger.info('Fetching commit details')
-    command = shlex.split('git log -1')  # get last commit only
-    process = subprocess.run(  # nosec
-        command,
-        shell=False,
-        check=True,
-        stdout=subprocess.PIPE,
-        universal_newlines=True,
-        cwd=clone_dir
-    )
-    commit_log = process.stdout
-    logger.info(commit_log)  # display last commit details in log
-    commit_sha = shlex.split(commit_log)[1]
-    return commit_sha
+    try:
+        logger = get_logger('clone')
+        logger.info('Fetching commit details')
+        command = shlex.split('git log -1')  # get last commit only
+        process = subprocess.run(  # nosec
+            command,
+            shell=False,
+            check=True,
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
+            cwd=clone_dir
+        )
+        commit_log = process.stdout
+        logger.info(commit_log)  # display last commit details in log
+        commit_sha = commit_log.split()[1]
+        return commit_sha
+    except Exception as err:
+        raise StepException('There was a problem fetching the commit hash for this build')
