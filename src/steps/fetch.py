@@ -82,5 +82,5 @@ def fetch_commit_sha(clone_dir):
         logger.info(commit_log)  # display last commit details in log
         commit_sha = commit_log.split()[1]
         return commit_sha
-    except Exception as err:
+    except Exception:
         raise StepException('There was a problem fetching the commit hash for this build')
