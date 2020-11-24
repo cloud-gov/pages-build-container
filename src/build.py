@@ -18,8 +18,8 @@ from crypto.decrypt import decrypt
 import repo_config
 
 from steps import (
-    build_hugo, build_jekyll, build_static,
-    download_hugo, fetch_repo, publish, run_federalist_script,
+    build_hugo, build_jekyll, build_static, download_hugo,
+    fetch_repo, publish, run_federalist_script, fetch_commit_sha,
     setup_bundler, setup_node, setup_ruby, StepException, update_repo
 )
 
@@ -59,6 +59,7 @@ def build(
     WORKING_DIR_PATH.mkdir(exist_ok=True)
 
     logger = None
+    commit_sha = None
 
     cache_control = os.getenv('CACHE_CONTROL', 'max-age=60')
     database_url = os.environ['DATABASE_URL']
@@ -105,6 +106,8 @@ def build(
                 fetch_repo(owner, repository, branch, github_token),
                 'There was a problem fetching the repository, see the above logs for details.'
             )
+
+            commit_sha = fetch_commit_sha(CLONE_DIR_PATH)
 
             federalist_config = repo_config.from_json_file(
                 CLONE_DIR_PATH,
@@ -186,7 +189,7 @@ def build(
             logger.info(f'Total build time: {delta_string}')
 
             # Finished!
-            post_build_complete(status_callback)
+            post_build_complete(status_callback, commit_sha)
 
             sys.exit(0)
 
@@ -196,12 +199,12 @@ def build(
         with a non-zero return code
         '''
         logger.error(str(err))
-        post_build_error(status_callback, str(err))
+        post_build_error(status_callback, str(err), commit_sha)
         sys.exit(1)
 
     except TimeoutException:
         logger.warning(f'Build({build_info}) has timed out')
-        post_build_timeout(status_callback)
+        post_build_timeout(status_callback, commit_sha)
 
     except Exception as err:  # pylint: disable=W0703
         # Getting here means something really weird has happened
@@ -221,7 +224,7 @@ def build(
             'again and contact federalist-support if it persists.'
         )
 
-        post_build_error(status_callback, err_message)
+        post_build_error(status_callback, err_message, commit_sha)
 
 
 def decrypt_uevs(key, uevs):
