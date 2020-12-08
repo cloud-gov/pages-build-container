@@ -53,16 +53,8 @@ class TestSetupNode():
         mock_logger = mock_get_logger.return_value
 
         mock_logger.info.assert_called_with(
-            'Using node version specified in .nvmrc'
+            'Checking node version specified in .nvmrc'
         )
-
-        def callp(cmd):
-            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True, node=True)
-
-        mock_run.assert_has_calls([
-            callp('nvm install'),
-            callp('nvm use')
-        ])
 
     def test_installs_production_deps(self, mock_get_logger, mock_run, patch_clone_dir):
         create_file(patch_clone_dir / PACKAGE_JSON)
