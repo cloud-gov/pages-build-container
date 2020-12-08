@@ -23,7 +23,7 @@ RUN dpkg-reconfigure --frontend noninteractive locales
 # Default to Node 12 (erbium)
 ENV NVM_DIR /usr/local/nvm
 RUN mkdir $NVM_DIR \
-  && curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash \
+  && curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash \
   && . "$NVM_DIR/nvm.sh" \
   && nvm install 'lts/erbium'
 
