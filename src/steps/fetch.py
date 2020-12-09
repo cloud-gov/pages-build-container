@@ -68,7 +68,7 @@ def fetch_commit_sha(clone_dir):
     '''
     try:
         logger = get_logger('clone')
-        logger.info('Fetching commit details')
+        logger.info('Fetching commit details ...')
         command = shlex.split('git log -1')  # get last commit only
         process = subprocess.run(  # nosec
             command,
@@ -79,8 +79,8 @@ def fetch_commit_sha(clone_dir):
             cwd=clone_dir
         )
         commit_log = process.stdout
-        logger.info(commit_log)  # display last commit details in log
         commit_sha = commit_log.split()[1]
+        logger.info(f'commit {commit_sha}')
         return commit_sha
     except Exception:
         raise StepException('There was a problem fetching the commit hash for this build')
