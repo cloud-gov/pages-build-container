@@ -107,9 +107,20 @@ def setup_node():
         NVMRC_PATH = CLONE_DIR_PATH / NVMRC
         if NVMRC_PATH.is_file():
             # nvm will output the node and npm versions used
-            logger.info('Using node version specified in .nvmrc')
-            runp('nvm install')
-            runp('nvm use')
+            logger.info('Checking node version specified in .nvmrc')
+            runp("""
+                RAW_VERSION=$(nvm version-remote $(cat .nvmrc))
+                MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
+                if [[ "$MAJOR_VERSION" =~ ^(10|12|14)$ ]]; then
+                    echo "Using specified node version $RAW_VERSION"
+                    nvm install $RAW_VERSION
+                    nvm use $RAW_VERSION
+                else
+                    echo "Unsupported node major version '$MAJOR_VERSION' specified in .nvmrc."
+                    echo "Please upgrade to LTS major version 12 or 14, see https://nodejs.org/en/about/releases/ for details."
+                    exit 1
+                fi
+            """)  # noqa: E501
         else:
             # output node and npm versions if the defaults are used
             logger.info('Using default node version')

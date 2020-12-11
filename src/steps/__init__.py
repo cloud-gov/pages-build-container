@@ -4,7 +4,7 @@ from .build import (
     setup_node, setup_ruby,
 )
 from .exceptions import StepException
-from .fetch import fetch_repo, update_repo
+from .fetch import fetch_repo, update_repo, fetch_commit_sha
 from .publish import publish
 
 __all__ = [
@@ -20,4 +20,5 @@ __all__ = [
     'setup_ruby',
     'StepException',
     'update_repo',
+    'fetch_commit_sha',
 ]

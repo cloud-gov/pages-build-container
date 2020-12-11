@@ -20,14 +20,12 @@ ENV LC_ALL en_US.UTF-8
 
 RUN dpkg-reconfigure --frontend noninteractive locales
 
-# Install nvm and install versions 8 and 10
+# Default to Node 12 (erbium)
 ENV NVM_DIR /usr/local/nvm
-ENV NODE_DEFAULT_VERSION 10
-RUN curl https://raw.githubusercontent.com/creationix/nvm/v0.31.3/install.sh | bash \
+RUN mkdir $NVM_DIR \
+  && curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash \
   && . "$NVM_DIR/nvm.sh" \
-  && nvm install $NODE_DEFAULT_VERSION \
-  && nvm install 8 \
-  && nvm use $NODE_DEFAULT_VERSION
+  && nvm install 'lts/erbium'
 
 # Install ruby via rvm
 ENV RUBY_VERSION 2.6.6
