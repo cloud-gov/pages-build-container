@@ -24,7 +24,7 @@ One of the following flags *must* be specified:
 
 ### Using cloud.gov tasks
 ```
-cf7 run-task <APP_NAME> "cd app && python main.py [options]"
+cf run-task <APP_NAME> "cd app && python main.py [options]"
 ```
 
 ### Using `docker-compose`
@@ -36,7 +36,7 @@ docker-compose run --rm app python main.py [options]
 ```
 # build arguments provided as a JSON encoded string
 
-cf7 run-task federalist-build-container "python main.py -p '{\"foo\": \"bar\"}'" --name "build-123"
+cf run-task federalist-build-container "python main.py -p '{\"foo\": \"bar\"}'" --name "build-123"
 ```
 
 ```
