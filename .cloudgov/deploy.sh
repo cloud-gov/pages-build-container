@@ -16,8 +16,8 @@ CF_ORGANIZATION="gsa-18f-federalist"
 
 DEPLOY_STARTED=false
 
-curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
-  && sudo mv cf7 /usr/local/bin/cf
+curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx \
+  && sudo mv cf7 /usr/local/bin/cf \
   && cf version
 
 cf api $CF_API
