@@ -210,7 +210,7 @@ def test_run_with_node(mock_popen):
     run(mock_logger, command, cwd=cwd, env=env, node=True)
 
     mock_popen.assert_called_once_with(
-        f'source {NVM_PATH} && {command}',
+        f'source {NVM_PATH} && nvm use default && {command}',
         cwd=cwd,
         env=env,
         shell=True,  # nosec
