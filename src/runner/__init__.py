@@ -19,7 +19,7 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False, node=Fals
 
     # TODO - refactor to put the appropriate node/npm binaries in PATH so this isn't necessary
     if node:
-        command = f'source {NVM_PATH} && {command}'
+        command = f'source {NVM_PATH} && nvm use default && {command}'
         shell = True
 
     # TODO - refactor to put the appropriate bundler binaries in PATH so this isn't necessary
