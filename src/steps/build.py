@@ -112,9 +112,9 @@ def setup_node():
                 RAW_VERSION=$(nvm version-remote $(cat .nvmrc))
                 MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
                 if [[ "$MAJOR_VERSION" =~ ^(10|12|14)$ ]]; then
-                    echo "Using specified node version $RAW_VERSION"
+                    echo "Switching to node version $RAW_VERSION specified in .nvmrc"
                     nvm install $RAW_VERSION
-                    nvm use $RAW_VERSION
+                    nvm alias default $RAW_VERSION
                 else
                     echo "Unsupported node major version '$MAJOR_VERSION' specified in .nvmrc."
                     echo "Please upgrade to LTS major version 12 or 14, see https://nodejs.org/en/about/releases/ for details."
@@ -124,6 +124,7 @@ def setup_node():
         else:
             # output node and npm versions if the defaults are used
             logger.info('Using default node version')
+            runp('nvm alias default $(nvm version)')
             runp('echo Node version: $(node --version)')
             runp('echo NPM version: $(npm --version)')
 
@@ -298,7 +299,7 @@ def setup_bundler():
     return runp('bundle install')
 
 
-def update_jekyll_config(federalist_config={}, custom_config=''):
+def update_jekyll_config(federalist_config={}, custom_config_path=''):
     logger = get_logger('build-jekyll')
 
     JEKYLL_CONF_YML_PATH = CLONE_DIR_PATH / JEKYLL_CONFIG_YML
@@ -307,9 +308,10 @@ def update_jekyll_config(federalist_config={}, custom_config=''):
     with JEKYLL_CONF_YML_PATH.open('r') as jekyll_conf_file:
         config_yml = yaml.safe_load(jekyll_conf_file)
 
-    if custom_config:
+    custom_config = {}
+    if custom_config_path:
         try:
-            custom_config = json.loads(custom_config)
+            custom_config = json.loads(custom_config_path)
         except json.JSONDecodeError:
             logger.error('Could not load/parse custom yaml config.')
             return 1
