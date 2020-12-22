@@ -97,7 +97,7 @@ jobs:
           name: Deploy to cloud.gov
           command: |
             ./.cloudgov/deploy.sh
-          env:
+          environment:
             CF_USERNAME:         << parameters.cf-username >>
             CF_PASSWORD:         << parameters.cf-password >>
             CF_SPACE:            << parameters.space >>
