@@ -1,8 +1,104 @@
 version: 2.1
 
+##################################
+##              Orbs            ##
+##################################
 orbs:
   aws-ecr: circleci/aws-ecr@6.12.2
 
+
+##################################
+##            Commands          ##
+##################################
+commands:
+  deploy-to-cg:
+    description: Deploy a cloud foundry app to cloud.gov
+    parameters:
+      manifest:
+        type: string
+        default: ./.cloudgov/manifest.yml
+      action:
+        type: enum
+        enum: ["deploy", "restage"]
+        default: "deploy"
+      app:
+        type: string
+      docker-image:
+        type: string
+        default: ""
+    steps:
+      - run:
+          name: Setup environment
+          command: |
+            if [ "$CIRCLE_BRANCH" = "main" ]; then
+              echo "export CF_SPACE=production" >> $BASH_ENV
+              echo "export CF_USERNAME=$CF_USERNAME_PRODUCTION" >> $BASH_ENV
+              echo "export CF_PASSWORD=$CF_PASSWORD_PRODUCTION" >> $BASH_ENV
+              echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET" >> $BASH_ENV
+              echo "export CF_DOCKER_USERNAME=$AWS_ECR_READ_KEY" >> $BASH_ENV
+            else
+              echo "export CF_SPACE=staging" >> $BASH_ENV
+              echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
+              echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
+              echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET_STAGING" >> $BASH_ENV
+              echo "export CF_DOCKER_USERNAME=$AWS_ECR_READ_KEY_STAGING" >> $BASH_ENV
+            fi
+
+      - run:
+          name: Install cloud foundry cli
+          command: |
+            curl -L "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v7&source=github" | tar -zx
+            sudo mv cf7 /usr/local/bin/cf
+            cf version
+
+      - run:
+          name: Log into cloud.gov
+          command: |
+            cf api https://api.fr.cloud.gov
+            cf login -u $CF_USERNAME -p $CF_PASSWORD -o gsa-18f-federalist -s $CF_SPACE
+
+      - when:
+          condition:
+            equal: ["deploy", << parameters.action >> ]
+          steps:
+            - run:
+                name: Deploy app '<< parameters.app >>'
+                command: |
+                  set +e
+
+                  onerr() {
+                    echo "Deployment failed, cancelling."
+                    cf cancel-deployment << parameters.app >>
+                    cf logout
+                    exit 1
+                  }
+                  trap 'onerr' ERR
+                  
+                  cf push << parameters.app >> \
+                    -f << parameters.manifest >> \
+                    --vars-file "./.cloudgov/vars/${CF_SPACE}.yml" \
+                    --docker-image "<< parameters.docker-image >>" \
+                    --docker-username $CF_DOCKER_USERNAME
+
+
+      - when:
+          condition:
+            equal: ["restage", << parameters.action >> ]
+          steps:
+            - run:
+                name: Restage app '<< parameters.app >>'
+                command: |
+                  cf restage << parameters.app >>
+
+
+      - run:
+          name: Log out from cloud.gov
+          command: cf logout
+
+
+##################################
+##             Jobs             ##
+##################################
 jobs:
   test:
     docker:
@@ -51,9 +147,6 @@ jobs:
   build-push-deploy:
     executor: aws-ecr/default
 
-    environment:
-      CF_MANIFEST: ./.cloudgov/manifest.yml
-
     parameters:
       app:
         type: string
@@ -64,10 +157,6 @@ jobs:
       space:
         type: enum
         enum: ["staging", "production"]
-      cf-username:
-        type: env_var_name
-      cf-password:
-        type: env_var_name
       account-url:
         type: env_var_name
       aws-access-key-id:
@@ -77,11 +166,7 @@ jobs:
       region:
         type: env_var_name
       repo:
-        type: string
-      aws-read-access-key-id:
-        type: env_var_name
-      aws-read-secret-access-key:
-        type: env_var_name        
+        type: string 
 
     steps:
       - aws-ecr/build-and-push-image:
@@ -93,21 +178,28 @@ jobs:
           repo:                  << parameters.repo >>
           tag:                   << parameters.space >><< parameters.extension >>
 
-      - run:
-          name: Deploy to cloud.gov
-          command: |
-            ./.cloudgov/deploy.sh
-          environment:
-            CF_USERNAME:         $<< parameters.cf-username >>
-            CF_PASSWORD:         $<< parameters.cf-password >>
-            CF_SPACE:            << parameters.space >>
-            CF_APP:              << parameters.app >>
-            CF_VARS_FILE:        ./.cloudgov/vars/<< parameters.space >>.yml
-            AWS_ECR_IMAGE:       "<< parameters.account-url >>/<< parameters.repo >>:<< parameters.space >><< parameters.extension >>"
-            AWS_ECR_READ_SECRET: $<< parameters.aws-read-access-key-id >>
-            AWS_ECR_READ_KEY:    $<< parameters.aws-read-secret-access-key >>
+      - deploy-to-cg:
+          app:          << parameters.app >>
+          docker-image: "<< parameters.account-url >>/<< parameters.repo >>:<< parameters.space >><< parameters.extension >>"
 
 
+  restage:
+    docker:
+      - image: cimg/base:2020.01
+    parameters:
+      app:
+        type: string
+    steps:
+      - checkout
+
+      - deploy-to-cg:
+          app:    << parameters.app >>
+          action: restage      
+
+
+##################################
+##          Workflows           ##
+##################################
 workflows:
   version: 2
   build-test-deploy:
@@ -117,15 +209,11 @@ workflows:
       - build-push-deploy:
           app:                        federalist-build-container<< matrix.extension >>-staging
           space:                      staging
-          cf-username:                CF_USERNAME_STAGING
-          cf-password:                CF_PASSWORD_STAGING
           account-url:                AWS_ECR_ACCOUNT_URL_STAGING
           aws-access-key-id:          AWS_ECR_WRITE_KEY_STAGING
           aws-secret-access-key:      AWS_ECR_WRITE_SECRET_STAGING
           region:                     AWS_ECR_REGION_STAGING
-          repo:                       $AWS_ECR_REPO_STAGING
-          aws-read-access-key-id:     AWS_ECR_READ_KEY_STAGING
-          aws-read-secret-access-key: AWS_ECR_READ_SECRET_STAGING
+          repo:                       federalist-staging-ecr
           matrix:
             parameters:
               extension: ["", "-exp"]
@@ -138,15 +226,11 @@ workflows:
       - build-push-deploy:
           app:                        federalist-build-container<< matrix.extension >>
           space:                      production
-          cf-username:                CF_USERNAME_PRODUCTION
-          cf-password:                CF_PASSWORD_PRODUCTION
           account-url:                AWS_ECR_URL
           aws-access-key-id:          AWS_ECR_WRITE_KEY
           aws-secret-access-key:      AWS_ECR_WRITE_SECRET
           region:                     AWS_ECR_REGION
           repo:                       federalist/garden-build
-          aws-read-access-key-id:     AWS_ECR_READ_KEY
-          aws-read-secret-access-key: AWS_ECR_READ_SECRET
           matrix:
             parameters:
               extension: ["", "-exp"]
@@ -155,3 +239,22 @@ workflows:
           filters:
             branches:
               only: main
+  
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 5 * * *"
+          filters:
+            branches:
+              only:
+                - staging
+                - main
+    jobs:
+      - restage:
+          matrix:
+            parameters:
+              app:
+                - federalist-build-container-staging
+                - federalist-build-container-exp-staging
+                - federalist-build-container
+                - federalist-build-container-exp
