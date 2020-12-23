@@ -98,8 +98,8 @@ jobs:
           command: |
             ./.cloudgov/deploy.sh
           environment:
-            CF_USERNAME:         << parameters.cf-username >>
-            CF_PASSWORD:         << parameters.cf-password >>
+            CF_USERNAME:         $<< parameters.cf-username >>
+            CF_PASSWORD:         $<< parameters.cf-password >>
             CF_SPACE:            << parameters.space >>
             CF_APP:              << parameters.app >>
             CF_VARS_FILE:        ./.cloudgov/vars/<< parameters.space >>.yml
