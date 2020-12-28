@@ -25,7 +25,7 @@ commands:
         type: string
       docker-registry-url:
         type: env_var_name
-        default: ""
+        default: "DUMMY_ENV_VAR"
       docker-image:
         type: string
         default: ""
