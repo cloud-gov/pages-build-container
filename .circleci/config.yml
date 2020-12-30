@@ -258,7 +258,18 @@ workflows:
           matrix:
             parameters:
               app:
-                - federalist-build-container-staging
-                - federalist-build-container-exp-staging
                 - federalist-build-container
                 - federalist-build-container-exp
+          filters:
+            branches:
+              only: main
+
+      - restage:
+          matrix:
+            parameters:
+              app:
+                - federalist-build-container-staging
+                - federalist-build-container-exp-staging
+          filters:
+            branches:
+              only: staging                
