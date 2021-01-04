@@ -230,11 +230,11 @@ workflows:
       - build-push-deploy:
           app:                        federalist-build-container<< matrix.extension >>
           space:                      production
-          account-url:                AWS_ECR_URL
-          aws-access-key-id:          AWS_ECR_WRITE_KEY
-          aws-secret-access-key:      AWS_ECR_WRITE_SECRET
-          region:                     AWS_ECR_REGION
-          repo:                       federalist/garden-build
+          account-url:                AWS_ECR_ACCOUNT_URL_PRODUCTION
+          aws-access-key-id:          AWS_ECR_WRITE_KEY_PRODUCTION
+          aws-secret-access-key:      AWS_ECR_WRITE_SECRET_PRODUCTION
+          region:                     AWS_ECR_REGION_PRODUCTION
+          repo:                       federalist-production-ecr
           matrix:
             parameters:
               extension: ["", "-exp"]
