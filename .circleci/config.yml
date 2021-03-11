@@ -251,7 +251,6 @@ workflows:
           filters:
             branches:
               only:
-                - staging
                 - main
     jobs:
       - restage:
@@ -263,13 +262,4 @@ workflows:
           filters:
             branches:
               only: main
-
-      - restage:
-          matrix:
-            parameters:
-              app:
-                - federalist-build-container-staging
-                - federalist-build-container-exp-staging
-          filters:
-            branches:
-              only: staging                
+    
