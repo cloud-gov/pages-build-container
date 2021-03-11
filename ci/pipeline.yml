@@ -210,8 +210,7 @@ resources:
     icon: github
     source:
       uri: https://github.com/18F/federalist-garden-build
-      # branch: staging
-      branch: dc/concourse
+      branch: staging
 
   # - name: src-production
   #   type: git
