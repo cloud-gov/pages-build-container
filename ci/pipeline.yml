@@ -85,11 +85,9 @@ jobs:
           CF_APP_NAME: federalist-build-container-staging
           CF_MANIFEST: src/.cloudgov/manifest.yml
           CF_VARS_FILE: src/.cloudgov/vars/staging.yml
-          CF_PATH: src
-          CF_DOCKER_REGISTRY_URL: ((docker-registry-url))
-          CF_DOCKER_IMAGE: ((docker-registry-url))/federalist-staging-ecr:staging
-          CF_DOCKER_USERNAME: ((aws-ecr-read-key))
-          CF_DOCKER_PASSWORD: ((aws-ecr-read-secret))
+          CF_DOCKER_IMAGE: ((image-repository)):staging
+          CF_DOCKER_USERNAME: ((docker-username))
+          CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
       in_parallel:
         - put: gh-status
@@ -127,11 +125,9 @@ jobs:
           CF_APP_NAME: federalist-build-container-exp-staging
           CF_MANIFEST: src/.cloudgov/manifest.yml
           CF_VARS_FILE: src/.cloudgov/vars/staging.yml
-          CF_PATH: src
-          CF_DOCKER_REGISTRY_URL: ((docker-registry-url))
-          CF_DOCKER_IMAGE: ((docker-registry-url))/federalist-staging-ecr:staging-exp
-          CF_DOCKER_USERNAME: ((aws-ecr-read-key))
-          CF_DOCKER_PASSWORD: ((aws-ecr-read-secret))
+          CF_DOCKER_IMAGE: ((image-repository)):staging-exp
+          CF_DOCKER_USERNAME: ((docker-username))
+          CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
       in_parallel:
         - put: gh-status
@@ -248,18 +244,18 @@ resources:
   - name: build-container-image
     type: docker-image
     source:
-      repository: ((docker-registry-url))/federalist-staging-ecr
+      repository: ((image-repository))
       tag: staging
-      aws_access_key_id: ((aws-ecr-write-key))
-      aws_secret_access_key: ((aws-ecr-write-secret))
+      username: ((docker-username))
+      password: ((docker-password))
       
   - name: build-container-image-exp
     type: docker-image
     source:
-      repository: ((docker-registry-url))/federalist-staging-ecr
+      repository: ((image-repository))
       tag: staging-exp
-      aws_access_key_id: ((aws-ecr-write-key))
-      aws_secret_access_key: ((aws-ecr-write-secret))
+      username: ((docker-username))
+      password: ((docker-password))
 
 
 ############################
