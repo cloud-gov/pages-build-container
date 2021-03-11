@@ -46,7 +46,9 @@ jobs:
           outputs: [name: src]
           run:
             dir: src
-            path: src/ci/tasks/test.sh
+            path: ci/tasks/test.sh
+        params:
+          CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
     on_failure:
       in_parallel:
         - put: gh-status
@@ -70,7 +72,8 @@ jobs:
         params: {depth: 1}
         passed: [test-staging]
       - put: build-container-image
-        params: {dockerfile: Dockerfile}
+        params:
+          build: src
       - task: deploy
         config:
           <<: *cf-image
@@ -110,7 +113,9 @@ jobs:
         params: {depth: 1}
         passed: [test-staging]
       - put: build-container-image-exp
-        params: {dockerfile: Dockerfile-exp}
+        params:
+          build: src
+          dockerfile: src/Dockerfile-exp
       - task: deploy
         config:
           <<: *cf-image
