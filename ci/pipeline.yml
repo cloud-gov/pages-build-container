@@ -208,7 +208,7 @@ resources:
     type: git
     icon: github
     source:
-      uri: https://github.com/18F/federalist-builder
+      uri: https://github.com/18F/federalist-garden-build
       # branch: staging
       branch: dc/concourse
 
@@ -216,7 +216,7 @@ resources:
   #   type: git
   #   icon: github
   #   source:
-  #     uri: https://github.com/18F/federalist-builder
+  #     uri: https://github.com/18F/federalist-garden-build
   #     branch: main
 
   - name: nightly
