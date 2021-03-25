@@ -39,12 +39,6 @@ commands:
               echo "export CF_PASSWORD=$CF_PASSWORD_PRODUCTION" >> $BASH_ENV
               echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET_PRODUCTION" >> $BASH_ENV
               echo "export CF_DOCKER_USERNAME=$AWS_ECR_READ_KEY_PRODUCTION" >> $BASH_ENV
-            else
-              echo "export CF_SPACE=staging" >> $BASH_ENV
-              echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
-              echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
-              echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET_STAGING" >> $BASH_ENV
-              echo "export CF_DOCKER_USERNAME=$AWS_ECR_READ_KEY_STAGING" >> $BASH_ENV
             fi
 
       - run:
@@ -211,23 +205,6 @@ workflows:
       - test
 
       - build-push-deploy:
-          app:                        federalist-build-container<< matrix.extension >>-staging
-          space:                      staging
-          account-url:                AWS_ECR_ACCOUNT_URL_STAGING
-          aws-access-key-id:          AWS_ECR_WRITE_KEY_STAGING
-          aws-secret-access-key:      AWS_ECR_WRITE_SECRET_STAGING
-          region:                     AWS_ECR_REGION_STAGING
-          repo:                       federalist-staging-ecr
-          matrix:
-            parameters:
-              extension: ["", "-exp"]
-          requires:
-            - test
-          filters:
-            branches:
-              only: staging
-
-      - build-push-deploy:
           app:                        federalist-build-container<< matrix.extension >>
           space:                      production
           account-url:                AWS_ECR_ACCOUNT_URL_PRODUCTION
@@ -251,7 +228,6 @@ workflows:
           filters:
             branches:
               only:
-                - staging
                 - main
     jobs:
       - restage:
@@ -263,13 +239,4 @@ workflows:
           filters:
             branches:
               only: main
-
-      - restage:
-          matrix:
-            parameters:
-              app:
-                - federalist-build-container-staging
-                - federalist-build-container-exp-staging
-          filters:
-            branches:
-              only: staging                
+    
