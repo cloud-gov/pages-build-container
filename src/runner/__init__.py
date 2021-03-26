@@ -1,8 +1,16 @@
+import os
+import pwd
 import shlex
 import subprocess  # nosec
 
 NVM_PATH = '/usr/local/nvm/nvm.sh'
 RVM_PATH = '/usr/local/rvm/scripts/rvm'
+
+
+def setuser():
+    pw_record = pwd.getpwnam('customer')
+    os.setgid(pw_record.pw_gid)
+    os.setuid(pw_record.pw_uid)
 
 
 def run(logger, command, cwd=None, env=None, shell=False, check=False, node=False, ruby=False):
@@ -44,7 +52,8 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False, node=Fals
             stdout=subprocess.PIPE,
             bufsize=1,
             encoding='utf-8',
-            text=True
+            text=True,
+            preexec_fn=setuser
         )
         while p.poll() is None:
             logger.info(p.stdout.readline().strip())

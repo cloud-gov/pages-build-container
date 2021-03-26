@@ -56,7 +56,7 @@ def build(
     start_time = datetime.now()
 
     # Make the working directory if it doesn't exist
-    WORKING_DIR_PATH.mkdir(exist_ok=True)
+    # WORKING_DIR_PATH.mkdir(exist_ok=True)
 
     logger = None
     commit_sha = None

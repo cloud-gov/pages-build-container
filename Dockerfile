@@ -50,3 +50,8 @@ RUN pip install -r requirements.txt
 RUN rm ./requirements.txt
 
 COPY ./src ./
+
+RUN useradd -m -s /bin/bash customer \
+  && mkdir /tmp/work \
+  && chmod 777 /tmp/work \
+  && chmod 777 /user/local/nvm
