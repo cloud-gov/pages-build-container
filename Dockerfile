@@ -29,7 +29,7 @@ RUN mkdir $NVM_DIR \
 
 # Install ruby via rvm
 ENV RUBY_VERSION 2.6.6
-RUN gpg --keyserver hkp://ipv4.pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
+RUN gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
   && \curl -sSL https://get.rvm.io | bash -s stable \
   && /bin/bash -l -c 'rvm install $RUBY_VERSION && rvm use --default $RUBY_VERSION' \
   && echo rvm_silence_path_mismatch_check_flag=1 >> /etc/rvmrc \
