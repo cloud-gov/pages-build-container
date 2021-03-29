@@ -26,6 +26,9 @@ RUN \
 
 SHELL ["/bin/bash", "-l", "-c"]
 
+RUN mkdir -p /root/.gnupg \
+  && echo "disable-ipv6" >> /root/.gnupg/dirmngr.conf
+  
 ENV RUBY_VERSION 2.7
 RUN set -ex \
   && for key in \
