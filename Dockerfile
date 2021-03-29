@@ -20,6 +20,9 @@ ENV LC_ALL en_US.UTF-8
 
 RUN dpkg-reconfigure --frontend noninteractive locales
 
+RUN mkdir -p /root/.gnupg \
+  && echo "disable-ipv6" >> /root/.gnupg/dirmngr.conf
+
 # Default to Node 12 (erbium)
 ENV NVM_DIR /usr/local/nvm
 RUN mkdir $NVM_DIR \
@@ -29,8 +32,17 @@ RUN mkdir $NVM_DIR \
 
 # Install ruby via rvm
 ENV RUBY_VERSION 2.6.6
-RUN gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
-  && \curl -sSL https://get.rvm.io | bash -s stable \
+RUN set -ex \
+  && for key in \
+    7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
+    409B6B1796C275462A1703113804BB82D39DC0E3 \
+  ; do \
+    gpg --batch --keyserver hkp://pool.sks-keyservers.net:80 --recv-keys "$key" || \
+    gpg --batch --keyserver hkp://ipv4.pool.sks-keyservers.net --recv-keys "$key" || \
+    gpg --batch --keyserver hkp://pgp.mit.edu:80 --recv-keys "$key" || \
+    gpg --batch --keyserver hkp://keyserver.pgp.com --recv-keys "$key" ; \
+  done \
+  && curl -sSL https://get.rvm.io | bash -s stable \
   && /bin/bash -l -c 'rvm install $RUBY_VERSION && rvm use --default $RUBY_VERSION' \
   && echo rvm_silence_path_mismatch_check_flag=1 >> /etc/rvmrc \
   && echo 'install: --no-document\nupdate: --no-document' >> "/etc/.gemrc"
