@@ -8,3 +8,4 @@
 tmp
 __pycache__/
 coverage/
+ci/vars/.*
