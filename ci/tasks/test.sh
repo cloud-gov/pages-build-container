@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-if ! [[ id "customer" &>/dev/null ]]; then
+if id "customer" &>/dev/null; then
+  # do nothing
+else
     useradd --no-log-init --system --create-home customer
 fi
 
