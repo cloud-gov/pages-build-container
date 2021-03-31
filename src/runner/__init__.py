@@ -1,8 +1,16 @@
+import os
+import pwd
 import shlex
 import subprocess  # nosec
 
-NVM_PATH = '/usr/local/nvm/nvm.sh'
+NVM_PATH = '~/.nvm/nvm.sh'
 RVM_PATH = '/usr/local/rvm/scripts/rvm'
+
+
+def setuser():
+    pw_record = pwd.getpwnam('customer')
+    os.setgid(pw_record.pw_gid)
+    os.setuid(pw_record.pw_uid)
 
 
 def run(logger, command, cwd=None, env=None, shell=False, check=False, node=False, ruby=False):
@@ -17,14 +25,14 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False, node=Fals
     See https://docs.python.org/3/library/subprocess.html#popen-constructor for details.
     '''
 
-    # TODO - refactor to put the appropriate node/npm binaries in PATH so this isn't necessary
-    if node:
-        command = f'source {NVM_PATH} && nvm use default && {command}'
-        shell = True
-
     # TODO - refactor to put the appropriate bundler binaries in PATH so this isn't necessary
     if ruby:
         command = f'source {RVM_PATH} && {command}'
+        shell = True
+
+    # TODO - refactor to put the appropriate node/npm binaries in PATH so this isn't necessary
+    if node:
+        command = f'source {NVM_PATH} && nvm use default && {command}'
         shell = True
 
     if isinstance(command, str) and not shell:
@@ -44,7 +52,8 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False, node=Fals
             stdout=subprocess.PIPE,
             bufsize=1,
             encoding='utf-8',
-            text=True
+            text=True,
+            preexec_fn=setuser
         )
         while p.poll() is None:
             logger.info(p.stdout.readline().strip())

@@ -98,47 +98,15 @@ commands:
 ##################################
 jobs:
   test:
-    docker:
-      - image: circleci/python:3.8
+    machine: true
     environment:
       CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665      
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: pip install -r requirements-dev.txt
 
-      - run:
-          name: Flake8
-          command: flake8
+      - run: docker build -f Dockerfile-test -t test .
 
-      - run:
-          name: Bandit
-          command: bandit -r src
-
-      - run:
-          name: Install cc-test-reporter
-          command: |
-            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-            chmod +x ./cc-test-reporter
-
-      - run:
-          name: CodeClimate before-build
-          command: |
-            ./cc-test-reporter before-build            
-
-      - run:
-          name: Pytest
-          command: pytest --cov-report xml:./coverage/coverage.xml --cov-report html:./coverage --cov-report term --cov=src
-
-      - run:
-          name: CodeClimate after-build
-          command: |
-            ./cc-test-reporter format-coverage -t coverage.py ./coverage/coverage.xml
-            ./cc-test-reporter upload-coverage || true
-
-      - store_artifacts:
-          path: ./coverage/coverage.xml
+      - run: docker run --rm -v `pwd`:/app -w /app -e CC_TEST_REPORTER_ID=$CC_TEST_REPORTER_ID test ci/tasks/test.sh
 
 
   build-push-deploy:
