@@ -111,7 +111,7 @@ jobs:
 
       - run: |
           docker build -f Dockerfile-test -t test .
-          docker run --rm -v `pwd`:/app test ci/tasks/test.sh
+          docker run --rm -v `pwd`:/app test app/ci/tasks/test.sh
 
 
   build-push-deploy:
