@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+if ! [[ id "customer" &>/dev/null ]]; then
+    useradd --no-log-init --system --create-home customer
+fi
+
 pip install -r requirements-dev.txt
 flake8
 bandit -r src
