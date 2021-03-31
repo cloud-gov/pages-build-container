@@ -110,7 +110,7 @@ jobs:
           docker_layer_caching: true
 
       - run: |
-          docker build -f Dockerfile-test -t test
+          docker build -f Dockerfile-test -t test .
           docker run --rm -v `pwd`:/app test ci/tasks/test.sh
 
 
