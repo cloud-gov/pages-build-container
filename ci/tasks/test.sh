@@ -2,11 +2,7 @@
 
 set -euo pipefail
 
-if id "customer" &>/dev/null; then
-  # do nothing
-else
-    useradd --no-log-init --system --create-home customer
-fi
+id -u customer &>/dev/null || useradd --no-log-init --system --create-home customer
 
 pip install -r requirements-dev.txt
 flake8
