@@ -255,3 +255,13 @@ def test_run_with_ruby(mock_popen):
         text=True,
         preexec_fn=setuser
     )
+
+
+def test_access_environ():
+    mock_logger = Mock()
+    command = 'cat /proc/1/environ'
+    env = {}
+
+    run(mock_logger, command, env=env)
+
+    mock_logger.info.assert_any_call('cat: /proc/1/environ: Permission denied')

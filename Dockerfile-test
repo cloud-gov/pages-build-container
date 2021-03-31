@@ -1,5 +1,9 @@
 FROM python:3.8
 
+SHELL ["/bin/bash", "-c"]
+
+RUN useradd --no-log-init --system --create-home customer
+
 WORKDIR /app
 
 COPY ./requirements.txt ./requirements.txt

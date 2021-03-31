@@ -42,11 +42,6 @@ RUN mkdir -p /root/.gnupg \
 RUN useradd --no-log-init --system --create-home --groups sudo system \
   && echo 'system ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers.d/system
 
-# RUN useradd --no-log-init --system --create-home --groups sudo pages \
-#   && echo 'pages ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers.d/pages
-
-# RUN useradd --no-log-init --system --create-home pages
-
 RUN useradd --no-log-init --system --create-home customer
 
 ###############################################################
@@ -97,6 +92,9 @@ RUN curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash 
 
 ###############################################################
 # Run these steps and the container as the 'root' user
+#
+# This is necessary because the build code needs to have
+# rights to switch to 'customer' user
 #
 USER root
 
