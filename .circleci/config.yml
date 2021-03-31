@@ -98,20 +98,15 @@ commands:
 ##################################
 jobs:
   test:
-    docker:
-      - image: circleci/python:3.8
+    machine: true
     environment:
       CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665      
     steps:
       - checkout
 
-      - setup_remote_docker:
-          version: 19.03.13
-          docker_layer_caching: true
+      - run: docker build -f Dockerfile-test -t test .
 
-      - run: |
-          docker build -f Dockerfile-test -t test .
-          docker run --rm -v `pwd`:/app test app/ci/tasks/test.sh
+      - run: docker run --rm -v `pwd`:/app -w /app -e CC_TEST_REPORTER_ID=$CC_TEST_REPORTER_ID test ci/tasks/test.sh
 
 
   build-push-deploy:
