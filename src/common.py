@@ -6,7 +6,7 @@ from pathlib import Path
 
 REPO_BASE_URL = 'github.com'
 
-WORKING_DIR_PATH = Path('/tmp/work')
+WORKING_DIR_PATH = Path('/tmp/work')  # nosec
 
 CLONE_DIR = 'site_repo'
 CLONE_DIR_PATH = WORKING_DIR_PATH / CLONE_DIR
