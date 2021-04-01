@@ -2,7 +2,8 @@ FROM python:3.8
 
 SHELL ["/bin/bash", "-c"]
 
-RUN useradd --no-log-init --system --create-home customer
+RUN groupadd -r rvm \
+  && useradd --no-log-init --system --create-home --groups rvm customer
 
 WORKDIR /app
 
