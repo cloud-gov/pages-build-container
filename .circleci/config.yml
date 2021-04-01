@@ -39,6 +39,12 @@ commands:
               echo "export CF_PASSWORD=$CF_PASSWORD_PRODUCTION" >> $BASH_ENV
               echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET_PRODUCTION" >> $BASH_ENV
               echo "export CF_DOCKER_USERNAME=$AWS_ECR_READ_KEY_PRODUCTION" >> $BASH_ENV
+            else
+              echo "export CF_SPACE=staging" >> $BASH_ENV
+              echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
+              echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
+              echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET_STAGING" >> $BASH_ENV
+              echo "export CF_DOCKER_USERNAME=$AWS_ECR_READ_KEY_STAGING" >> $BASH_ENV
             fi
 
       - run:
@@ -98,15 +104,47 @@ commands:
 ##################################
 jobs:
   test:
-    machine: true
+    docker:
+      - image: circleci/python:3.8
     environment:
       CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665      
     steps:
       - checkout
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements-dev.txt
 
-      - run: docker build -f Dockerfile-test -t test .
+      - run:
+          name: Flake8
+          command: flake8
 
-      - run: docker run --rm -v `pwd`:/app -w /app -e CC_TEST_REPORTER_ID=$CC_TEST_REPORTER_ID test ci/tasks/test.sh
+      - run:
+          name: Bandit
+          command: bandit -r src
+
+      - run:
+          name: Install cc-test-reporter
+          command: |
+            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+            chmod +x ./cc-test-reporter
+
+      - run:
+          name: CodeClimate before-build
+          command: |
+            ./cc-test-reporter before-build            
+
+      - run:
+          name: Pytest
+          command: pytest --cov-report xml:./coverage/coverage.xml --cov-report html:./coverage --cov-report term --cov=src
+
+      - run:
+          name: CodeClimate after-build
+          command: |
+            ./cc-test-reporter format-coverage -t coverage.py ./coverage/coverage.xml
+            ./cc-test-reporter upload-coverage || true
+
+      - store_artifacts:
+          path: ./coverage/coverage.xml
 
 
   build-push-deploy:
@@ -173,6 +211,23 @@ workflows:
       - test
 
       - build-push-deploy:
+          app:                        federalist-build-container<< matrix.extension >>-staging
+          space:                      staging
+          account-url:                AWS_ECR_ACCOUNT_URL_STAGING
+          aws-access-key-id:          AWS_ECR_WRITE_KEY_STAGING
+          aws-secret-access-key:      AWS_ECR_WRITE_SECRET_STAGING
+          region:                     AWS_ECR_REGION_STAGING
+          repo:                       federalist-staging-ecr
+          matrix:
+            parameters:
+              extension: ["", "-exp"]
+          requires:
+            - test
+          filters:
+            branches:
+              only: staging
+
+      - build-push-deploy:
           app:                        federalist-build-container<< matrix.extension >>
           space:                      production
           account-url:                AWS_ECR_ACCOUNT_URL_PRODUCTION
@@ -196,6 +251,7 @@ workflows:
           filters:
             branches:
               only:
+                - staging
                 - main
     jobs:
       - restage:
@@ -207,4 +263,13 @@ workflows:
           filters:
             branches:
               only: main
-    
+
+      - restage:
+          matrix:
+            parameters:
+              app:
+                - federalist-build-container-staging
+                - federalist-build-container-exp-staging
+          filters:
+            branches:
+              only: staging                

@@ -3,7 +3,7 @@ import shlex
 import subprocess  # nosec
 from unittest.mock import Mock, patch
 
-from runner import run, setuser, NVM_PATH, RVM_PATH
+from runner import run, NVM_PATH, RVM_PATH
 
 
 @patch('subprocess.Popen', autospec=True)
@@ -25,8 +25,7 @@ def test_run(mock_popen):
         stdout=subprocess.PIPE,
         bufsize=1,
         encoding='utf-8',
-        text=True,
-        preexec_fn=setuser,
+        text=True
     )
 
     mock_logger.info.assert_called_once_with('foobar')
@@ -53,8 +52,7 @@ def test_run_popen_failure(mock_popen):
         stdout=subprocess.PIPE,
         bufsize=1,
         encoding='utf-8',
-        text=True,
-        preexec_fn=setuser,
+        text=True
     )
 
     mock_logger.error.assert_any_call('Encountered a problem invoking Popen.')
@@ -84,7 +82,6 @@ def test_run_popen_failure_check_true(mock_popen):
         bufsize=1,
         encoding='utf-8',
         text=True,
-        preexec_fn=setuser,
     )
 
     mock_logger.error.assert_any_call('Encountered a problem invoking Popen.')
@@ -110,8 +107,7 @@ def test_run_os_failure(mock_popen):
         stdout=subprocess.PIPE,
         bufsize=1,
         encoding='utf-8',
-        text=True,
-        preexec_fn=setuser
+        text=True
     )
 
     mock_logger.error.assert_any_call(
@@ -142,8 +138,7 @@ def test_run_os_failure_check_true(mock_popen):
         stdout=subprocess.PIPE,
         bufsize=1,
         encoding='utf-8',
-        text=True,
-        preexec_fn=setuser
+        text=True
     )
 
     mock_logger.error.assert_any_call(
@@ -172,8 +167,7 @@ def test_run_command_failure(mock_popen):
         stdout=subprocess.PIPE,
         bufsize=1,
         encoding='utf-8',
-        text=True,
-        preexec_fn=setuser
+        text=True
     )
 
     assert result == return_code
@@ -200,8 +194,7 @@ def test_run_command_failure_check_true(mock_popen):
         stdout=subprocess.PIPE,
         bufsize=1,
         encoding='utf-8',
-        text=True,
-        preexec_fn=setuser
+        text=True
     )
 
 
@@ -226,8 +219,7 @@ def test_run_with_node(mock_popen):
         stdout=subprocess.PIPE,
         bufsize=1,
         encoding='utf-8',
-        text=True,
-        preexec_fn=setuser
+        text=True
     )
 
 
@@ -252,16 +244,5 @@ def test_run_with_ruby(mock_popen):
         stdout=subprocess.PIPE,
         bufsize=1,
         encoding='utf-8',
-        text=True,
-        preexec_fn=setuser
+        text=True
     )
-
-
-def test_access_environ():
-    mock_logger = Mock()
-    command = 'cat /proc/1/environ'
-    env = {}
-
-    run(mock_logger, command, env=env)
-
-    mock_logger.info.assert_any_call('cat: /proc/1/environ: Permission denied')
