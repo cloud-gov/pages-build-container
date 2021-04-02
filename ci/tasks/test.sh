@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-id -u customer &>/dev/null || useradd --no-log-init --system --create-home customer
+getent group rvm || groupadd -r rvm
+id -u customer &>/dev/null || useradd --no-log-init --system --create-home --groups rvm customer
 
 pip install -r requirements-dev.txt
 flake8
