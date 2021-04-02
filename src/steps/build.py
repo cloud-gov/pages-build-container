@@ -93,7 +93,7 @@ def has_federalist_script():
 
 def setup_node():
     '''
-    Sets up node and installs production dependencies.
+    Sets up node and installs dependencies.
 
     Uses the node version specified in the cloned repo's .nvmrc
     file if it is present.
@@ -130,9 +130,9 @@ def setup_node():
 
         PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
         if PACKAGE_JSON_PATH.is_file():
-            logger.info('Installing production dependencies in package.json')
+            logger.info('Installing dependencies in package.json')
             runp('npm set audit false')
-            runp('npm ci --production')
+            runp('npm ci')
 
     except (CalledProcessError, OSError, ValueError):
         return 1
