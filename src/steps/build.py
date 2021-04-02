@@ -132,7 +132,7 @@ def setup_node():
         if PACKAGE_JSON_PATH.is_file():
             logger.info('Installing production dependencies in package.json')
             runp('npm set audit false')
-            runp('npm ci --production')
+            runp('npm ci')
 
     except (CalledProcessError, OSError, ValueError):
         return 1

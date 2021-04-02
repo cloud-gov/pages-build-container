@@ -79,7 +79,7 @@ class TestSetupNode():
             callp('echo Node version: $(node --version)'),
             callp('echo NPM version: $(npm --version)'),
             callp('npm set audit false'),
-            callp('npm ci --production'),
+            callp('npm ci'),
         ])
 
     def test_returns_code_when_err(self, mock_get_logger, mock_run):
