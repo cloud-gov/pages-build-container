@@ -1,3 +1,4 @@
+import grp
 import os
 import pwd
 import shlex
@@ -8,9 +9,8 @@ RVM_PATH = '/usr/local/rvm/scripts/rvm'
 
 
 def setuser():
-    pw_record = pwd.getpwnam('customer')
-    os.setgid(pw_record.pw_gid)
-    os.setuid(pw_record.pw_uid)
+    os.setgid(grp.getgrnam('rvm').gr_gid)
+    os.setuid(pwd.getpwnam('customer').pw_uid)
 
 
 def run(logger, command, cwd=None, env=None, shell=False, check=False, node=False, ruby=False):
