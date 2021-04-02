@@ -56,7 +56,7 @@ class TestSetupNode():
             'Checking node version specified in .nvmrc'
         )
 
-    def test_installs_production_deps(self, mock_get_logger, mock_run, patch_clone_dir):
+    def test_installs_deps(self, mock_get_logger, mock_run, patch_clone_dir):
         create_file(patch_clone_dir / PACKAGE_JSON)
 
         result = setup_node()
@@ -69,7 +69,7 @@ class TestSetupNode():
 
         mock_logger.info.assert_has_calls([
             call('Using default node version'),
-            call('Installing production dependencies in package.json')
+            call('Installing dependencies in package.json')
         ])
 
         def callp(cmd):

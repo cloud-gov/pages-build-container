@@ -93,7 +93,7 @@ def has_federalist_script():
 
 def setup_node():
     '''
-    Sets up node and installs production dependencies.
+    Sets up node and installs dependencies.
 
     Uses the node version specified in the cloned repo's .nvmrc
     file if it is present.
