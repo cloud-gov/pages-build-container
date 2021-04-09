@@ -29,7 +29,7 @@ RVM_PATH = Path('/usr/local/rvm/scripts/rvm')
 
 def build_env(branch, owner, repository, site_prefix, base_url,
               user_env_vars=[]):
-    '''Creats a dict of environment variables to pass into a build context'''
+    '''Creates a dict of environment variables to pass into a build context'''
     env = {
         'BRANCH': branch,
         'OWNER': owner,
@@ -39,6 +39,9 @@ def build_env(branch, owner, repository, site_prefix, base_url,
         # necessary to make sure build engines use utf-8 encoding
         'LANG': 'en_US.UTF-8',
         'GATSBY_TELEMETRY_DISABLED': '1',
+        # Not that folks should really be using `pry` on Pages but
+        # https://github.com/pry/pry/pull/2165
+        'HOME': '/home/customer',
     }
 
     for uev in user_env_vars:
@@ -359,7 +362,7 @@ def build_jekyll(branch, owner, repository, site_prefix,
 
     return run(
         logger,
-        f'{jekyll_cmd} build --destination {SITE_BUILD_DIR_PATH}',
+        f'{jekyll_cmd} build --trace --destination {SITE_BUILD_DIR_PATH}',
         cwd=CLONE_DIR_PATH,
         env=env,
         node=True,
