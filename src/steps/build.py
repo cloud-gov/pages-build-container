@@ -362,7 +362,7 @@ def build_jekyll(branch, owner, repository, site_prefix,
 
     return run(
         logger,
-        f'{jekyll_cmd} build --trace --destination {SITE_BUILD_DIR_PATH}',
+        f'{jekyll_cmd} build --destination {SITE_BUILD_DIR_PATH}',
         cwd=CLONE_DIR_PATH,
         env=env,
         node=True,

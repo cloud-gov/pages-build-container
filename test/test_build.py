@@ -628,6 +628,7 @@ class TestBuildEnv():
             'BASEURL': base_url,
             'LANG': 'en_US.UTF-8',
             'GATSBY_TELEMETRY_DISABLED': '1',
+            'HOME': '/home/customer',
         }
 
     def test_it_includes_user_env_vars(self):
