@@ -114,13 +114,13 @@ def setup_node():
             runp("""
                 RAW_VERSION=$(nvm version-remote $(cat .nvmrc))
                 MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
-                if [[ "$MAJOR_VERSION" =~ ^(10|12|14)$ ]]; then
+                if [[ "$MAJOR_VERSION" =~ ^(12|14|16)$ ]]; then
                     echo "Switching to node version $RAW_VERSION specified in .nvmrc"
                     nvm install $RAW_VERSION
                     nvm alias default $RAW_VERSION
                 else
                     echo "Unsupported node major version '$MAJOR_VERSION' specified in .nvmrc."
-                    echo "Please upgrade to LTS major version 12 or 14, see https://nodejs.org/en/about/releases/ for details."
+                    echo "Please upgrade to LTS major version 14 or 16, see https://nodejs.org/en/about/releases/ for details."
                     exit 1
                 fi
             """)  # noqa: E501

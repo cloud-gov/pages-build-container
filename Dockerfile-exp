@@ -89,8 +89,8 @@ RUN source /usr/local/rvm/scripts/rvm \
   # Make rvm available in non-login bash shells
   && echo 'source /usr/local/rvm/scripts/rvm' >> ~/.bashrc
 
-# Default to Node 12 (erbium)
-ENV NODE_VERSION lts/erbium
+# Default to Node 14
+ENV NODE_VERSION lts/fermium
 RUN curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash \
   && \. "$HOME/.nvm/nvm.sh" \
   && nvm install $NODE_VERSION
