@@ -4,10 +4,10 @@
 
 staging-cf: &staging-cf
   CF_API: https://api.fr.cloud.gov
-  CF_USERNAME: ((staging-cf-username))
-  CF_PASSWORD: ((staging-cf-password))
+  CF_USERNAME: ((pages-staging-cf-username))
+  CF_PASSWORD: ((pages-staging-cf-password))
   CF_ORG: gsa-18f-federalist
-  CF_SPACE: staging
+  CF_SPACE: pages-staging
 
 python-image: &python-image
   platform: linux
@@ -24,6 +24,8 @@ cf-image: &cf-image
     source:
       repository: 18fgsa/concourse-task
 
+app-name: &app-name pages-build-container-staging
+exp-app-name: &exp-app-name pages-build-container-exp-staging
 
 ############################
 #  JOBS
@@ -79,13 +81,14 @@ jobs:
           <<: *cf-image
           inputs: [name: src]
           run:
-            path: src/ci/tasks/deploy.sh
+            dir: src
+            path: ci/tasks/deploy.sh
         params:
           <<: *staging-cf
-          CF_APP_NAME: federalist-build-container-staging
-          CF_MANIFEST: src/.cloudgov/manifest.yml
-          CF_VARS_FILE: src/.cloudgov/vars/staging.yml
-          CF_DOCKER_IMAGE: ((image-repository)):staging
+          CF_APP_NAME: *app-name
+          CF_MANIFEST: .cloudgov/manifest.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
+          CF_DOCKER_IMAGE: ((image-repository)):pages-staging
           CF_DOCKER_USERNAME: ((docker-username))
           CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
@@ -119,13 +122,14 @@ jobs:
           <<: *cf-image
           inputs: [name: src]
           run:
-            path: src/ci/tasks/deploy.sh
+            dir: src
+            path: ci/tasks/deploy.sh
         params:
           <<: *staging-cf
-          CF_APP_NAME: federalist-build-container-exp-staging
-          CF_MANIFEST: src/.cloudgov/manifest.yml
-          CF_VARS_FILE: src/.cloudgov/vars/staging.yml
-          CF_DOCKER_IMAGE: ((image-repository)):staging-exp
+          CF_APP_NAME: *exp-app-name
+          CF_MANIFEST: .cloudgov/manifest.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
+          CF_DOCKER_IMAGE: ((image-repository)):pages-staging-exp
           CF_DOCKER_USERNAME: ((docker-username))
           CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
@@ -177,10 +181,11 @@ jobs:
           <<: *cf-image
           inputs: [name: src]
           run:
-            path: src/ci/tasks/restage.sh
+            dir: src
+            path: ci/tasks/restage.sh
         params:
           <<: *staging-cf
-          CF_APP_NAME: federalist-build-container-staging
+          CF_APP_NAME: *app-name
 
   - name: nightly-tasks-staging-exp
     plan:
@@ -194,10 +199,11 @@ jobs:
           <<: *cf-image
           inputs: [name: src]
           run:
-            path: src/ci/tasks/restage.sh
+            dir: src
+            path: ci/tasks/restage.sh
         params:
           <<: *staging-cf
-          CF_APP_NAME: federalist-build-container-exp-staging
+          CF_APP_NAME: *exp-app-name
 
 
 ############################
@@ -237,7 +243,7 @@ resources:
     type: docker-image
     source:
       repository: ((image-repository))
-      tag: staging
+      tag: pages-staging
       username: ((docker-username))
       password: ((docker-password))
       
@@ -245,7 +251,7 @@ resources:
     type: docker-image
     source:
       repository: ((image-repository))
-      tag: staging-exp
+      tag: pages-staging-exp
       username: ((docker-username))
       password: ((docker-password))
 
