@@ -1,25 +1,25 @@
 ---    
 applications:
-  - name: federalist-build-container((env_postfix))
+  - name: ((product))-build-container((env_postfix))
     no-route: true
     health-check-type: process
     instances: 0
     services:
-      - federalist-((env))-rds
-      - federalist-((env))-uev-key
+      - ((product))-((env))-rds
+      - ((product))-((env))-uev-key
     metadata:
       labels:
         type: build-container
         name: default
       annotations:
         command: cd app && python main.py -p
-  - name: federalist-build-container-exp((env_postfix))
+  - name: ((product))-build-container-exp((env_postfix))
     no-route: true
     health-check-type: process
     instances: 0
     services:
-      - federalist-((env))-rds
-      - federalist-((env))-uev-key
+      - ((product))-((env))-rds
+      - ((product))-((env))-uev-key
     metadata:
       labels:
         type: build-container
