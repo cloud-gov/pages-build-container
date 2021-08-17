@@ -13,9 +13,11 @@ def load_vcap():
 
     space = vcap_application['space_name']
 
+    space_prefix = 'pages-staging' if space == 'pages-staging' else f'federalist-{space}'
+
     uev_ups = next(
         ups for ups in vcap_services['user-provided']
-        if ups['name'] == f'federalist-{space}-uev-key'
+        if ups['name'] == f'{space_prefix}-uev-key'
     )
 
     uev_env_var = 'USER_ENVIRONMENT_VARIABLE_KEY'
