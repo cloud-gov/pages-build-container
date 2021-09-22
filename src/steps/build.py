@@ -144,7 +144,7 @@ def setup_node():
 
 
 def run_build_script(branch, owner, repository, site_prefix,
-                          base_url='', user_env_vars=[]):
+                     base_url='', user_env_vars=[]):
     '''
     Runs the npm build (ie: "federalist","pages", ...) script if it is defined
     '''

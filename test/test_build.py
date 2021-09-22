@@ -131,7 +131,7 @@ class TestRunBuildScript():
         )
 
     def test_it_runs_pages_script_when_it_exists(self, mock_get_logger, mock_run,
-                                                      patch_clone_dir):
+                                                 patch_clone_dir):
         package_json_contents = json.dumps({
             'scripts': {
                 'pages': 'echo pages',
@@ -166,8 +166,9 @@ class TestRunBuildScript():
             env=build_env(*kwargs.values()),
             node=True
         )
+
     def test_it_runs_pages_script_when_both_exists(self, mock_get_logger, mock_run,
-                                                      patch_clone_dir):
+                                                   patch_clone_dir):
         package_json_contents = json.dumps({
             'scripts': {
                 'pages': 'echo pages',
