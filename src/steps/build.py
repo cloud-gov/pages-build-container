@@ -80,16 +80,16 @@ def build_static():
                         str(SITE_BUILD_DIR_PATH))
 
 
-def has_federalist_script():
+def has_node_script(script_name):
     '''
-    Checks for existence of the "federalist" script in the
+    Checks for existence of the script (ie: "federalist", "pages") in the
     cloned repo's package.json.
     '''
     PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
     if PACKAGE_JSON_PATH.is_file():
         with PACKAGE_JSON_PATH.open() as json_file:
             package_json = json.load(json_file)
-            return 'federalist' in package_json.get('scripts', {})
+            return script_name in package_json.get('scripts', {})
 
     return False
 
@@ -143,17 +143,19 @@ def setup_node():
     return 0
 
 
-def run_federalist_script(branch, owner, repository, site_prefix,
+def run_build_script(branch, owner, repository, site_prefix,
                           base_url='', user_env_vars=[]):
     '''
-    Runs the npm "federalist" script if it is defined
+    Runs the npm build (ie: "federalist","pages", ...) script if it is defined
     '''
 
-    if has_federalist_script():
-        logger = get_logger('run-federalist-script')
-        logger.info('Running federalist build script in package.json')
-        env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
-        return run(logger, 'npm run federalist', cwd=CLONE_DIR_PATH, env=env, node=True)
+    scripts = ["pages","federalist"]
+    for script_name in scripts:
+        if has_node_script(script_name):
+            logger = get_logger(f'run-{script_name}-script')
+            logger.info(f'Running {script_name} build script in package.json')
+            env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
+            return run(logger, f'npm run {script_name}', cwd=CLONE_DIR_PATH, env=env, node=True)
 
     return 0
 

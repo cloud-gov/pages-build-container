@@ -12,7 +12,7 @@ import yaml
 import steps
 from steps import (
     build_hugo, build_jekyll, build_static, download_hugo,
-    run_federalist_script, setup_bundler, setup_node, setup_ruby
+    run_build_script, setup_bundler, setup_node, setup_ruby
 )
 from steps.build import (
     build_env, BUNDLER_VERSION, GEMFILE,
@@ -92,12 +92,12 @@ class TestSetupNode():
 
 @patch('steps.build.run')
 @patch('steps.build.get_logger')
-class TestRunFederalistScript():
+class TestRunBuildScript():
     def test_it_runs_federalist_script_when_it_exists(self, mock_get_logger, mock_run,
                                                       patch_clone_dir):
         package_json_contents = json.dumps({
             'scripts': {
-                'federalist': 'echo hi',
+                'federalist': 'echo federalist',
             },
         })
         create_file(patch_clone_dir / PACKAGE_JSON, package_json_contents)
@@ -110,7 +110,7 @@ class TestRunFederalistScript():
             base_url='/site/prefix'
         )
 
-        result = run_federalist_script(**kwargs)
+        result = run_build_script(**kwargs)
 
         assert result == mock_run.return_value
 
@@ -130,8 +130,82 @@ class TestRunFederalistScript():
             node=True
         )
 
+    def test_it_runs_pages_script_when_it_exists(self, mock_get_logger, mock_run,
+                                                      patch_clone_dir):
+        package_json_contents = json.dumps({
+            'scripts': {
+                'pages': 'echo pages',
+            },
+        })
+        create_file(patch_clone_dir / PACKAGE_JSON, package_json_contents)
+
+        kwargs = dict(
+            branch='branch',
+            owner='owner',
+            repository='repo',
+            site_prefix='site/prefix',
+            base_url='/site/prefix'
+        )
+
+        result = run_build_script(**kwargs)
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('run-pages-script')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Running pages build script in package.json'
+        )
+
+        mock_run.assert_called_once_with(
+            mock_logger,
+            'npm run pages',
+            cwd=patch_clone_dir,
+            env=build_env(*kwargs.values()),
+            node=True
+        )
+    def test_it_runs_pages_script_when_both_exists(self, mock_get_logger, mock_run,
+                                                      patch_clone_dir):
+        package_json_contents = json.dumps({
+            'scripts': {
+                'pages': 'echo pages',
+                'federalist': 'echo federalist',
+            },
+        })
+        create_file(patch_clone_dir / PACKAGE_JSON, package_json_contents)
+
+        kwargs = dict(
+            branch='branch',
+            owner='owner',
+            repository='repo',
+            site_prefix='site/prefix',
+            base_url='/site/prefix'
+        )
+
+        result = run_build_script(**kwargs)
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('run-pages-script')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Running pages build script in package.json'
+        )
+
+        mock_run.assert_called_once_with(
+            mock_logger,
+            'npm run pages',
+            cwd=patch_clone_dir,
+            env=build_env(*kwargs.values()),
+            node=True
+        )
+
     def test_it_does_not_run_otherwise(self, mock_get_logger, mock_run):
-        result = run_federalist_script('b', 'o', 'r', 'sp')
+        result = run_build_script('b', 'o', 'r', 'sp')
 
         assert result == 0
 
