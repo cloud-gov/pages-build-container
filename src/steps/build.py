@@ -149,7 +149,7 @@ def run_build_script(branch, owner, repository, site_prefix,
     Runs the npm build (ie: "federalist","pages", ...) script if it is defined
     '''
 
-    scripts = ["pages","federalist"]
+    scripts = ["pages", "federalist"]
     for script_name in scripts:
         if has_node_script(script_name):
             logger = get_logger(f'run-{script_name}-script')
