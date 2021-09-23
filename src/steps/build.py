@@ -80,7 +80,7 @@ def build_static():
                         str(SITE_BUILD_DIR_PATH))
 
 
-def has_node_script(script_name):
+def has_build_script(script_name):
     '''
     Checks for existence of the script (ie: "federalist", "pages") in the
     cloned repo's package.json.
@@ -151,7 +151,7 @@ def run_build_script(branch, owner, repository, site_prefix,
 
     scripts = ["pages", "federalist"]
     for script_name in scripts:
-        if has_node_script(script_name):
+        if has_build_script(script_name):
             logger = get_logger(f'run-{script_name}-script')
             logger.info(f'Running {script_name} build script in package.json')
             env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
