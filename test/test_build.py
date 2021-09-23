@@ -168,7 +168,7 @@ class TestRunBuildScript():
         )
 
     def test_it_only_runs_pages_script_when_both_exist(self, mock_get_logger, mock_run,
-                                                   patch_clone_dir):
+                                                       patch_clone_dir):
         package_json_contents = json.dumps({
             'scripts': {
                 'pages': 'echo pages',
