@@ -4,7 +4,7 @@ version: 2.1
 ##              Orbs            ##
 ##################################
 orbs:
-  aws-ecr: circleci/aws-ecr@6.12.2
+  aws-ecr: circleci/aws-ecr@7.2.0
 
 
 ##################################
