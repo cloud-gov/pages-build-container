@@ -78,7 +78,7 @@ ENV RUBY_VERSION 2.6.6
 RUN source /usr/local/rvm/scripts/rvm \
   # Fail if deps are missing, won't prompt for sudo
   && rvm autolibs read-fail \
-  && rvm install --no-docs --debug $RUBY_VERSION \
+  && rvm install --no-docs $RUBY_VERSION \
   && rvm use --default $RUBY_VERSION \
   # Make rvm available in non-login bash shells
   && echo 'source /usr/local/rvm/scripts/rvm' >> ~/.bashrc
