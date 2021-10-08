@@ -79,7 +79,9 @@ jobs:
       - task: deploy
         config:
           <<: *cf-image
-          inputs: [name: src]
+          inputs:
+            - name: src
+            - name: build-container-image
           run:
             dir: src
             path: ci/tasks/deploy.sh
@@ -88,7 +90,8 @@ jobs:
           CF_APP_NAME: *app-name
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
-          CF_DOCKER_IMAGE: ((image-repository)):pages-staging
+          CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
+          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
           CF_DOCKER_USERNAME: ((docker-username))
           CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
@@ -120,7 +123,9 @@ jobs:
       - task: deploy
         config:
           <<: *cf-image
-          inputs: [name: src]
+          inputs:
+            - name: src
+            - name: build-container-image-exp
           run:
             dir: src
             path: ci/tasks/deploy.sh
@@ -129,7 +134,8 @@ jobs:
           CF_APP_NAME: *exp-app-name
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
-          CF_DOCKER_IMAGE: ((image-repository)):pages-staging-exp
+          CF_DOCKER_IMAGE_DIGEST: ../build-container-image-exp/digest
+          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
           CF_DOCKER_USERNAME: ((docker-username))
           CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
