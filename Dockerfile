@@ -74,7 +74,8 @@ RUN sudo usermod --append --groups rvm customer
 USER customer
 
 # Configure rvm and install default Ruby
-ENV RUBY_VERSION 2.6.6
+ENV RUBY_VERSION 2.7.5
+ENV RUBY_VERSION_MIN 2.6.6
 RUN source /usr/local/rvm/scripts/rvm \
   # Fail if deps are missing, won't prompt for sudo
   && rvm autolibs read-fail \
@@ -83,8 +84,8 @@ RUN source /usr/local/rvm/scripts/rvm \
   # Make rvm available in non-login bash shells
   && echo 'source /usr/local/rvm/scripts/rvm' >> ~/.bashrc
 
-# Default to Node 14
-ENV NODE_VERSION lts/fermium
+# Default to Node 16
+ENV NODE_VERSION lts/gallium
 RUN curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash \
   && \. "$HOME/.nvm/nvm.sh" \
   && nvm install $NODE_VERSION
