@@ -61,7 +61,6 @@ jobs:
             text: |
               :x: FAILED: pages build container tests on staging
               <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-              ((slack-users))
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
@@ -104,7 +103,6 @@ jobs:
             text: |
               :x: FAILED: pages build container deployment on staging
               <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-              ((slack-users))
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
@@ -148,7 +146,6 @@ jobs:
             text: |
               :x: FAILED: pages build container exp deployment on staging
               <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-              ((slack-users))
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
@@ -170,7 +167,6 @@ jobs:
             text: |
               :white_check_mark: SUCCESS: Successfully deployed pages build containers on staging
               <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-              ((slack-users))
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
