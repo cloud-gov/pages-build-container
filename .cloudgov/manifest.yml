@@ -5,8 +5,8 @@ applications:
     health-check-type: process
     instances: 0
     services:
-      - ((product))-((env))-rds
-      - ((product))-((env))-uev-key
+      - federalist-((env))-rds
+      - federalist-((env))-uev-key
     metadata:
       labels:
         type: build-container
@@ -18,8 +18,8 @@ applications:
     health-check-type: process
     instances: 0
     services:
-      - ((product))-((env))-rds
-      - ((product))-((env))-uev-key
+      - federalist-((env))-rds
+      - federalist-((env))-uev-key
     metadata:
       labels:
         type: build-container
