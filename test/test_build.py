@@ -226,7 +226,7 @@ class TestSetupRuby():
     def test_no_ruby_version_file(self, mock_is_supported_ruby_version,
                                   mock_get_logger, mock_run, patch_clone_dir):
 
-        mock_is_supported_ruby_version.return_value = True
+        mock_is_supported_ruby_version.return_value = 1
 
         result = setup_ruby()
 
@@ -249,7 +249,7 @@ class TestSetupRuby():
                                                mock_get_logger, mock_run,
                                                patch_clone_dir):
 
-        mock_is_supported_ruby_version.return_value = True
+        mock_is_supported_ruby_version.return_value = 1
 
         version = '2.3'
 
@@ -278,7 +278,7 @@ class TestSetupRuby():
                                                mock_get_logger, mock_run,
                                                patch_clone_dir):
 
-        mock_is_supported_ruby_version.return_value = True
+        mock_is_supported_ruby_version.return_value = 1
 
         version = '  $2.3  '
 
@@ -311,7 +311,7 @@ class TestSetupRuby():
                                                           mock_get_logger, mock_run,
                                                           patch_clone_dir):
 
-        mock_is_supported_ruby_version.return_value = True
+        mock_is_supported_ruby_version.return_value = 1
 
         version = '2.3'
 
