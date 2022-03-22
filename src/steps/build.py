@@ -94,6 +94,40 @@ def has_build_script(script_name):
     return False
 
 
+def is_supported_ruby_version(version):
+    '''
+    Checks if the version defined in .ruby-version is supported
+    '''
+    is_supported = 0
+
+    if version:
+        logger = get_logger('setup-ruby')
+
+        RUBY_VERSION_MIN = os.getenv('RUBY_VERSION_MIN')
+
+        is_supported = run(
+            logger,
+            f'ruby -e "exit Gem::Version.new(\'{shlex.split(version)[0]}\') >= Gem::Version.new(\'{RUBY_VERSION_MIN}\') ? 1 : 0"',  # noqa: E501
+            cwd=CLONE_DIR_PATH,
+            env={},
+            ruby=True
+        )
+
+        upgrade_msg = 'Please upgrade to an actively supported version, see https://www.ruby-lang.org/en/downloads/branches/ for details.'  # noqa: E501
+
+        if not is_supported:
+            logger.error(
+                'ERROR: Unsupported ruby version specified in .ruby-version.')
+            logger.error(upgrade_msg)
+
+        if version == RUBY_VERSION_MIN:
+            logger.warning(
+                f'WARNING: Ruby {RUBY_VERSION_MIN} will soon reach end-of-life, at which point Federalist will no longer support it.')  # noqa: E501
+            logger.warning(upgrade_msg)
+
+    return is_supported
+
+
 def setup_node():
     '''
     Sets up node and installs dependencies.
@@ -116,6 +150,12 @@ def setup_node():
                 MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
                 if [[ "$MAJOR_VERSION" =~ ^(12|14|16)$ ]]; then
                     echo "Switching to node version $RAW_VERSION specified in .nvmrc"
+
+                    if [[ "$MAJOR_VERSION" -eq 12 ]]; then
+                        echo "WARNING: Node $RAW_VERSION will reach end-of-life on 4-30-2022, at which point Federalist will no longer support it."
+                        echo "Please upgrade to LTS major version 14 or 16, see https://nodejs.org/en/about/releases/ for details."
+                    fi
+
                     nvm install $RAW_VERSION
                     nvm alias default $RAW_VERSION
                 else
@@ -237,6 +277,7 @@ def setup_ruby():
     Sets up RVM and installs ruby
     Uses the ruby version specified in .ruby-version if present
     '''
+
     logger = get_logger('setup-ruby')
 
     def runp(cmd):
@@ -246,15 +287,16 @@ def setup_ruby():
 
     RUBY_VERSION_PATH = CLONE_DIR_PATH / RUBY_VERSION
     if RUBY_VERSION_PATH.is_file():
-        ruby_version = ''
+        logger.info('Using ruby version in .ruby-version')
         with RUBY_VERSION_PATH.open() as ruby_vers_file:
             ruby_version = ruby_vers_file.readline().strip()
             # escape-quote the value in case there's anything weird
             # in the .ruby-version file
             ruby_version = shlex.quote(ruby_version)
-        if ruby_version:
-            logger.info('Using ruby version in .ruby-version')
+        if is_supported_ruby_version(ruby_version):
             returncode = runp(f'rvm install {ruby_version}')
+        else:
+            returncode = 1
 
     if returncode:
         return returncode
