@@ -52,9 +52,10 @@ USER system
 # Install rvm
 RUN set -ex \
   && for key in \
-    7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
     409B6B1796C275462A1703113804BB82D39DC0E3 \
+    7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
   ; do \
+    sudo gpg --batch --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys "$key" || \
     sudo gpg --batch --keyserver hkp://pool.sks-keyservers.net:80 --recv-keys "$key" || \
     sudo gpg --batch --keyserver hkp://ipv4.pool.sks-keyservers.net --recv-keys "$key" || \
     sudo gpg --batch --keyserver hkp://pgp.mit.edu:80 --recv-keys "$key" || \
@@ -74,7 +75,8 @@ RUN sudo usermod --append --groups rvm customer
 USER customer
 
 # Configure rvm and install default Ruby
-ENV RUBY_VERSION 2.6.6
+ENV RUBY_VERSION 2.7.5
+ENV RUBY_VERSION_MIN 2.6.6
 RUN source /usr/local/rvm/scripts/rvm \
   # Fail if deps are missing, won't prompt for sudo
   && rvm autolibs read-fail \
@@ -83,8 +85,8 @@ RUN source /usr/local/rvm/scripts/rvm \
   # Make rvm available in non-login bash shells
   && echo 'source /usr/local/rvm/scripts/rvm' >> ~/.bashrc
 
-# Default to Node 14
-ENV NODE_VERSION lts/fermium
+# Default to Node 16
+ENV NODE_VERSION lts/gallium
 RUN curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash \
   && \. "$HOME/.nvm/nvm.sh" \
   && nvm install $NODE_VERSION

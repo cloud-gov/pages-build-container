@@ -12,10 +12,10 @@ import yaml
 import steps
 from steps import (
     build_hugo, build_jekyll, build_static, download_hugo,
-    run_federalist_script, setup_bundler, setup_node, setup_ruby
+    run_build_script, setup_bundler, setup_node, setup_ruby
 )
 from steps.build import (
-    build_env, BUNDLER_VERSION, GEMFILE,
+    build_env, is_supported_ruby_version, BUNDLER_VERSION, GEMFILE,
     HUGO_BIN, HUGO_VERSION, JEKYLL_CONFIG_YML,
     NVMRC, PACKAGE_JSON, RUBY_VERSION
 )
@@ -36,6 +36,11 @@ def patch_working_dir(monkeypatch):
 @pytest.fixture
 def patch_site_build_dir(monkeypatch):
     yield from patch_dir(monkeypatch, steps.build, 'SITE_BUILD_DIR_PATH')
+
+
+@pytest.fixture
+def patch_ruby_min_version(monkeypatch):
+    monkeypatch.setenv('RUBY_VERSION_MIN', '2.6.6')
 
 
 @patch('steps.build.run')
@@ -92,12 +97,12 @@ class TestSetupNode():
 
 @patch('steps.build.run')
 @patch('steps.build.get_logger')
-class TestRunFederalistScript():
+class TestRunBuildScript():
     def test_it_runs_federalist_script_when_it_exists(self, mock_get_logger, mock_run,
                                                       patch_clone_dir):
         package_json_contents = json.dumps({
             'scripts': {
-                'federalist': 'echo hi',
+                'federalist': 'echo federalist',
             },
         })
         create_file(patch_clone_dir / PACKAGE_JSON, package_json_contents)
@@ -110,7 +115,7 @@ class TestRunFederalistScript():
             base_url='/site/prefix'
         )
 
-        result = run_federalist_script(**kwargs)
+        result = run_build_script(**kwargs)
 
         assert result == mock_run.return_value
 
@@ -130,8 +135,83 @@ class TestRunFederalistScript():
             node=True
         )
 
+    def test_it_runs_pages_script_when_it_exists(self, mock_get_logger, mock_run,
+                                                 patch_clone_dir):
+        package_json_contents = json.dumps({
+            'scripts': {
+                'pages': 'echo pages',
+            },
+        })
+        create_file(patch_clone_dir / PACKAGE_JSON, package_json_contents)
+
+        kwargs = dict(
+            branch='branch',
+            owner='owner',
+            repository='repo',
+            site_prefix='site/prefix',
+            base_url='/site/prefix'
+        )
+
+        result = run_build_script(**kwargs)
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('run-pages-script')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Running pages build script in package.json'
+        )
+
+        mock_run.assert_called_once_with(
+            mock_logger,
+            'npm run pages',
+            cwd=patch_clone_dir,
+            env=build_env(*kwargs.values()),
+            node=True
+        )
+
+    def test_it_only_runs_pages_script_when_both_exist(self, mock_get_logger, mock_run,
+                                                       patch_clone_dir):
+        package_json_contents = json.dumps({
+            'scripts': {
+                'pages': 'echo pages',
+                'federalist': 'echo federalist',
+            },
+        })
+        create_file(patch_clone_dir / PACKAGE_JSON, package_json_contents)
+
+        kwargs = dict(
+            branch='branch',
+            owner='owner',
+            repository='repo',
+            site_prefix='site/prefix',
+            base_url='/site/prefix'
+        )
+
+        result = run_build_script(**kwargs)
+
+        assert result == mock_run.return_value
+
+        mock_get_logger.assert_called_once_with('run-pages-script')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_called_with(
+            'Running pages build script in package.json'
+        )
+
+        mock_run.assert_called_once_with(
+            mock_logger,
+            'npm run pages',
+            cwd=patch_clone_dir,
+            env=build_env(*kwargs.values()),
+            node=True
+        )
+
     def test_it_does_not_run_otherwise(self, mock_get_logger, mock_run):
-        result = run_federalist_script('b', 'o', 'r', 'sp')
+        result = run_build_script('b', 'o', 'r', 'sp')
 
         assert result == 0
 
@@ -141,8 +221,13 @@ class TestRunFederalistScript():
 
 @patch('steps.build.run')
 @patch('steps.build.get_logger')
+@patch('steps.build.is_supported_ruby_version')
 class TestSetupRuby():
-    def test_no_ruby_version_file(self, mock_get_logger, mock_run, patch_clone_dir):
+    def test_no_ruby_version_file(self, mock_is_supported_ruby_version,
+                                  mock_get_logger, mock_run, patch_clone_dir):
+
+        mock_is_supported_ruby_version.return_value = 1
+
         result = setup_ruby()
 
         assert result == mock_run.return_value
@@ -159,7 +244,13 @@ class TestSetupRuby():
             ruby=True
         )
 
-    def test_it_uses_ruby_version_if_it_exists(self, mock_get_logger, mock_run, patch_clone_dir):
+    def test_it_uses_ruby_version_if_it_exists(self,
+                                               mock_is_supported_ruby_version,
+                                               mock_get_logger, mock_run,
+                                               patch_clone_dir):
+
+        mock_is_supported_ruby_version.return_value = 1
+
         version = '2.3'
 
         create_file(patch_clone_dir / RUBY_VERSION, version)
@@ -182,7 +273,13 @@ class TestSetupRuby():
             callp('echo Ruby version: $(ruby -v)')
         ])
 
-    def test_it_strips_and_quotes_ruby_version(self, mock_get_logger, mock_run, patch_clone_dir):
+    def test_it_strips_and_quotes_ruby_version(self,
+                                               mock_is_supported_ruby_version,
+                                               mock_get_logger, mock_run,
+                                               patch_clone_dir):
+
+        mock_is_supported_ruby_version.return_value = 1
+
         version = '  $2.3  '
 
         create_file(patch_clone_dir / RUBY_VERSION, version)
@@ -209,8 +306,13 @@ class TestSetupRuby():
             callp('echo Ruby version: $(ruby -v)'),
         ])
 
-    def test_it_returns_error_code_when_rvm_install_fails(self, mock_get_logger, mock_run,
+    def test_it_returns_error_code_when_rvm_install_fails(self,
+                                                          mock_is_supported_ruby_version,
+                                                          mock_get_logger, mock_run,
                                                           patch_clone_dir):
+
+        mock_is_supported_ruby_version.return_value = 1
+
         version = '2.3'
 
         mock_run.return_value = 1
@@ -232,6 +334,45 @@ class TestSetupRuby():
         mock_run.assert_called_once_with(
             mock_logger, 'rvm install 2.3', cwd=patch_clone_dir, env={}, ruby=True
         )
+
+    def test_it_outputs_warning_if_eol_approaching(self,
+                                                   mock_is_supported_ruby_version,
+                                                   mock_get_logger, mock_run,
+                                                   patch_ruby_min_version):
+
+        min_ruby_version = os.getenv('RUBY_VERSION_MIN')
+
+        mock_run.return_value = 1
+
+        result = is_supported_ruby_version(min_ruby_version)
+
+        assert result == 1
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.warning.assert_has_calls([
+            call(
+                f'WARNING: Ruby {min_ruby_version} will soon reach end-of-life, at which point Federalist will no longer support it.'),  # noqa: E501
+            call('Please upgrade to an actively supported version, see https://www.ruby-lang.org/en/downloads/branches/ for details.')  # noqa: E501
+        ])
+
+    def test_it_outputs_warning_if_not_supported(self,
+                                                 mock_is_supported_ruby_version,
+                                                 mock_get_logger, mock_run):
+        version = '2.3'
+
+        mock_run.return_value = 0
+
+        result = is_supported_ruby_version(version)
+
+        assert result == 0
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.error.assert_has_calls([
+            call('ERROR: Unsupported ruby version specified in .ruby-version.'),
+            call('Please upgrade to an actively supported version, see https://www.ruby-lang.org/en/downloads/branches/ for details.')  # noqa: E501
+        ])
 
 
 @patch('steps.build.run')

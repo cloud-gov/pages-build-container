@@ -19,7 +19,7 @@ import repo_config
 
 from steps import (
     build_hugo, build_jekyll, build_static, download_hugo,
-    fetch_repo, publish, run_federalist_script, fetch_commit_sha,
+    fetch_repo, publish, run_build_script, fetch_commit_sha,
     setup_bundler, setup_node, setup_ruby, StepException, update_repo
 )
 
@@ -127,7 +127,7 @@ def build(
 
             # Run the npm `federalist` task (if it is defined)
             run_step(
-                run_federalist_script(
+                run_build_script(
                     branch, owner, repository, site_prefix, baseurl, decrypted_uevs
                 ),
                 'There was a problem running the federalist script, see the above logs for details.'

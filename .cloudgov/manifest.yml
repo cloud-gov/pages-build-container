@@ -1,6 +1,6 @@
 ---    
 applications:
-  - name: federalist-build-container((env_postfix))
+  - name: ((product))-build-container((env_postfix))
     no-route: true
     health-check-type: process
     instances: 0
@@ -13,7 +13,7 @@ applications:
         name: default
       annotations:
         command: cd app && python main.py -p
-  - name: federalist-build-container-exp((env_postfix))
+  - name: ((product))-build-container-exp((env_postfix))
     no-route: true
     health-check-type: process
     instances: 0

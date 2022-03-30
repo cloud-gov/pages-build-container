@@ -4,8 +4,8 @@
 
 staging-cf: &staging-cf
   CF_API: https://api.fr.cloud.gov
-  CF_USERNAME: ((cf-username))
-  CF_PASSWORD: ((cf-password))
+  CF_USERNAME: ((staging-cf-username))
+  CF_PASSWORD: ((staging-cf-password))
   CF_ORG: gsa-18f-federalist
   CF_SPACE: staging
 
@@ -24,6 +24,8 @@ cf-image: &cf-image
     source:
       repository: 18fgsa/concourse-task
 
+app-name: &app-name pages-build-container-staging
+exp-app-name: &exp-app-name pages-build-container-exp-staging
 
 ############################
 #  JOBS
@@ -58,8 +60,7 @@ jobs:
           params:
             text: |
               :x: FAILED: pages build container tests on staging
-              ((build-url))
-              <@U01J8B463T5> <@U01J0M3E8NS> <@U01J7LKV5MZ>
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
@@ -77,15 +78,19 @@ jobs:
       - task: deploy
         config:
           <<: *cf-image
-          inputs: [name: src]
+          inputs:
+            - name: src
+            - name: build-container-image
           run:
-            path: src/ci/tasks/deploy.sh
+            dir: src
+            path: ci/tasks/deploy.sh
         params:
           <<: *staging-cf
-          CF_APP_NAME: federalist-build-container-staging
-          CF_MANIFEST: src/.cloudgov/manifest.yml
-          CF_VARS_FILE: src/.cloudgov/vars/staging.yml
-          CF_DOCKER_IMAGE: ((image-repository)):staging
+          CF_APP_NAME: *app-name
+          CF_MANIFEST: .cloudgov/manifest.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
+          CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
+          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
           CF_DOCKER_USERNAME: ((docker-username))
           CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
@@ -97,8 +102,7 @@ jobs:
           params:
             text: |
               :x: FAILED: pages build container deployment on staging
-              ((build-url))
-              <@U01J8B463T5> <@U01J0M3E8NS> <@U01J7LKV5MZ>
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
@@ -117,15 +121,19 @@ jobs:
       - task: deploy
         config:
           <<: *cf-image
-          inputs: [name: src]
+          inputs:
+            - name: src
+            - name: build-container-image-exp
           run:
-            path: src/ci/tasks/deploy.sh
+            dir: src
+            path: ci/tasks/deploy.sh
         params:
           <<: *staging-cf
-          CF_APP_NAME: federalist-build-container-exp-staging
-          CF_MANIFEST: src/.cloudgov/manifest.yml
-          CF_VARS_FILE: src/.cloudgov/vars/staging.yml
-          CF_DOCKER_IMAGE: ((image-repository)):staging-exp
+          CF_APP_NAME: *exp-app-name
+          CF_MANIFEST: .cloudgov/manifest.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
+          CF_DOCKER_IMAGE_DIGEST: ../build-container-image-exp/digest
+          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
           CF_DOCKER_USERNAME: ((docker-username))
           CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
@@ -137,8 +145,7 @@ jobs:
           params:
             text: |
               :x: FAILED: pages build container exp deployment on staging
-              ((build-url))
-              <@U01J8B463T5> <@U01J0M3E8NS> <@U01J7LKV5MZ>
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
@@ -159,8 +166,7 @@ jobs:
           params:
             text: |
               :white_check_mark: SUCCESS: Successfully deployed pages build containers on staging
-              ((build-url))
-              <@U01J8B463T5> <@U01J0M3E8NS> <@U01J7LKV5MZ>
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
@@ -177,10 +183,11 @@ jobs:
           <<: *cf-image
           inputs: [name: src]
           run:
-            path: src/ci/tasks/restage.sh
+            dir: src
+            path: ci/tasks/restage.sh
         params:
           <<: *staging-cf
-          CF_APP_NAME: federalist-build-container-staging
+          CF_APP_NAME: *app-name
 
   - name: nightly-tasks-staging-exp
     plan:
@@ -194,11 +201,21 @@ jobs:
           <<: *cf-image
           inputs: [name: src]
           run:
-            path: src/ci/tasks/restage.sh
+            dir: src
+            path: ci/tasks/restage.sh
         params:
           <<: *staging-cf
-          CF_APP_NAME: federalist-build-container-exp-staging
+          CF_APP_NAME: *exp-app-name
 
+  - name: reconfigure
+    serial: true
+    plan:
+      - get: src
+        resource: src-staging
+        params: {depth: 1}
+        trigger: true
+      - set_pipeline: build-container
+        file: src/ci/pipeline.yml
 
 ############################
 #  RESOURCES
@@ -211,13 +228,6 @@ resources:
     source:
       uri: https://github.com/18F/federalist-garden-build
       branch: staging
-
-  # - name: src-production
-  #   type: git
-  #   icon: github
-  #   source:
-  #     uri: https://github.com/18F/federalist-garden-build
-  #     branch: main
 
   - name: nightly
     type: time
@@ -244,7 +254,7 @@ resources:
     type: docker-image
     source:
       repository: ((image-repository))
-      tag: staging
+      tag: pages-staging
       username: ((docker-username))
       password: ((docker-password))
       
@@ -252,7 +262,7 @@ resources:
     type: docker-image
     source:
       repository: ((image-repository))
-      tag: staging-exp
+      tag: pages-staging-exp
       username: ((docker-username))
       password: ((docker-password))
 

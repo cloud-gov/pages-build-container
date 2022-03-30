@@ -4,7 +4,7 @@ version: 2.1
 ##              Orbs            ##
 ##################################
 orbs:
-  aws-ecr: circleci/aws-ecr@6.12.2
+  aws-ecr: circleci/aws-ecr@7.2.0
 
 
 ##################################
@@ -39,6 +39,13 @@ commands:
               echo "export CF_PASSWORD=$CF_PASSWORD_PRODUCTION" >> $BASH_ENV
               echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET_PRODUCTION" >> $BASH_ENV
               echo "export CF_DOCKER_USERNAME=$AWS_ECR_READ_KEY_PRODUCTION" >> $BASH_ENV
+            fi
+            if [ "$CIRCLE_BRANCH" = "staging" ]; then
+              echo "export CF_SPACE=staging" >> $BASH_ENV
+              echo "export CF_USERNAME=$CF_USERNAME_STAGING" >> $BASH_ENV
+              echo "export CF_PASSWORD=$CF_PASSWORD_STAGING" >> $BASH_ENV
+              echo "export CF_DOCKER_PASSWORD=$AWS_ECR_READ_SECRET_STAGING" >> $BASH_ENV
+              echo "export CF_DOCKER_USERNAME=$AWS_ECR_READ_KEY_STAGING" >> $BASH_ENV
             fi
 
       - run:
@@ -188,7 +195,24 @@ workflows:
           filters:
             branches:
               only: main
-  
+
+      - build-push-deploy:
+          app:                        federalist-build-container<< matrix.extension >>-staging
+          space:                      staging
+          account-url:                AWS_ECR_ACCOUNT_URL_STAGING
+          aws-access-key-id:          AWS_ECR_WRITE_KEY_STAGING
+          aws-secret-access-key:      AWS_ECR_WRITE_SECRET_STAGING
+          region:                     AWS_ECR_REGION_STAGING
+          repo:                       federalist-staging-ecr
+          matrix:
+            parameters:
+              extension: ["", "-exp"]
+          requires:
+            - test
+          filters:
+            branches:
+              only: staging
+
   nightly:
     triggers:
       - schedule:
@@ -197,6 +221,7 @@ workflows:
             branches:
               only:
                 - main
+                - staging
     jobs:
       - restage:
           matrix:
@@ -207,4 +232,13 @@ workflows:
           filters:
             branches:
               only: main
-    
+
+      - restage:
+          matrix:
+            parameters:
+              app:
+                - federalist-build-container-staging
+                - federalist-build-container-exp-staging
+          filters:
+            branches:
+              only: staging
