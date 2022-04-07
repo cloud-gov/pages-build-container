@@ -70,6 +70,13 @@ def list_remote_objects(bucket, site_prefix, s3_client):
     return remote_objects
 
 
+def path_is_excluded(federalist_config, filename):
+    if 'Dockerfile' in filename or 'docker-compose.yml' in filename:
+        return True
+    else:
+        return False
+
+
 def get_cache_control(federalist_config, filename, dir_prefix):
     filepath = filename
     if dir_prefix and filepath.startswith(dir_prefix):
@@ -122,6 +129,10 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
                             site_prefix=site_prefix,
                             cache_control=cache_control)
         local_files.append(file_404)
+
+    # Exclude files based on defaults and configuration
+    local_files[:] = [file for file in local_files
+                      if not path_is_excluded(federalist_config, file.filename)]
 
     # Create a list of redirects from the local files
     local_redirects = []
