@@ -10,14 +10,25 @@ class RepoConfig:
                 "cache-control": "no-cache"
             }
         ]
+        "exclude": [
+            "/excluded_file": true,
+            "/another_excluded_file": true
+        ]
     }
 
-    Currently, only the `headers` and `fullClone` keys is read and used
+    Currently, only the `headers`, `exclude`, and `fullClone` keys are read and used
     '''
 
     def __init__(self, config={}, defaults={}):
         self.config = config
         self.defaults = defaults
+        # The following defaults can be overridden by rules for these
+        # patterns defined earlier in the configuration file or object.
+        if 'exclude' not in self.config:
+            self.config['exclude'] = []
+
+        self.config['exclude'].append({'/Dockerfile': True})
+        self.config['exclude'].append({'/docker-compose.yml': True})
 
     def get_headers_for_path(self, path_to_match):
         '''
@@ -39,13 +50,27 @@ class RepoConfig:
 
         return resolved_headers
 
+    def is_path_excluded(self, path_to_match):
+        '''
+        Determine whether the filepath should be excluded from publication
+        '''
+
+        first_matching_cfg = find_first_matching_cfg(
+            self.config.get('exclude', []),
+            path_to_match)
+
+        if first_matching_cfg and len(first_matching_cfg) > 0:
+            return first_value(first_matching_cfg)
+        else:
+            return False
+
     def full_clone(self):
         return self.config.get('fullClone', False) is True
 
 
-def find_first_matching_cfg(headers, path_to_match):
+def find_first_matching_cfg(configuration_section, path_to_match):
     '''
-    Find and return the FIRST header config where the `path_to_match` matches
+    Find and return the FIRST configuration rule where the `path_to_match` matches
     the configured pattern.
 
     Order is important, so the configuration must be specified and handled as a
@@ -55,10 +80,10 @@ def find_first_matching_cfg(headers, path_to_match):
     '''
 
     return next(
-        (header_cfg
-            for header_cfg
-            in headers
-            if match_path(first_key(header_cfg), path_to_match)),
+        (configuration_rule
+            for configuration_rule
+            in configuration_section
+            if match_path(first_key(configuration_rule), path_to_match)),
         {})
 
 

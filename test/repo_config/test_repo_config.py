@@ -143,3 +143,39 @@ def test_get_headers_for_path():
     path_to_match = '/foo.js'
     value = repo_config.get_headers_for_path(path_to_match)
     assert value == defaults['headers']
+
+
+def test_is_path_excluded():
+    config = {
+        'exclude': [
+            {'/excluded-file': True},
+        ]
+    }
+    repo_config = RepoConfig(config=config, defaults={})
+
+    # Excludes a file explicitly excluded
+    value = repo_config.is_path_excluded('/excluded-file')
+    assert value is True
+
+    # Doesn't exclude a file not explicitly excluded
+    value = repo_config.is_path_excluded('/index.html')
+    assert value is not True
+
+    # Excludes Dockerfile by default when that file is not mentioned
+    value = repo_config.is_path_excluded('/Dockerfile')
+    assert value is True
+
+    # Excludes docker-compose.yml by default when that file is not mentioned
+    value = repo_config.is_path_excluded('/docker-compose.yml')
+    assert value is True
+
+    config = {
+        'exclude': [
+            {'/Dockerfile': False},
+        ]
+    }
+    repo_config = RepoConfig(config=config, defaults={})
+
+    # Includes Dockerfile when that default is overridden by configuration
+    value = repo_config.is_path_excluded('/Dockerfile')
+    assert value is not True
