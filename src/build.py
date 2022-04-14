@@ -108,7 +108,10 @@ def build(
 
             federalist_config = repo_config.from_json_file(
                 CLONE_DIR_PATH,
-                dict(headers=dict([('cache-control', cache_control)]))
+                dict(
+                    headers=dict([('cache-control', cache_control)]),
+                    excludePaths=['/Dockerfile', '/docker-compose.yml']
+                )
             )
 
             if federalist_config.full_clone():

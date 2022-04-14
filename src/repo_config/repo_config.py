@@ -9,26 +9,26 @@ class RepoConfig:
             "/*": {
                 "cache-control": "no-cache"
             }
-        ]
+        ],
         "excludePaths": [
             "/excluded_file",
-            "/another_excluded_file",
+            "/another_excluded_file"
+        ],
+        "includePaths": [
+            "/included_file"
         ]
     }
 
-    Currently, only the `headers`, `excludePaths`, and `fullClone` keys are read and used
+    Currently, only the following keys are utilized:
+        - headers
+        - excludePaths
+        - includePaths
+        - fullClone
     '''
 
     def __init__(self, config={}, defaults={}):
         self.config = config
         self.defaults = defaults
-        # The following defaults can be overridden by rules for these
-        # patterns defined earlier in the configuration file or object.
-        if 'excludePaths' not in self.config:
-            self.config['excludePaths'] = []
-
-        self.config['excludePaths'].append('/Dockerfile')
-        self.config['excludePaths'].append('/docker-compose.yml')
 
     def get_headers_for_path(self, path_to_match):
         '''
@@ -55,12 +55,31 @@ class RepoConfig:
         Determine whether the filepath should be excluded from publication
         '''
 
-        exclude_paths = self.config.get('excludePaths', [])
+        exclude_paths = [
+            *self.config.get('excludePaths', []),
+            *self.defaults.get('excludePaths', [])
+        ]
 
-        return any([match_path(exclude_path, path_to_match) for exclude_path in exclude_paths])
+        include_paths = [
+            *self.config.get('includePaths', []),
+            *self.defaults.get('includePaths', [])
+        ]
+
+        return (
+            has_path_match(exclude_paths, path_to_match)
+            and not(has_path_match(include_paths, path_to_match))
+        )
 
     def full_clone(self):
         return self.config.get('fullClone', False) is True
+
+
+def has_path_match(paths, path_to_match):
+    for path in paths:
+        if match_path(path, path_to_match):
+            return True
+
+    return False
 
 
 def find_first_matching_cfg(configuration_section, path_to_match):

@@ -151,7 +151,15 @@ def test_is_path_excluded():
             '/excluded-file',
         ]
     }
-    repo_config = RepoConfig(config=config, defaults={})
+
+    defaults = {
+        'excludePaths': [
+            '/Dockerfile',
+            '/docker-compose.yml'
+        ]
+    }
+
+    repo_config = RepoConfig(config=config, defaults=defaults)
 
     # Excludes a file explicitly excluded
     value = repo_config.is_path_excluded('/excluded-file')
@@ -161,20 +169,21 @@ def test_is_path_excluded():
     value = repo_config.is_path_excluded('/index.html')
     assert value is not True
 
-    # Excludes Dockerfile by default when that file is not mentioned
+    # Excludes Dockerfile by default when that file is in defaults
     value = repo_config.is_path_excluded('/Dockerfile')
     assert value is True
 
-    # Excludes docker-compose.yml by default when that file is not mentioned
+    # Excludes docker-compose.yml by default when that file is in defaults
     value = repo_config.is_path_excluded('/docker-compose.yml')
     assert value is True
 
     config = {
-        'excludePaths': [
+        'includePaths': [
             '/Dockerfile',
         ]
     }
-    repo_config = RepoConfig(config=config, defaults={})
+
+    repo_config = RepoConfig(config=config, defaults=defaults)
 
     # Includes Dockerfile when that default is overridden by configuration
     value = repo_config.is_path_excluded('/Dockerfile')

@@ -95,7 +95,15 @@ def test_publish_to_s3(tmpdir, s3_client):
                 '/excluded-file'
             ]
         },
-        dict(headers=dict([('cache-control', 'max-age=60')]))
+        {
+            'headers': {
+                'cache-control': 'max-age=60'
+            },
+            'excludePaths': [
+                '/Dockerfile',
+                '/docker-compose.yml'
+            ]
+        }
     )
 
     publish_kwargs = {
