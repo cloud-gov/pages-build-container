@@ -10,13 +10,13 @@ class RepoConfig:
                 "cache-control": "no-cache"
             }
         ]
-        "exclude": [
-            "/excluded_file": true,
-            "/another_excluded_file": true
+        "excludePaths": [
+            "/excluded_file",
+            "/another_excluded_file",
         ]
     }
 
-    Currently, only the `headers`, `exclude`, and `fullClone` keys are read and used
+    Currently, only the `headers`, `excludePaths`, and `fullClone` keys are read and used
     '''
 
     def __init__(self, config={}, defaults={}):
@@ -24,11 +24,11 @@ class RepoConfig:
         self.defaults = defaults
         # The following defaults can be overridden by rules for these
         # patterns defined earlier in the configuration file or object.
-        if 'exclude' not in self.config:
-            self.config['exclude'] = []
+        if 'excludePaths' not in self.config:
+            self.config['excludePaths'] = []
 
-        self.config['exclude'].append({'/Dockerfile': True})
-        self.config['exclude'].append({'/docker-compose.yml': True})
+        self.config['excludePaths'].append('/Dockerfile')
+        self.config['excludePaths'].append('/docker-compose.yml')
 
     def get_headers_for_path(self, path_to_match):
         '''
@@ -55,14 +55,9 @@ class RepoConfig:
         Determine whether the filepath should be excluded from publication
         '''
 
-        first_matching_cfg = find_first_matching_cfg(
-            self.config.get('exclude', []),
-            path_to_match)
+        exclude_paths = self.config.get('excludePaths', [])
 
-        if first_matching_cfg and len(first_matching_cfg) > 0:
-            return first_value(first_matching_cfg)
-        else:
-            return False
+        return any([match_path(exclude_path, path_to_match) for exclude_path in exclude_paths])
 
     def full_clone(self):
         return self.config.get('fullClone', False) is True

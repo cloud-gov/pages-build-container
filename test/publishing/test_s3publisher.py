@@ -91,8 +91,8 @@ def test_publish_to_s3(tmpdir, s3_client):
                 {'/index.html': {'cache-control': 'no-cache'}},
                 {'/*.txt': {'cache-control': 'max-age=1000'}}
             ],
-            'exclude': [
-                {'/excluded-file': True}
+            'excludePaths': [
+                '/excluded-file'
             ]
         },
         dict(headers=dict([('cache-control', 'max-age=60')]))

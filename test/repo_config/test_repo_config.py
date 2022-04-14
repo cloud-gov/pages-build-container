@@ -147,8 +147,8 @@ def test_get_headers_for_path():
 
 def test_is_path_excluded():
     config = {
-        'exclude': [
-            {'/excluded-file': True},
+        'excludePaths': [
+            '/excluded-file',
         ]
     }
     repo_config = RepoConfig(config=config, defaults={})
@@ -170,8 +170,8 @@ def test_is_path_excluded():
     assert value is True
 
     config = {
-        'exclude': [
-            {'/Dockerfile': False},
+        'excludePaths': [
+            '/Dockerfile',
         ]
     }
     repo_config = RepoConfig(config=config, defaults={})
