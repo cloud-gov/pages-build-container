@@ -1,3 +1,6 @@
+import fnmatch
+
+
 class RepoConfig:
     '''
     Encapsulate the logic for handling the `federalist.json` configuration
@@ -11,11 +14,12 @@ class RepoConfig:
             }
         ],
         "excludePaths": [
-            "/excluded_file",
-            "/another_excluded_file"
+            "**/Dockerfile",
+            "/another_excluded_file.yml"
         ],
         "includePaths": [
-            "/included_file"
+            "/included_file",
+            "/.well-known/security.txt
         ]
     }
 
@@ -51,32 +55,35 @@ class RepoConfig:
         return resolved_headers
 
     def is_path_excluded(self, path_to_match):
-        '''
-        Determine whether the filepath should be excluded from publication
-        '''
+        return ((contains_dotpath(path_to_match) or self.is_exclude_path_match(path_to_match))
+                and not self.is_include_path_match(path_to_match))
 
-        exclude_paths = [
-            *self.config.get('excludePaths', []),
-            *self.defaults.get('excludePaths', [])
-        ]
+    def is_path_included(self, path_to_match):
+        return not self.is_path_excluded(path_to_match)
 
-        include_paths = [
-            *self.config.get('includePaths', []),
-            *self.defaults.get('includePaths', [])
-        ]
+    def is_exclude_path_match(self, path_to_match):
+        return is_path_match(self.exclude_paths(), path_to_match)
 
-        return (
-            has_path_match(exclude_paths, path_to_match)
-            and not(has_path_match(include_paths, path_to_match))
-        )
+    def is_include_path_match(self, path_to_match):
+        return is_path_match(self.include_paths(), path_to_match)
 
     def full_clone(self):
         return self.config.get('fullClone', False) is True
 
+    def exclude_paths(self):
+        return self.config.get('excludePaths', []) + self.defaults.get('excludePaths', [])
 
-def has_path_match(paths, path_to_match):
-    for path in paths:
-        if match_path(path, path_to_match):
+    def include_paths(self):
+        return self.config.get('includePaths', []) + self.defaults.get('includePaths', [])
+
+
+def contains_dotpath(filename):
+    return any(segment for segment in filename.split('/') if segment.startswith('.'))
+
+
+def is_path_match(patterns, path_to_match):
+    for pattern in patterns:
+        if fnmatch.fnmatch(prepend_slash(path_to_match), pattern):
             return True
 
     return False
@@ -187,3 +194,10 @@ def first_value(dikt):
 def strip_prefix(prefix, path):
     # Copied from models.py::remove_prefix
     return path[len(prefix):] if path.startswith(prefix) else path
+
+
+def prepend_slash(path):
+    if path[0] == '/':
+        return path
+
+    return '/' + path

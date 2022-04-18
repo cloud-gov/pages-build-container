@@ -2,10 +2,10 @@
 Classes and methods for publishing a directory to S3
 '''
 
-import glob
+# import glob
 import requests
 
-from os import path, makedirs
+from os import path, makedirs, walk
 
 from log_utils import get_logger
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
@@ -70,20 +70,14 @@ def list_remote_objects(bucket, site_prefix, s3_client):
     return remote_objects
 
 
-def path_is_excluded(federalist_config, filename, dir_prefix):
-    filepath = filename
-    if dir_prefix and filepath.startswith(dir_prefix):
-        filepath = filepath[len(dir_prefix):]
-
-    return federalist_config.is_path_excluded(filepath)
+def get_cache_control(federalist_config, filename):
+    return federalist_config.get_headers_for_path(filename).get('cache-control')
 
 
-def get_cache_control(federalist_config, filename, dir_prefix):
-    filepath = filename
-    if dir_prefix and filepath.startswith(dir_prefix):
-        filepath = filepath[len(dir_prefix):]
-
-    return federalist_config.get_headers_for_path(filepath).get('cache-control')
+def strip_dirname(filepath, dirname):
+    if dirname and filepath.startswith(dirname):
+        return filepath[len(dirname):]
+    return filepath
 
 
 def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
@@ -91,26 +85,29 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
     '''Publishes the given directory to S3'''
     logger = get_logger('publish')
 
-    # With glob, dotfiles are ignored by default
-    # Note that the filenames will include the `directory` prefix
-    # but we won't want that for the eventual S3 keys
-    files_and_dirs = glob.glob(path.join(directory, '**', '*'),
-                               recursive=True)
+    local_objects = []
 
-    # add security.txt support
-    files_and_dirs += glob.glob(path.join(directory, '**', '.well-known',
-                                'security.txt'), recursive=True)
     # Collect a list of all files in the specified directory
-    local_files = []
-    for filename in files_and_dirs:
-        if path.isfile(filename):
-            cache_control = get_cache_control(federalist_config, filename, directory)
+    for root, _dirs, filenames in walk(directory):
+        for filename in filenames:
+            full_path = path.join(root, filename)
+            relative_path = strip_dirname(full_path, directory)
 
-            site_file = SiteFile(filename=filename,
-                                 dir_prefix=directory,
-                                 site_prefix=site_prefix,
-                                 cache_control=cache_control)
-            local_files.append(site_file)
+            if federalist_config.is_path_included(relative_path):
+                cache_control = get_cache_control(federalist_config, relative_path)
+
+                site_file = SiteFile(filename=full_path,
+                                     dir_prefix=directory,
+                                     site_prefix=site_prefix,
+                                     cache_control=cache_control)
+                local_objects.append(site_file)
+
+                if filename == 'index.html':
+                    site_redirect = SiteRedirect(filename=root,
+                                                 dir_prefix=directory,
+                                                 site_prefix=site_prefix,
+                                                 base_url=base_url)
+                    local_objects.append(site_redirect)
 
     # Add local 404 if does not already exist
     filename_404 = directory + '/404.html'
@@ -123,31 +120,13 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
         with open(filename_404, "w+") as f:
             f.write(default_404.text)
 
-        cache_control = get_cache_control(federalist_config, filename_404, directory)
+        cache_control = get_cache_control(federalist_config, strip_dirname(filename_404, directory))
 
         file_404 = SiteFile(filename=filename_404,
                             dir_prefix=directory,
                             site_prefix=site_prefix,
                             cache_control=cache_control)
-        local_files.append(file_404)
-
-    # Exclude files based on defaults and configuration
-    local_files[:] = [file for file in local_files
-                      if not path_is_excluded(federalist_config, file.filename, directory)]
-
-    # Create a list of redirects from the local files
-    local_redirects = []
-    for site_file in local_files:
-        if path.basename(site_file.filename) == 'index.html':
-            redirect_filename = path.dirname(site_file.filename)
-            site_redirect = SiteRedirect(filename=redirect_filename,
-                                         dir_prefix=directory,
-                                         site_prefix=site_prefix,
-                                         base_url=base_url)
-            local_redirects.append(site_redirect)
-
-    # Combined list of local objects
-    local_objects = local_files + local_redirects
+        local_objects.append(file_404)
 
     if len(local_objects) == 0:
         raise RuntimeError('Local build files not found')
@@ -186,7 +165,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
     ]
 
     if (len(new_objects) == 0 and len(replacement_objects) <= 1 and
-            len(local_files) <= 1):
+            len(local_objects) <= 1):
         raise RuntimeError('Cannot unpublish all files')
 
     logger.info('Preparing to upload')

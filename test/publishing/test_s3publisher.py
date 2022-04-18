@@ -100,8 +100,11 @@ def test_publish_to_s3(tmpdir, s3_client):
                 'cache-control': 'max-age=60'
             },
             'excludePaths': [
-                '/Dockerfile',
-                '/docker-compose.yml'
+                '**/Dockerfile',
+                '**/docker-compose.yml'
+            ],
+            'includePaths': [
+                '/.well-known/security.txt'
             ]
         }
     )
@@ -195,6 +198,7 @@ def test_publish_to_s3(tmpdir, s3_client):
         _make_fake_files(test_dir, more_filenames)
         publish_to_s3(**publish_kwargs)
         results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+        print(results)
         assert results['KeyCount'] == 6
 
         # make sure default excluded files are excluded by default
