@@ -197,7 +197,4 @@ def strip_prefix(prefix, path):
 
 
 def prepend_slash(path):
-    if path[0] == '/':
-        return path
-
-    return '/' + path
+    return path if path.startswith('/') else ('/' + path)

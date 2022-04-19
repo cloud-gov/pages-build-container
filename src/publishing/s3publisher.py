@@ -84,9 +84,20 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
     '''Publishes the given directory to S3'''
     logger = get_logger('publish')
 
-    local_objects = []
+    # Add local 404 if does not already exist
+    filename_404 = directory + '/404.html'
+    if not path.isfile(filename_404):
+        default_404_url = ('https://raw.githubusercontent.com'
+                           '/18F/federalist-404-page/master/'
+                           '404-federalist-client.html')
+        default_404 = requests.get(default_404_url)
+        makedirs(path.dirname(filename_404), exist_ok=True)
+        with open(filename_404, "w+") as f:
+            f.write(default_404.text)
 
-    # Collect a list of all files in the specified directory
+    # Collect a list of all files in `directory``
+    local_objects_by_filename = {}
+
     for root, _dirs, filenames in walk(directory):
         for filename in filenames:
             full_path = path.join(root, filename)
@@ -99,35 +110,18 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
                                      dir_prefix=directory,
                                      site_prefix=site_prefix,
                                      cache_control=cache_control)
-                local_objects.append(site_file)
+
+                local_objects_by_filename[site_file.filename] = site_file
 
                 if filename == 'index.html':
                     site_redirect = SiteRedirect(filename=root,
                                                  dir_prefix=directory,
                                                  site_prefix=site_prefix,
                                                  base_url=base_url)
-                    local_objects.append(site_redirect)
 
-    # Add local 404 if does not already exist
-    filename_404 = directory + '/404.html'
-    default_404_url = ('https://raw.githubusercontent.com'
-                       '/18F/federalist-404-page/master/'
-                       '404-federalist-client.html')
-    if not path.isfile(filename_404):
-        default_404 = requests.get(default_404_url)
-        makedirs(path.dirname(filename_404), exist_ok=True)
-        with open(filename_404, "w+") as f:
-            f.write(default_404.text)
+                    local_objects_by_filename[site_redirect.filename] = site_redirect
 
-        cache_control = get_cache_control(federalist_config, strip_dirname(filename_404, directory))
-
-        file_404 = SiteFile(filename=filename_404,
-                            dir_prefix=directory,
-                            site_prefix=site_prefix,
-                            cache_control=cache_control)
-        local_objects.append(file_404)
-
-    if len(local_objects) == 0:
+    if len(local_objects_by_filename) == 0:
         raise RuntimeError('Local build files not found')
 
     # Get list of remote files
@@ -142,10 +136,6 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
         # files do, so add it so we can more easily compare them.
         filename = path.join(directory, obj.filename)
         remote_objects_by_filename[filename] = obj
-
-    local_objects_by_filename = {}
-    for obj in local_objects:
-        local_objects_by_filename[obj.filename] = obj
 
     # Create lists of all the new and modified objects
     new_objects = []
@@ -164,7 +154,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
     ]
 
     if (len(new_objects) == 0 and len(replacement_objects) <= 1 and
-            len(local_objects) <= 1):
+            len(local_objects_by_filename) <= 1):
         raise RuntimeError('Cannot unpublish all files')
 
     logger.info('Preparing to upload')
