@@ -2,7 +2,6 @@
 Classes and methods for publishing a directory to S3
 '''
 
-# import glob
 import requests
 
 from os import path, makedirs, walk
