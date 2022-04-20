@@ -100,8 +100,8 @@ def test_publish_to_s3(tmpdir, s3_client):
                 'cache-control': 'max-age=60'
             },
             'excludePaths': [
-                '**/Dockerfile',
-                '**/docker-compose.yml'
+                '*/Dockerfile',
+                '*/docker-compose.yml'
             ],
             'includePaths': [
                 '/.well-known/security.txt'
