@@ -1,3 +1,6 @@
+import fnmatch
+
+
 class RepoConfig:
     '''
     Encapsulate the logic for handling the `federalist.json` configuration
@@ -9,10 +12,22 @@ class RepoConfig:
             "/*": {
                 "cache-control": "no-cache"
             }
+        ],
+        "excludePaths": [
+            "**/Dockerfile",
+            "/another_excluded_file.yml"
+        ],
+        "includePaths": [
+            "/included_file",
+            "/.well-known/security.txt
         ]
     }
 
-    Currently, only the `headers` and `fullClone` keys is read and used
+    Currently, only the following keys are utilized:
+        - headers
+        - excludePaths
+        - includePaths
+        - fullClone
     '''
 
     def __init__(self, config={}, defaults={}):
@@ -39,13 +54,44 @@ class RepoConfig:
 
         return resolved_headers
 
+    def is_path_excluded(self, path_to_match):
+        return ((contains_dotpath(path_to_match) or self.is_exclude_path_match(path_to_match))
+                and not self.is_include_path_match(path_to_match))
+
+    def is_path_included(self, path_to_match):
+        return not self.is_path_excluded(path_to_match)
+
+    def is_exclude_path_match(self, path_to_match):
+        return is_path_match(self.exclude_paths(), path_to_match)
+
+    def is_include_path_match(self, path_to_match):
+        return is_path_match(self.include_paths(), path_to_match)
+
     def full_clone(self):
         return self.config.get('fullClone', False) is True
 
+    def exclude_paths(self):
+        return self.config.get('excludePaths', []) + self.defaults.get('excludePaths', [])
 
-def find_first_matching_cfg(headers, path_to_match):
+    def include_paths(self):
+        return self.config.get('includePaths', []) + self.defaults.get('includePaths', [])
+
+
+def contains_dotpath(filename):
+    return any(segment for segment in filename.split('/') if segment.startswith('.'))
+
+
+def is_path_match(patterns, path_to_match):
+    for pattern in patterns:
+        if fnmatch.fnmatch(prepend_slash(path_to_match), pattern):
+            return True
+
+    return False
+
+
+def find_first_matching_cfg(configuration_section, path_to_match):
     '''
-    Find and return the FIRST header config where the `path_to_match` matches
+    Find and return the FIRST configuration rule where the `path_to_match` matches
     the configured pattern.
 
     Order is important, so the configuration must be specified and handled as a
@@ -55,10 +101,10 @@ def find_first_matching_cfg(headers, path_to_match):
     '''
 
     return next(
-        (header_cfg
-            for header_cfg
-            in headers
-            if match_path(first_key(header_cfg), path_to_match)),
+        (configuration_rule
+            for configuration_rule
+            in configuration_section
+            if match_path(first_key(configuration_rule), path_to_match)),
         {})
 
 
@@ -148,3 +194,7 @@ def first_value(dikt):
 def strip_prefix(prefix, path):
     # Copied from models.py::remove_prefix
     return path[len(prefix):] if path.startswith(prefix) else path
+
+
+def prepend_slash(path):
+    return path if path.startswith('/') else ('/' + path)

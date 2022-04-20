@@ -90,9 +90,23 @@ def test_publish_to_s3(tmpdir, s3_client):
             'headers': [
                 {'/index.html': {'cache-control': 'no-cache'}},
                 {'/*.txt': {'cache-control': 'max-age=1000'}}
+            ],
+            'excludePaths': [
+                '/excluded-file'
             ]
         },
-        dict(headers=dict([('cache-control', 'max-age=60')]))
+        {
+            'headers': {
+                'cache-control': 'max-age=60'
+            },
+            'excludePaths': [
+                '**/Dockerfile',
+                '**/docker-compose.yml'
+            ],
+            'includePaths': [
+                '/.well-known/security.txt'
+            ]
+        }
     )
 
     publish_kwargs = {
@@ -181,6 +195,21 @@ def test_publish_to_s3(tmpdir, s3_client):
                           '.well-known/.security',
                           '.not-well-known/security.txt',
                           '.security']
+        _make_fake_files(test_dir, more_filenames)
+        publish_to_s3(**publish_kwargs)
+        results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+        assert results['KeyCount'] == 6
+
+        # make sure default excluded files are excluded by default
+        more_filenames = ['Dockerfile',
+                          'docker-compose.yml']
+        _make_fake_files(test_dir, more_filenames)
+        publish_to_s3(**publish_kwargs)
+        results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
+        assert results['KeyCount'] == 6
+
+        # make sure files can be excluded in configuration
+        more_filenames = ['excluded-file']
         _make_fake_files(test_dir, more_filenames)
         publish_to_s3(**publish_kwargs)
         results = s3_client.list_objects_v2(Bucket=TEST_BUCKET)
