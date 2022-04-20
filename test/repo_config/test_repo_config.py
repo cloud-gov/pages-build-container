@@ -156,7 +156,7 @@ def test_exclude_paths_returns_union_of_config_and_defaults():
     value = repo_config.exclude_paths()
     assert value == [
         '/excluded-file',
-        '**/Dockerfile',
+        '*/Dockerfile',
         '/docker-compose.yml'
     ]
 
@@ -172,7 +172,7 @@ def test_include_paths_returns_union_of_config_and_defaults():
     value = repo_config.include_paths()
     assert value == [
         '/foo/Dockerfile',
-        '**/.foo',
+        '*/.foo',
         '/.well-known/security.txt'
     ]
 
@@ -185,6 +185,9 @@ def test_is_exclude_path_match():
     assert value is True
 
     value = repo_config.is_exclude_path_match('/foo/Dockerfile')
+    assert value is True
+
+    value = repo_config.is_exclude_path_match('/foo/bar/baz/Dockerfile')
     assert value is True
 
     # Excludes default file only at root
@@ -300,7 +303,7 @@ def test_config():
         ],
         'includePaths': [
             '/foo/Dockerfile',
-            '**/.foo'
+            '*/.foo'
         ]
     }
 
@@ -308,7 +311,7 @@ def test_config():
 def test_defaults():
     return {
         'excludePaths': [
-            '**/Dockerfile',
+            '*/Dockerfile',
             '/docker-compose.yml'
         ],
         'includePaths': [
