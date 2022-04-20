@@ -156,6 +156,8 @@ def test_exclude_paths_returns_union_of_config_and_defaults():
     value = repo_config.exclude_paths()
     assert value == [
         '/excluded-file',
+        '/excluded-folder',
+        '/excluded-folder/*',
         '*/Dockerfile',
         '/docker-compose.yml'
     ]
@@ -252,11 +254,24 @@ def test_is_path_excluded():
     value = repo_config.is_path_excluded('/foo/docker-compose.yml')
     assert value is False
 
-    # Excludes configured
+    # Excludes configured files
     value = repo_config.is_path_excluded('/excluded-file')
     assert value is True
 
     value = repo_config.is_path_excluded('/foo/excluded-file')
+    assert value is False
+
+    # Excludes configured folders
+    value = repo_config.is_path_excluded('/excluded-folder')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/excluded-folder/')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/excluded-folder/foo.txt')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/foo/excluded-folder/foo.txt')
     assert value is False
 
     # Includes configured that overrides default
@@ -299,7 +314,9 @@ def test_contains_dotpath():
 def test_config():
     return {
         'excludePaths': [
-            '/excluded-file'
+            '/excluded-file',
+            '/excluded-folder',
+            '/excluded-folder/*'
         ],
         'includePaths': [
             '/foo/Dockerfile',
