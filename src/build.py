@@ -110,7 +110,12 @@ def build(
                 CLONE_DIR_PATH,
                 dict(
                     headers=dict([('cache-control', cache_control)]),
-                    excludePaths=['*/Dockerfile', '*/docker-compose.yml'],
+                    excludePaths=[
+                        '*/Dockerfile',
+                        '*/docker-compose.yml',
+                        '/federalist.json',
+                        '/pages.json'
+                    ],
                     includePaths=['/.well-known/security.txt']
                 )
             )
