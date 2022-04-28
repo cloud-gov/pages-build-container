@@ -113,8 +113,8 @@ def build(
                     excludePaths=[
                         '*/Dockerfile',
                         '*/docker-compose.yml',
-                        '*/federalist.json',
-                        '*/pages.json'
+                        '/federalist.json',
+                        '/pages.json'
                     ],
                     includePaths=['/.well-known/security.txt']
                 )
