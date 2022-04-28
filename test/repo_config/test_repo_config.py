@@ -1,4 +1,4 @@
-from repo_config.repo_config import (RepoConfig, match_path,
+from repo_config.repo_config import (RepoConfig, contains_dotpath, match_path,
                                      find_first_matching_cfg)
 
 
@@ -143,3 +143,195 @@ def test_get_headers_for_path():
     path_to_match = '/foo.js'
     value = repo_config.get_headers_for_path(path_to_match)
     assert value == defaults['headers']
+
+
+def test_exclude_paths_always_returns_a_list():
+    repo_config = RepoConfig(config={}, defaults={})
+    value = repo_config.exclude_paths()
+    assert value == []
+
+
+def test_exclude_paths_returns_union_of_config_and_defaults():
+    repo_config = RepoConfig(config=test_config(), defaults=test_defaults())
+    value = repo_config.exclude_paths()
+    assert value == [
+        '/excluded-file',
+        '/excluded-folder',
+        '/excluded-folder/*',
+        '*/Dockerfile',
+        '/docker-compose.yml'
+    ]
+
+
+def test_include_paths_always_returns_a_list():
+    repo_config = RepoConfig(config={}, defaults={})
+    value = repo_config.include_paths()
+    assert value == []
+
+
+def test_include_paths_returns_union_of_config_and_defaults():
+    repo_config = RepoConfig(config=test_config(), defaults=test_defaults())
+    value = repo_config.include_paths()
+    assert value == [
+        '/foo/Dockerfile',
+        '*/.foo',
+        '/.well-known/security.txt'
+    ]
+
+
+def test_is_exclude_path_match():
+    repo_config = RepoConfig(config=test_config(), defaults=test_defaults())
+
+    # Excludes default file anywhere
+    value = repo_config.is_exclude_path_match('/Dockerfile')
+    assert value is True
+
+    value = repo_config.is_exclude_path_match('/foo/Dockerfile')
+    assert value is True
+
+    value = repo_config.is_exclude_path_match('/foo/bar/baz/Dockerfile')
+    assert value is True
+
+    # Excludes default file only at root
+    value = repo_config.is_exclude_path_match('/docker-compose.yml')
+    assert value is True
+
+    value = repo_config.is_exclude_path_match('/foo/docker-compose.yml')
+    assert value is False
+
+    # Excludes a file explicitly excluded
+    value = repo_config.is_exclude_path_match('/excluded-file')
+    assert value is True
+
+    # Doesn't exclude a file not explicitly excluded
+    value = repo_config.is_exclude_path_match('/index.html')
+    assert value is False
+
+
+def test_is_include_path_match():
+    repo_config = RepoConfig(config=test_config(), defaults=test_defaults())
+
+    # Includes default file only in root
+    value = repo_config.is_include_path_match('/.well-known/security.txt')
+    assert value is True
+
+    # Includes Dockerfile when that default is overridden by configuration
+    value = repo_config.is_include_path_match('/foo/Dockerfile')
+    assert value is True
+
+    # Includes dot file
+    value = repo_config.is_include_path_match('/foo/bar/.foo')
+    assert value is True
+
+
+def test_is_path_excluded():
+    repo_config = RepoConfig(config=test_config(), defaults=test_defaults())
+
+    # Excludes dotfiles
+    value = repo_config.is_path_excluded('/.bar')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/foo/.bar')
+    assert value is True
+
+    # Includes dotfiles when specified
+    value = repo_config.is_path_excluded('/.well-known/security.txt')
+    assert value is False
+
+    value = repo_config.is_path_excluded('/bar/.foo')
+    assert value is False
+
+    # Excludes defaults
+    value = repo_config.is_path_excluded('/Dockerfile')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/bar/Dockerfile')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/docker-compose.yml')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/foo/docker-compose.yml')
+    assert value is False
+
+    # Excludes configured files
+    value = repo_config.is_path_excluded('/excluded-file')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/foo/excluded-file')
+    assert value is False
+
+    # Excludes configured folders
+    value = repo_config.is_path_excluded('/excluded-folder')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/excluded-folder/')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/excluded-folder/foo.txt')
+    assert value is True
+
+    value = repo_config.is_path_excluded('/foo/excluded-folder/foo.txt')
+    assert value is False
+
+    # Includes configured that overrides default
+    value = repo_config.is_path_excluded('/foo/Dockerfile')
+    assert value is False
+
+    # Prepends slashes
+    value = repo_config.is_path_excluded('excluded-file')
+    assert value is True
+
+    value = repo_config.is_path_excluded('foo/excluded-file')
+    assert value is False
+
+
+def test_is_path_included_is_not_is_path_excluded():
+    repo_config = RepoConfig(config=test_config(), defaults=test_defaults())
+    path = '/bar/.foo'
+    included_value = repo_config.is_path_included(path)
+    excluded_value = repo_config.is_path_excluded(path)
+    assert included_value is not excluded_value
+
+
+def test_contains_dotpath():
+    value = contains_dotpath('/.foo')
+    assert value is True
+
+    value = contains_dotpath('/.foo/bar')
+    assert value is True
+
+    value = contains_dotpath('/foo/.bar')
+    assert value is True
+
+    value = contains_dotpath('/foo/.bar/baz')
+    assert value is True
+
+    value = contains_dotpath('/foo/bar')
+    assert value is False
+
+
+def test_config():
+    return {
+        'excludePaths': [
+            '/excluded-file',
+            '/excluded-folder',
+            '/excluded-folder/*'
+        ],
+        'includePaths': [
+            '/foo/Dockerfile',
+            '*/.foo'
+        ]
+    }
+
+
+def test_defaults():
+    return {
+        'excludePaths': [
+            '*/Dockerfile',
+            '/docker-compose.yml'
+        ],
+        'includePaths': [
+            '/.well-known/security.txt'
+        ]
+    }
