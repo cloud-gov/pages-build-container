@@ -76,7 +76,7 @@ USER customer
 
 # Configure rvm and install default Ruby
 ENV RUBY_VERSION 2.7.5
-ENV RUBY_VERSION_MIN 2.6.6
+ENV RUBY_VERSION_MIN 2.7
 RUN source /usr/local/rvm/scripts/rvm \
   # Fail if deps are missing, won't prompt for sudo
   && rvm autolibs read-fail \
