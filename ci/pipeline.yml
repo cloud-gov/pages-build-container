@@ -31,7 +31,7 @@ exp-app-name: &exp-app-name pages-build-container-exp-staging
 #  JOBS
 
 jobs:
-      
+
   - name: test-staging
     plan:
       - get: src
@@ -64,6 +64,33 @@ jobs:
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
+
+  - name: test-nightly
+    plan:
+      - get: src
+        resource: src-staging
+        params: {depth: 1}
+      - get: nightly
+        trigger: true
+      - task: test
+        config:
+          <<: *python-image
+          inputs: [name: src]
+          outputs: [name: src]
+          run:
+            dir: src
+            path: ci/tasks/test.sh
+        params:
+          CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
+    on_failure:
+      - put: slack
+        params:
+          text: |
+            :x: FAILED: pages build container tests on staging
+            <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+          channel: ((slack-channel))
+          username: ((slack-username))
+          icon_url: ((slack-icon-url))
 
   - name: deploy-staging
     plan:
@@ -106,6 +133,46 @@ jobs:
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
+
+  - name: nightly-staging
+    plan:
+      - get: src
+        resource: src-staging
+        params: {depth: 1}
+        passed: [test-nightly]
+      - get: nightly
+        trigger: true
+      - put: build-container-image
+        params:
+          build: src
+      - task: deploy
+        config:
+          <<: *cf-image
+          inputs:
+            - name: src
+            - name: build-container-image
+          run:
+            dir: src
+            path: ci/tasks/deploy.sh
+        params:
+          <<: *staging-cf
+          CF_APP_NAME: *app-name
+          CF_MANIFEST: .cloudgov/manifest.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
+          CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
+          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
+          CF_DOCKER_USERNAME: ((docker-username))
+          CF_DOCKER_PASSWORD: ((docker-password))
+    on_failure:
+      - put: slack
+        params:
+          text: |
+            :x: FAILED: pages build container deployment on staging
+            <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+          channel: ((slack-channel))
+          username: ((slack-username))
+          icon_url: ((slack-icon-url))
+
 
   - name: deploy-staging-exp
     plan:
@@ -150,6 +217,46 @@ jobs:
             username: ((slack-username))
             icon_url: ((slack-icon-url))
 
+  - name: nightly-staging-exp
+    plan:
+      - get: src
+        resource: src-staging
+        params: {depth: 1}
+        passed: [test-nightly]
+      - get: nightly
+        trigger: true
+      - put: build-container-image-exp
+        params:
+          build: src
+          dockerfile: src/Dockerfile-exp
+      - task: deploy
+        config:
+          <<: *cf-image
+          inputs:
+            - name: src
+            - name: build-container-image-exp
+          run:
+            dir: src
+            path: ci/tasks/deploy.sh
+        params:
+          <<: *staging-cf
+          CF_APP_NAME: *exp-app-name
+          CF_MANIFEST: .cloudgov/manifest.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
+          CF_DOCKER_IMAGE_DIGEST: ../build-container-image-exp/digest
+          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
+          CF_DOCKER_USERNAME: ((docker-username))
+          CF_DOCKER_PASSWORD: ((docker-password))
+    on_failure:
+      - put: slack
+        params:
+          text: |
+            :x: FAILED: pages build container exp deployment on staging
+            <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+          channel: ((slack-channel))
+          username: ((slack-username))
+          icon_url: ((slack-icon-url))
+
   - name: report-success-staging
     plan:
       - get: src
@@ -161,7 +268,7 @@ jobs:
       in_parallel:
         - put: gh-status
           inputs: [src]
-          params: {state: success}  
+          params: {state: success}
         - put: slack
           params:
             text: |
@@ -170,42 +277,6 @@ jobs:
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
-
-  - name: nightly-tasks-staging
-    plan:
-      - get: src
-        resource: src-staging
-        params: {depth: 1}
-      - get: nightly
-        trigger: true
-      - task: restage
-        config:
-          <<: *cf-image
-          inputs: [name: src]
-          run:
-            dir: src
-            path: ci/tasks/restage.sh
-        params:
-          <<: *staging-cf
-          CF_APP_NAME: *app-name
-
-  - name: nightly-tasks-staging-exp
-    plan:
-      - get: src
-        resource: src-staging
-        params: {depth: 1}
-      - get: nightly
-        trigger: true
-      - task: restage
-        config:
-          <<: *cf-image
-          inputs: [name: src]
-          run:
-            dir: src
-            path: ci/tasks/restage.sh
-        params:
-          <<: *staging-cf
-          CF_APP_NAME: *exp-app-name
 
   - name: reconfigure
     serial: true
@@ -257,7 +328,7 @@ resources:
       tag: pages-staging
       username: ((docker-username))
       password: ((docker-password))
-      
+
   - name: build-container-image-exp
     type: docker-image
     source:
