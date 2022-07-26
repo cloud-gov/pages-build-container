@@ -31,9 +31,6 @@ cf-image: &cf-image
     source:
       repository: 18fgsa/concourse-task
 
-app-name-staging: &app-name pages-build-container-staging
-app-name-production: &app-name pages-build-container-production
-
 
 ############################
 #  JOBS
@@ -124,14 +121,14 @@ jobs:
         params:
           CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
     on_failure:
-      - put: slack
-        params:
-          text: |
-            :x: FAILED: pages build container tests on staging
-            <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-          channel: ((slack-channel))
-          username: ((slack-username))
-          icon_url: ((slack-icon-url))
+      put: slack
+      params:
+        text: |
+          :x: FAILED: pages build container tests on staging
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+        channel: ((slack-channel))
+        username: ((slack-username))
+        icon_url: ((slack-icon-url))
 
   - name: test-nightly-production
     plan:
@@ -151,14 +148,14 @@ jobs:
         params:
           CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
     on_failure:
-      - put: slack
-        params:
-          text: |
-            :x: FAILED: pages build container tests on production
-            <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-          channel: ((slack-channel))
-          username: ((slack-username))
-          icon_url: ((slack-icon-url))
+      put: slack
+      params:
+        text: |
+          :x: FAILED: pages build container tests on production
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+        channel: ((slack-channel))
+        username: ((slack-username))
+        icon_url: ((slack-icon-url))
 
   - name: deploy-staging
     plan:
@@ -181,7 +178,7 @@ jobs:
             path: ci/tasks/deploy.sh
         params:
           <<: *cf-staging
-          CF_APP_NAME: *app-name-staging
+          CF_APP_NAME: pages-build-container-staging
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
           CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
@@ -223,7 +220,7 @@ jobs:
             path: ci/tasks/deploy.sh
         params:
           <<: *cf-production
-          CF_APP_NAME: *app-name-production
+          CF_APP_NAME: pages-build-container-production
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-production.yml
           CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
@@ -266,7 +263,7 @@ jobs:
             path: ci/tasks/deploy.sh
         params:
           <<: *cf-staging
-          CF_APP_NAME: *app-name-staging
+          CF_APP_NAME: pages-build-container-staging
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
           CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
@@ -274,14 +271,14 @@ jobs:
           CF_DOCKER_USERNAME: ((docker-username))
           CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
-      - put: slack
-        params:
-          text: |
-            :x: FAILED: pages build container deployment on staging
-            <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-          channel: ((slack-channel))
-          username: ((slack-username))
-          icon_url: ((slack-icon-url))
+      put: slack
+      params:
+        text: |
+          :x: FAILED: pages build container deployment on staging
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+        channel: ((slack-channel))
+        username: ((slack-username))
+        icon_url: ((slack-icon-url))
 
   - name: nightly-production
     plan:
@@ -305,7 +302,7 @@ jobs:
             path: ci/tasks/deploy.sh
         params:
           <<: *cf-production
-          CF_APP_NAME: *app-production
+          CF_APP_NAME: pages-build-container-production
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-production.yml
           CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
@@ -313,14 +310,14 @@ jobs:
           CF_DOCKER_USERNAME: ((docker-username))
           CF_DOCKER_PASSWORD: ((docker-password))
     on_failure:
-      - put: slack
-        params:
-          text: |
-            :x: FAILED: pages build container deployment on production
-            <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-          channel: ((slack-channel))
-          username: ((slack-username))
-          icon_url: ((slack-icon-url))
+      put: slack
+      params:
+        text: |
+          :x: FAILED: pages build container deployment on production
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+        channel: ((slack-channel))
+        username: ((slack-username))
+        icon_url: ((slack-icon-url))
 
   - name: report-success-staging
     plan:
