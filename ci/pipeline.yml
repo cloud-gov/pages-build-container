@@ -216,19 +216,12 @@ jobs:
 
 resources:
 
-  - name: src-staging
+  - name: src-((deploy-env))
     type: git
     icon: github
     source:
-      uri: https://github.com/18F/federalist-garden-build
-      branch: staging
-
-  - name: src-production
-    type: git
-    icon: github
-    source:
-      uri: https://github.com/18F/federalist-garden-build
-      branch: main
+      uri: ((git-base-url))/((garden-build-repository-path))
+      branch: ((git-branch))
 
   - name: nightly
     type: time
