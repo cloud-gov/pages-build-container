@@ -2,19 +2,12 @@
 ############################
 #  SHARED
 
-cf-staging: &cf-staging
+env-cf: &env-cf
   CF_API: https://api.fr.cloud.gov
-  CF_USERNAME: ((staging-cf-username))
-  CF_PASSWORD: ((staging-cf-password))
+  CF_USERNAME: ((((deploy-env))-cf-username))
+  CF_PASSWORD: ((((deploy-env))-cf-password))
   CF_ORG: gsa-18f-federalist
-  CF_SPACE: staging
-
-cf-production: &cf-production
-  CF_API: https://api.fr.cloud.gov
-  CF_USERNAME: ((production-cf-username))
-  CF_PASSWORD: ((production-cf-password))
-  CF_ORG: gsa-18f-federalist
-  CF_SPACE: production  
+  CF_SPACE: ((deploy-env))
 
 python-image: &python-image
   platform: linux
@@ -31,16 +24,15 @@ cf-image: &cf-image
     source:
       repository: 18fgsa/concourse-task
 
-
 ############################
 #  JOBS
 
 jobs:
 
-  - name: test-staging
+  - name: test-((deploy-env))
     plan:
       - get: src
-        resource: src-staging
+        resource: src-((deploy-env))
         trigger: true
         params: {depth: 1}
       - put: gh-status
@@ -64,49 +56,16 @@ jobs:
         - put: slack
           params:
             text: |
-              :x: FAILED: pages build container tests on staging
+              :x: FAILED: pages build container tests on ((deploy-env))
               <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
 
-  - name: test-production
+  - name: test-nightly-((deploy-env))
     plan:
       - get: src
-        resource: src-production
-        trigger: true
-        params: {depth: 1}
-      - put: gh-status
-        inputs: [src]
-        params: {state: pending}
-      - task: test
-        config:
-          <<: *python-image
-          inputs: [name: src]
-          outputs: [name: src]
-          run:
-            dir: src
-            path: ci/tasks/test.sh
-        params:
-          CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
-    on_failure:
-      in_parallel:
-        - put: gh-status
-          inputs: [src]
-          params: {state: failure}
-        - put: slack
-          params:
-            text: |
-              :x: FAILED: pages build container tests on production
-              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-            channel: ((slack-channel))
-            username: ((slack-username))
-            icon_url: ((slack-icon-url))
-
-  - name: test-nightly-staging
-    plan:
-      - get: src
-        resource: src-staging
+        resource: src-((deploy-env))
         params: {depth: 1}
       - get: nightly
         trigger: true
@@ -124,46 +83,19 @@ jobs:
       put: slack
       params:
         text: |
-          :x: FAILED: pages build container tests on staging
+          :x: FAILED: pages build container tests on ((deploy-env))
           <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
         channel: ((slack-channel))
         username: ((slack-username))
         icon_url: ((slack-icon-url))
 
-  - name: test-nightly-production
+  - name: deploy-((deploy-env))
     plan:
       - get: src
-        resource: src-production
-        params: {depth: 1}
-      - get: nightly
-        trigger: true
-      - task: test
-        config:
-          <<: *python-image
-          inputs: [name: src]
-          outputs: [name: src]
-          run:
-            dir: src
-            path: ci/tasks/test.sh
-        params:
-          CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
-    on_failure:
-      put: slack
-      params:
-        text: |
-          :x: FAILED: pages build container tests on production
-          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-        channel: ((slack-channel))
-        username: ((slack-username))
-        icon_url: ((slack-icon-url))
-
-  - name: deploy-staging
-    plan:
-      - get: src
-        resource: src-staging
+        resource: src-((deploy-env))
         trigger: true
         params: {depth: 1}
-        passed: [test-staging]
+        passed: [test-((deploy-env))]
       - put: build-container-image
         params:
           build: src
@@ -177,10 +109,10 @@ jobs:
             dir: src
             path: ci/tasks/deploy.sh
         params:
-          <<: *cf-staging
-          CF_APP_NAME: pages-build-container-staging
+          <<: *env-cf
+          CF_APP_NAME: pages-build-container-((deploy-env))
           CF_MANIFEST: .cloudgov/manifest.yml
-          CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
           CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
           CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
           CF_DOCKER_USERNAME: ((docker-username))
@@ -193,60 +125,18 @@ jobs:
         - put: slack
           params:
             text: |
-              :x: FAILED: pages build container deployment on staging
+              :x: FAILED: pages build container deployment on ((deploy-env))
               <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
 
-  - name: deploy-production
+  - name: nightly-((deploy-env))
     plan:
       - get: src
-        resource: src-production
-        trigger: true
+        resource: src-((deploy-env))
         params: {depth: 1}
-        passed: [test-production]
-      - put: build-container-image
-        params:
-          build: src
-      - task: deploy
-        config:
-          <<: *cf-image
-          inputs:
-            - name: src
-            - name: build-container-image
-          run:
-            dir: src
-            path: ci/tasks/deploy.sh
-        params:
-          <<: *cf-production
-          CF_APP_NAME: pages-build-container-production
-          CF_MANIFEST: .cloudgov/manifest.yml
-          CF_VARS_FILE: .cloudgov/vars/pages-production.yml
-          CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
-          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
-          CF_DOCKER_USERNAME: ((docker-username))
-          CF_DOCKER_PASSWORD: ((docker-password))
-    on_failure:
-      in_parallel:
-        - put: gh-status
-          inputs: [src]
-          params: {state: failure}
-        - put: slack
-          params:
-            text: |
-              :x: FAILED: pages build container deployment on staging
-              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-            channel: ((slack-channel))
-            username: ((slack-username))
-            icon_url: ((slack-icon-url))
-
-  - name: nightly-staging
-    plan:
-      - get: src
-        resource: src-staging
-        params: {depth: 1}
-        passed: [test-nightly-staging]
+        passed: [test-nightly-((deploy-env))]
       - get: nightly
         trigger: true
       - put: build-container-image
@@ -262,10 +152,10 @@ jobs:
             dir: src
             path: ci/tasks/deploy.sh
         params:
-          <<: *cf-staging
-          CF_APP_NAME: pages-build-container-staging
+          <<: *env-cf
+          CF_APP_NAME: pages-build-container-((deploy-env))
           CF_MANIFEST: .cloudgov/manifest.yml
-          CF_VARS_FILE: .cloudgov/vars/pages-staging.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
           CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
           CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
           CF_DOCKER_USERNAME: ((docker-username))
@@ -274,58 +164,19 @@ jobs:
       put: slack
       params:
         text: |
-          :x: FAILED: pages build container deployment on staging
+          :x: FAILED: pages build container deployment on ((deploy-env))
           <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
         channel: ((slack-channel))
         username: ((slack-username))
         icon_url: ((slack-icon-url))
 
-  - name: nightly-production
+  - name: report-success-((deploy-env))
     plan:
       - get: src
-        resource: src-production
-        params: {depth: 1}
-        passed: [test-nightly-production]
-      - get: nightly
-        trigger: true
-      - put: build-container-image
-        params:
-          build: src
-      - task: deploy
-        config:
-          <<: *cf-image
-          inputs:
-            - name: src
-            - name: build-container-image
-          run:
-            dir: src
-            path: ci/tasks/deploy.sh
-        params:
-          <<: *cf-production
-          CF_APP_NAME: pages-build-container-production
-          CF_MANIFEST: .cloudgov/manifest.yml
-          CF_VARS_FILE: .cloudgov/vars/pages-production.yml
-          CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
-          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
-          CF_DOCKER_USERNAME: ((docker-username))
-          CF_DOCKER_PASSWORD: ((docker-password))
-    on_failure:
-      put: slack
-      params:
-        text: |
-          :x: FAILED: pages build container deployment on production
-          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-        channel: ((slack-channel))
-        username: ((slack-username))
-        icon_url: ((slack-icon-url))
-
-  - name: report-success-staging
-    plan:
-      - get: src
-        resource: src-staging
+        resource: src-((deploy-env))
         trigger: true
         params: {depth: 1}
-        passed: [deploy-staging]
+        passed: [deploy-((deploy-env))]
     on_success:
       in_parallel:
         - put: gh-status
@@ -334,48 +185,27 @@ jobs:
         - put: slack
           params:
             text: |
-              :white_check_mark: SUCCESS: Successfully deployed pages build containers on staging
+              :white_check_mark: SUCCESS: Successfully deployed pages build containers on ((deploy-env))
               <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
 
-  - name: report-success-production
-    plan:
-      - get: src
-        resource: src-production
-        trigger: true
-        params: {depth: 1}
-        passed: [deploy-production]
-    on_success:
-      in_parallel:
-        - put: gh-status
-          inputs: [src]
-          params: {state: success}
-        - put: slack
-          params:
-            text: |
-              :white_check_mark: SUCCESS: Successfully deployed pages build containers on production
-              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-            channel: ((slack-channel))
-            username: ((slack-username))
-            icon_url: ((slack-icon-url))
-
-  - name: reconfigure-staging
+  - name: reconfigure-((deploy-env))
     serial: true
     plan:
       - get: src
-        resource: src-staging
+        resource: src-((deploy-env))
         params: {depth: 1}
         trigger: true
       - set_pipeline: build-container
         file: src/ci/pipeline.yml
 
-  - name: reconfigure-production
+  - name: reconfigure-((deploy-env))
     serial: true
     plan:
       - get: src
-        resource: src-production
+        resource: src-((deploy-env))
         params: {depth: 1}
         trigger: true
       - set_pipeline: build-container
