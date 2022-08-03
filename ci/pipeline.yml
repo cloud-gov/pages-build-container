@@ -191,17 +191,7 @@ jobs:
             username: ((slack-username))
             icon_url: ((slack-icon-url))
 
-  - name: reconfigure-((deploy-env))
-    serial: true
-    plan:
-      - get: src
-        resource: src-((deploy-env))
-        params: {depth: 1}
-        trigger: true
-      - set_pipeline: build-container
-        file: src/ci/pipeline.yml
-
-  - name: reconfigure-((deploy-env))
+  - name: set-pipeline-((deploy-env))
     serial: true
     plan:
       - get: src
