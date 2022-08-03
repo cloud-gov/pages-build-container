@@ -25,13 +25,6 @@ cf-image: &cf-image
       repository: 18fgsa/concourse-task
 
 test: &test
-  - get: src
-    resource: src-((deploy-env))
-    trigger: true
-    params: {depth: 1}
-  - put: gh-status
-    inputs: [src]
-    params: {state: pending}
   - task: test
     config:
       <<: *python-image
