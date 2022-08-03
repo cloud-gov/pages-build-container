@@ -24,10 +24,64 @@ cf-image: &cf-image
     source:
       repository: 18fgsa/concourse-task
 
+test: &test
+  - get: src
+    resource: src-((deploy-env))
+    trigger: true
+    params: {depth: 1}
+  - put: gh-status
+    inputs: [src]
+    params: {state: pending}
+  - task: test
+    config:
+      <<: *python-image
+      inputs: [name: src]
+      outputs: [name: src]
+      run:
+        dir: src
+        path: ci/tasks/test.sh
+    params:
+      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
+
 ############################
 #  JOBS
 
 jobs:
+
+  - name: test-pr-((git-branch))
+    plan:
+    - get: src
+      resource: pr-((git-branch))
+      trigger: true
+      version: every
+
+    - put: src
+      resource: pr-((git-branch))
+      params:
+        path: src
+        status: pending
+        base_context: concourse
+        context: test
+
+    - do: *test
+
+    on_failure:
+      put: src
+      resource: pr-((git-branch))
+      params:
+        path: src
+        status: failure
+        base_context: concourse
+        context: test
+
+    on_success:
+      put: src
+      resource: pr-((git-branch))
+      params:
+        path: src
+        status: success
+        base_context: concourse
+        context: test
 
   - name: test-((deploy-env))
     plan:
@@ -38,16 +92,7 @@ jobs:
       - put: gh-status
         inputs: [src]
         params: {state: pending}
-      - task: test
-        config:
-          <<: *python-image
-          inputs: [name: src]
-          outputs: [name: src]
-          run:
-            dir: src
-            path: ci/tasks/test.sh
-        params:
-          CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
+      - do: *test
     on_failure:
       in_parallel:
         - put: gh-status
@@ -69,16 +114,7 @@ jobs:
         params: {depth: 1}
       - get: nightly
         trigger: true
-      - task: test
-        config:
-          <<: *python-image
-          inputs: [name: src]
-          outputs: [name: src]
-          run:
-            dir: src
-            path: ci/tasks/test.sh
-        params:
-          CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
+      - do: *test
     on_failure:
       put: slack
       params:
@@ -213,6 +249,16 @@ resources:
       uri: ((git-base-url))/((garden-build-repository-path))
       branch: ((git-branch))
 
+  - name: pr-((git-branch))
+    type: pull-request
+    check_every: 1m
+    source:
+      repository: ((proxy-repository-path))
+      access_token: ((gh-access-token))
+      base_branch: ((git-branch))
+      disable_forks: true
+      ignore_drafts: false
+
   - name: nightly
     type: time
     source:
@@ -258,3 +304,8 @@ resource_types:
     type: docker-image
     source:
       repository: cfcommunity/slack-notification-resource
+
+  - name: pull-request
+    type: docker-image
+    source:
+      repository: teliaoss/github-pr-resource
