@@ -1,5 +1,10 @@
+from contextlib import redirect_stdout
+import logging
+import unittest
 from unittest.mock import patch
 import subprocess  # nosec
+import pytest
+from io import StringIO
 
 from steps import fetch_repo, update_repo, fetch_commit_sha
 from common import CLONE_DIR_PATH
@@ -38,6 +43,24 @@ class TestCloneRepo():
         mock_get_logger.assert_called_once_with('clone')
 
         mock_run.assert_called_once_with(mock_get_logger.return_value, command)
+
+
+class TestCloneRepoNoMock(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
+    def test_no_github_permission_warning(self):
+        owner = 'cloud-gov'
+        repository = 'cg-site'
+        branch = 'master'
+
+        with self._caplog.at_level(logging.INFO):
+            with redirect_stdout(StringIO()) as f:
+                fetch_repo(owner, repository, branch)
+
+        print(f.getvalue())
+        assert 'Permission denied' not in f.getvalue()
 
 
 @patch('steps.fetch.run')
