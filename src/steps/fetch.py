@@ -9,6 +9,7 @@ from runner import run
 from common import (REPO_BASE_URL, CLONE_DIR_PATH)
 from steps import StepException
 
+
 def fetch_url(owner, repository, access_token=''):  # nosec
     '''
     Creates a URL to a remote git repository.
@@ -40,7 +41,7 @@ def fetch_repo(owner, repository, branch, github_token=''):  # nosec
     branch = shlex.quote(branch)
 
     clone_env = {
-        'HOME' : '/home'
+        'HOME': '/home'
     }
 
     command = (
