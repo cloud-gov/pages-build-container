@@ -9,6 +9,10 @@ from io import StringIO
 from steps import fetch_repo, update_repo, fetch_commit_sha
 from common import CLONE_DIR_PATH
 
+clone_env = {
+    'HOME': '/home'
+}
+
 
 @patch('steps.fetch.run')
 @patch('steps.fetch.get_logger')
@@ -26,7 +30,7 @@ class TestCloneRepo():
 
         mock_get_logger.assert_called_once_with('clone')
 
-        mock_run.assert_called_once_with(mock_get_logger.return_value, command)
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env)
 
     def test_runs_expected_cmds_with_gh_token(self, mock_get_logger, mock_run):
         owner = 'owner-2'
@@ -42,7 +46,7 @@ class TestCloneRepo():
 
         mock_get_logger.assert_called_once_with('clone')
 
-        mock_run.assert_called_once_with(mock_get_logger.return_value, command)
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env)
 
 
 class TestCloneRepoNoMock(unittest.TestCase):
@@ -59,7 +63,7 @@ class TestCloneRepoNoMock(unittest.TestCase):
             with redirect_stdout(StringIO()) as f:
                 fetch_repo(owner, repository, branch)
 
-        print(f.getvalue())
+        assert f.getvalue()
         assert 'Permission denied' not in f.getvalue()
 
 
