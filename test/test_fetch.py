@@ -1,10 +1,8 @@
-from contextlib import redirect_stdout
 import logging
 import unittest
 from unittest.mock import patch
 import subprocess  # nosec
 import pytest
-from io import StringIO
 
 from steps import fetch_repo, update_repo, fetch_commit_sha
 from common import CLONE_DIR_PATH
@@ -60,11 +58,10 @@ class TestCloneRepoNoMock(unittest.TestCase):
         branch = 'master'
 
         with self._caplog.at_level(logging.INFO):
-            with redirect_stdout(StringIO()) as f:
-                fetch_repo(owner, repository, branch)
+            fetch_repo(owner, repository, branch)
 
-        assert f.getvalue()
-        assert 'Permission denied' not in f.getvalue()
+        assert self._caplog.text
+        assert 'Permission denied' not in self._caplog.text
 
 
 @patch('steps.fetch.run')
