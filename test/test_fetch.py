@@ -1,8 +1,15 @@
+import logging
+import unittest
 from unittest.mock import patch
 import subprocess  # nosec
+import pytest
 
 from steps import fetch_repo, update_repo, fetch_commit_sha
 from common import CLONE_DIR_PATH
+
+clone_env = {
+    'HOME': '/home'
+}
 
 
 @patch('steps.fetch.run')
@@ -21,7 +28,7 @@ class TestCloneRepo():
 
         mock_get_logger.assert_called_once_with('clone')
 
-        mock_run.assert_called_once_with(mock_get_logger.return_value, command)
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env)
 
     def test_runs_expected_cmds_with_gh_token(self, mock_get_logger, mock_run):
         owner = 'owner-2'
@@ -37,7 +44,24 @@ class TestCloneRepo():
 
         mock_get_logger.assert_called_once_with('clone')
 
-        mock_run.assert_called_once_with(mock_get_logger.return_value, command)
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env)
+
+
+class TestCloneRepoNoMock(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
+    def test_no_github_permission_warning(self):
+        owner = 'cloud-gov'
+        repository = 'cg-site'
+        branch = 'master'
+
+        with self._caplog.at_level(logging.INFO):
+            fetch_repo(owner, repository, branch)
+
+        assert self._caplog.text
+        assert 'Permission denied' not in self._caplog.text
 
 
 @patch('steps.fetch.run')
