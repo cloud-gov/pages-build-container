@@ -41,7 +41,7 @@ test: &test
 
 jobs:
 
-  - name: set-pipeline-((deploy-env))
+  - name: set-pipeline
     serial: true
     plan:
       - get: src
@@ -50,7 +50,10 @@ jobs:
         trigger: true
       - set_pipeline: build-container
         file: src/ci/pipeline.yml
-  
+        instance_vars:
+          deploy-env: ((deploy-env))
+          git-branch: ((git-branch))
+        
   - name: test-pr-((git-branch))
     plan:
     - get: src
@@ -64,7 +67,7 @@ jobs:
         path: src
         status: pending
         base_context: concourse
-        context: test
+        context: test-pages-build-container-((deploy-env))
 
     - do: *test
 
@@ -75,7 +78,7 @@ jobs:
         path: src
         status: failure
         base_context: concourse
-        context: test
+        context: test-pages-build-container-((deploy-env))
 
     on_success:
       put: src
@@ -84,7 +87,7 @@ jobs:
         path: src
         status: success
         base_context: concourse
-        context: test
+        context: test-pages-build-container-((deploy-env))
 
   - name: test-((deploy-env))
     plan:

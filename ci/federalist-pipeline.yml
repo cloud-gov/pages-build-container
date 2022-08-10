@@ -42,13 +42,18 @@ test: &test
 jobs:
 
   - name: set-pipeline
+    serial: true
     plan:
-    - get: src
-      resource: src-production
-      trigger: true
-    - set_pipeline: federalist-build-container-production
-      file: src/ci/federalist-pipeline.yml
-
+      - get: src
+        resource: src-production
+        params: {depth: 1}
+        trigger: true
+      - set_pipeline: federalist-build-container-production
+        file: src/ci/federalist-pipeline.yml
+        instance_vars:
+          deploy-env: ((deploy-env))
+          git-branch: ((git-branch))
+        
   - name: test-pr-main
     plan:
     - get: src
@@ -62,7 +67,7 @@ jobs:
         path: src
         status: pending
         base_context: concourse
-        context: test
+        context: test-federalist-build-container-production
 
     - do: *test
 
@@ -73,7 +78,7 @@ jobs:
         path: src
         status: failure
         base_context: concourse
-        context: test
+        context: test-federalist-build-container-production
 
     on_success:
       put: src
@@ -82,7 +87,7 @@ jobs:
         path: src
         status: success
         base_context: concourse
-        context: test
+        context: test-federalist-build-container-production
 
   - name: test-production
     plan:
