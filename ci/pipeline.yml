@@ -249,7 +249,7 @@ resources:
     type: pull-request
     check_every: 1m
     source:
-      repository: ((proxy-repository-path))
+      repository: ((garden-build-repository-path))
       access_token: ((gh-access-token))
       base_branch: ((git-branch))
       disable_forks: true
