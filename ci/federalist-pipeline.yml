@@ -48,11 +48,8 @@ jobs:
         resource: src-production
         params: {depth: 1}
         trigger: true
-      - set_pipeline: federalist-build-container-production
+      - set_pipeline: federalist-build-container
         file: src/ci/federalist-pipeline.yml
-        instance_vars:
-          deploy-env: ((deploy-env))
-          git-branch: ((git-branch))
         
   - name: test-pr-main
     plan:
@@ -67,7 +64,7 @@ jobs:
         path: src
         status: pending
         base_context: concourse
-        context: test-federalist-build-container-production
+        context: test-federalist-build-container
 
     - do: *test
 
@@ -78,7 +75,7 @@ jobs:
         path: src
         status: failure
         base_context: concourse
-        context: test-federalist-build-container-production
+        context: test-federalist-build-container
 
     on_success:
       put: src
@@ -87,7 +84,7 @@ jobs:
         path: src
         status: success
         base_context: concourse
-        context: test-federalist-build-container-production
+        context: test-federalist-build-container
 
   - name: test-production
     plan:
@@ -135,7 +132,7 @@ jobs:
             path: ci/tasks/deploy.sh
         params:
           <<: *env-cf
-          CF_APP_NAME: federalist-build-container-production
+          CF_APP_NAME: federalist-build-container
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/production.yml
           CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
@@ -173,7 +170,7 @@ jobs:
             path: ci/tasks/restage.sh
         params:
           <<: *env-cf
-          CF_APP_NAME: federalist-build-container-production
+          CF_APP_NAME: federalist-build-container
 
 ############################
 #  RESOURCES
@@ -217,6 +214,14 @@ resources:
       repo: federalist-garden-build
       access_token: ((gh-access-token))
       context_prefix: concourse
+
+  - name: build-container-image
+    type: docker-image
+    source:
+      repository: ((image-repository))
+      tag: federalist-production
+      username: ((docker-username))
+      password: ((docker-password))
 
 ############################
 #  RESOURCE TYPES
