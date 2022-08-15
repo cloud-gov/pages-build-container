@@ -280,7 +280,7 @@ resources:
     type: docker-image
     source:
       repository: ((image-repository))
-      tag: pages-staging
+      tag: pages-((deploy-env))
       username: ((docker-username))
       password: ((docker-password))
 
