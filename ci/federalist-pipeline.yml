@@ -4,10 +4,10 @@
 
 env-cf: &env-cf
   CF_API: https://api.fr.cloud.gov
-  CF_USERNAME: ((((deploy-env))-cf-username))
-  CF_PASSWORD: ((((deploy-env))-cf-password))
+  CF_USERNAME: ((production-cf-username))
+  CF_PASSWORD: ((production-cf-password))
   CF_ORG: gsa-18f-federalist
-  CF_SPACE: ((deploy-env))
+  CF_SPACE: production
 
 python-image: &python-image
   platform: linux
@@ -45,54 +45,55 @@ jobs:
     serial: true
     plan:
       - get: src
-        resource: src-((deploy-env))
+        resource: src-production
         params: {depth: 1}
         trigger: true
-      - set_pipeline: build-container
-        file: src/ci/pipeline.yml
+      - set_pipeline: federalist-build-container-production
+        file: src/ci/federalist-pipeline.yml
         instance_vars:
           deploy-env: ((deploy-env))
           git-branch: ((git-branch))
         
-  - name: test-pr-((git-branch))
+  - name: test-pr-main
     plan:
     - get: src
-      resource: pr-((git-branch))
+      resource: pr-main
       trigger: true
       version: every
 
     - put: src
-      resource: pr-((git-branch))
+      resource: pr-main
       params:
         path: src
         status: pending
         base_context: concourse
-        context: test-pages-build-container-((deploy-env))
+        context: test-federalist-build-container-production
 
     - do: *test
 
     on_failure:
       put: src
-      resource: pr-((git-branch))
+      resource: pr-main
       params:
         path: src
         status: failure
         base_context: concourse
-        context: test-pages-build-container-((deploy-env))
+        context: test-federalist-build-container-production
 
     on_success:
       put: src
-      resource: pr-((git-branch))
+      resource: pr-main
       params:
         path: src
         status: success
         base_context: concourse
-        context: test-pages-build-container-((deploy-env))
+        context: test-federalist-build-container-production
 
-  - name: test-((deploy-env))
+  - name: test-production
     plan:
       - get: src
-        resource: src-((deploy-env))
+        resource: src-production
+        passed: [set-pipeline]
         trigger: true
         params: {depth: 1}
       - put: gh-status
@@ -107,37 +108,19 @@ jobs:
         - put: slack
           params:
             text: |
-              :x: FAILED: pages build container tests on ((deploy-env))
+              :x: FAILED: federalist build container tests on production
               <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
 
-  - name: test-nightly-((deploy-env))
+  - name: deploy
     plan:
       - get: src
-        resource: src-((deploy-env))
-        params: {depth: 1}
-      - get: nightly
-        trigger: true
-      - do: *test
-    on_failure:
-      put: slack
-      params:
-        text: |
-          :x: FAILED: pages build container tests on ((deploy-env))
-          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-        channel: ((slack-channel))
-        username: ((slack-username))
-        icon_url: ((slack-icon-url))
-
-  - name: deploy-((deploy-env))
-    plan:
-      - get: src
-        resource: src-((deploy-env))
+        resource: src-production
         trigger: true
         params: {depth: 1}
-        passed: [test-((deploy-env))]
+        passed: [test-production]
       - put: build-container-image
         params:
           build: src
@@ -152,9 +135,9 @@ jobs:
             path: ci/tasks/deploy.sh
         params:
           <<: *env-cf
-          CF_APP_NAME: pages-build-container-((deploy-env))
+          CF_APP_NAME: federalist-build-container-production
           CF_MANIFEST: .cloudgov/manifest.yml
-          CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
+          CF_VARS_FILE: .cloudgov/vars/production.yml
           CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
           CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
           CF_DOCKER_USERNAME: ((docker-username))
@@ -167,91 +150,50 @@ jobs:
         - put: slack
           params:
             text: |
-              :x: FAILED: pages build container deployment on ((deploy-env))
+              :x: FAILED: federalist build container deployment on production
               <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
 
-  - name: nightly-((deploy-env))
+  - name: nightly-tasks-production
     plan:
       - get: src
-        resource: src-((deploy-env))
+        resource: src-production
+        passed: [set-pipeline]
         params: {depth: 1}
-        passed: [test-nightly-((deploy-env))]
       - get: nightly
         trigger: true
-      - put: build-container-image
-        params:
-          build: src
-      - task: deploy
+      - task: restage
         config:
           <<: *cf-image
-          inputs:
-            - name: src
-            - name: build-container-image
+          inputs: [name: src]
           run:
             dir: src
-            path: ci/tasks/deploy.sh
+            path: ci/tasks/restage.sh
         params:
           <<: *env-cf
-          CF_APP_NAME: pages-build-container-((deploy-env))
-          CF_MANIFEST: .cloudgov/manifest.yml
-          CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
-          CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
-          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
-          CF_DOCKER_USERNAME: ((docker-username))
-          CF_DOCKER_PASSWORD: ((docker-password))
-    on_failure:
-      put: slack
-      params:
-        text: |
-          :x: FAILED: pages build container deployment on ((deploy-env))
-          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-        channel: ((slack-channel))
-        username: ((slack-username))
-        icon_url: ((slack-icon-url))
-
-  - name: report-success-((deploy-env))
-    plan:
-      - get: src
-        resource: src-((deploy-env))
-        trigger: true
-        params: {depth: 1}
-        passed: [deploy-((deploy-env))]
-    on_success:
-      in_parallel:
-        - put: gh-status
-          inputs: [src]
-          params: {state: success}
-        - put: slack
-          params:
-            text: |
-              :white_check_mark: SUCCESS: Successfully deployed pages build containers on ((deploy-env))
-              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-            channel: ((slack-channel))
-            username: ((slack-username))
-            icon_url: ((slack-icon-url))
+          CF_APP_NAME: federalist-build-container-production
 
 ############################
 #  RESOURCES
 
 resources:
 
-  - name: src-((deploy-env))
+  - name: src-production
     type: git
     icon: github
     source:
       uri: ((git-base-url))/((garden-build-repository-path))
-      branch: ((git-branch))
+      branch: main
 
-  - name: pr-((git-branch))
+  - name: pr-main
     type: pull-request
     check_every: 1m
     source:
-      repository: ((proxy-repository-path))
+      repository: ((garden-build-repository-path))
       access_token: ((gh-access-token))
-      base_branch: ((git-branch))
+      base_branch: main
       disable_forks: true
       ignore_drafts: false
 
@@ -275,15 +217,6 @@ resources:
       repo: federalist-garden-build
       access_token: ((gh-access-token))
       context_prefix: concourse
-
-  - name: build-container-image
-    type: docker-image
-    source:
-      repository: ((image-repository))
-      tag: pages-staging
-      username: ((docker-username))
-      password: ((docker-password))
-
 
 ############################
 #  RESOURCE TYPES
