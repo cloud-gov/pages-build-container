@@ -53,7 +53,7 @@ jobs:
         instance_vars:
           deploy-env: ((deploy-env))
           git-branch: ((git-branch))
-        
+
   - name: test-pr-((git-branch))
     plan:
     - get: src
@@ -99,6 +99,16 @@ jobs:
         inputs: [src]
         params: {state: pending}
       - do: *test
+
+    on_success:
+      put: src
+      inputs: [src]
+      params:
+        path: src
+        status: success
+        base_context: concourse
+        context: test-((deploy-env))
+
     on_failure:
       in_parallel:
         - put: gh-status
