@@ -101,13 +101,9 @@ jobs:
       - do: *test
 
     on_success:
-      put: src
+      put: gh-status
       inputs: [src]
-      params:
-        path: src
-        status: success
-        base_context: concourse
-        context: test-((deploy-env))
+      params: {state: success}
 
     on_failure:
       in_parallel:
