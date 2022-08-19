@@ -227,7 +227,7 @@ def build(
 
         err_message = (
             f'Unexpected build({build_info}) error. Please try '
-            'again and contact federalist-support if it persists.'
+            'again and contact pages-support if it persists.'
         )
 
         post_build_error(status_callback, err_message, commit_sha)

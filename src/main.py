@@ -25,7 +25,7 @@ def load_vcap():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Run a federalist build')
+    parser = argparse.ArgumentParser(description='Run a pages build')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-p', '--params', dest='params',
                        help='A JSON encoded string',

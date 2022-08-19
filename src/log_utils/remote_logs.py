@@ -41,7 +41,7 @@ def post_build_error(status_callback_url, error_output, commit_sha=None):
     '''
     POST a STATUS_ERROR status with message to the status_callback_url
     '''
-    # Post to the Federalist web application endpoint with status and output
+    # Post to the Pages web application endpoint with status and output
     post_status(
         status_callback_url, status=STATUS_ERROR, output=error_output, commit_sha=commit_sha
     )
@@ -60,5 +60,5 @@ def post_build_timeout(status_callback_url, commit_sha=None):
     '''
     output = 'The build did not complete. It may have timed out.'
 
-    # Post to the Federalist web application with status and output
+    # Post to the Pages web application with status and output
     post_status(status_callback_url, status=STATUS_ERROR, output=output, commit_sha=commit_sha)
