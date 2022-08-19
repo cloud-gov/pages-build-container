@@ -248,14 +248,14 @@ resources:
     type: git
     icon: github
     source:
-      uri: ((git-base-url))/((garden-build-repository-path))
+      uri: ((git-base-url))/((build-container-repository-path))
       branch: ((git-branch))
 
   - name: pr-((git-branch))
     type: pull-request
     check_every: 1m
     source:
-      repository: ((garden-build-repository-path))
+      repository: ((build-container-repository-path))
       access_token: ((gh-access-token))
       base_branch: ((git-branch))
       disable_forks: true
@@ -277,8 +277,8 @@ resources:
     type: cogito
     check_every: 1h
     source:
-      owner: 18F
-      repo: federalist-garden-build
+      owner: cloud-gov
+      repo: pages-build-container
       access_token: ((gh-access-token))
       context_prefix: concourse
 
