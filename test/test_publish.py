@@ -22,9 +22,12 @@ def s3_conn(monkeypatch):
             's3',
             aws_access_key_id=TEST_ACCESS_KEY,
             aws_secret_access_key=TEST_SECRET_KEY,
-            region_name=TEST_BUCKET
+            region_name=TEST_REGION
         )
-        conn.create_bucket(Bucket=TEST_BUCKET)
+        conn.create_bucket(
+            Bucket=TEST_BUCKET,
+            CreateBucketConfiguration={"LocationConstraint": TEST_REGION }
+        )
         yield conn
 
 
