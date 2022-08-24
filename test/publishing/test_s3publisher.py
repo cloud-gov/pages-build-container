@@ -121,8 +121,8 @@ def test_publish_to_s3(tmpdir, s3_client):
     # Create mock for default 404 page request
     with requests_mock.mock() as m:
         m.get(('https://raw.githubusercontent.com'
-               '/18F/federalist-404-page/master/'
-               '404-federalist-client.html'),
+               '/cloud-gov/pages-404-page/main/'
+               '404-pages-client.html'),
               text='default 404 page')
 
         publish_to_s3(**publish_kwargs)
