@@ -81,6 +81,7 @@ class RepoConfig:
     def should_cache(self):
         return self.config.get('cache', False) is True
 
+
 def contains_dotpath(filename):
     return any(segment for segment in filename.split('/') if segment.startswith('.'))
 

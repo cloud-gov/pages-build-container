@@ -347,10 +347,11 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
         return returncode
 
     if GEMFILELOCK_PATH.is_file() and should_cache:
-        logger.info(f'{GEMFILELOCK} found. Checking for existing cache')  
+        logger.info(f'{GEMFILELOCK} found. Checking for existing cache')
         cache_key = get_checksum(GEMFILELOCK_PATH)
         cache_folder = CacheFolder(cache_key, bucket, s3_client)
-        GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True).stdout.decode('utf-8').strip()
+        GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True) \
+            .stdout.decode('utf-8').strip()
         if cache_folder.exists():
             logger.info(f'Dependency cache found, downloading to {GEMFOLDER}')
             cache_folder.download_unzip(GEMFOLDER)
@@ -362,8 +363,9 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
         return returncode
 
     if should_cache:
-        GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True).stdout.decode('utf-8').strip()
-        logger.info(f'Caching dependencies from {GEMFOLDER}.')  
+        GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True) \
+            .stdout.decode('utf-8').strip()
+        logger.info(f'Caching dependencies from {GEMFOLDER}.')
         cache_key = get_checksum(GEMFILELOCK_PATH)
         cache_folder = CacheFolder(cache_key, bucket, s3_client)
         cache_folder.zip_upload_folder_to_s3(GEMFOLDER)

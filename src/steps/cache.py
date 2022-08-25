@@ -3,12 +3,14 @@ import hashlib
 import shutil
 import botocore
 
+
 def get_checksum(filename):
-    m = hashlib.md5() # nosec
+    m = hashlib.md5()  # nosec
     with open(filename, 'rb') as f:
         while chunk := f.read(4096):
             m.update(chunk)
     return m.hexdigest()
+
 
 class CacheFolder():
     '''
@@ -53,10 +55,4 @@ class CacheFolder():
             Key=f'_cache/{self.key}'
         )
         shutil.unpack_archive(tmp_file, folder, 'zip')
-        os.unlink(tmp_file)        
-
-
-    
-
-
-
+        os.unlink(tmp_file)

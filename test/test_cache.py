@@ -4,8 +4,6 @@ import pytest
 import tempfile
 import filecmp
 
-from unittest.mock import Mock
-
 from moto import mock_s3
 
 from steps.cache import CacheFolder, get_checksum
@@ -25,13 +23,15 @@ def s3_client(aws_credentials):
         conn = boto3.client("s3")
         yield conn
 
+
 @pytest.fixture
 def bucket(s3_client):
     s3_client.create_bucket(
         Bucket='testing',
-        CreateBucketConfiguration={"LocationConstraint": "testing" }
+        CreateBucketConfiguration={"LocationConstraint": "testing"}
     )
     yield
+
 
 @pytest.fixture
 def cache_folder(s3_client, bucket):
@@ -65,6 +65,10 @@ class TestCache():
             assert len(dir_comp.common) == FILES_TO_CACHE
             assert len(dir_comp.diff_files) == 0
 
+    def test_checksum(self):
+        with tempfile.NamedTemporaryFile() as tmp_file:
+            tmp_file.write(b'source "https://rubygems.org"')
+            tmp_file.write(b'gem "jekyll", "~> 4.0"')
 
-
-
+            c = get_checksum(tmp_file.name)
+            assert c == 'd41d8cd98f00b204e9800998ecf8427e'
