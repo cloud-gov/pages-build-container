@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import requests
 import shlex
+import subprocess
 from subprocess import CalledProcessError  # nosec
 import time
 import yaml
@@ -13,6 +14,7 @@ import yaml
 from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH, WORKING_DIR_PATH)
 from log_utils import get_logger
 from runner import run
+from .cache import get_checksum, CacheFolder
 
 HUGO_BIN = 'hugo'
 HUGO_VERSION = '.hugo-version'
@@ -20,6 +22,7 @@ NVMRC = '.nvmrc'
 PACKAGE_JSON = 'package.json'
 RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
+GEMFILELOCK = 'Gemfile.lock'
 JEKYLL_CONFIG_YML = '_config.yml'
 BUNDLER_VERSION = '.bundler-version'
 
@@ -304,13 +307,14 @@ def setup_ruby():
     return runp('echo Ruby version: $(ruby -v)')
 
 
-def setup_bundler():
+def setup_bundler(should_cache: bool, bucket, s3_client):
     logger = get_logger('setup-bundler')
 
     def runp(cmd):
         return run(logger, cmd, cwd=CLONE_DIR_PATH, env={}, ruby=True)
 
     GEMFILE_PATH = CLONE_DIR_PATH / GEMFILE
+    GEMFILELOCK_PATH = CLONE_DIR_PATH / GEMFILELOCK
 
     if not GEMFILE_PATH.is_file():
         logger.info('No Gemfile found, installing Jekyll.')
@@ -342,8 +346,29 @@ def setup_bundler():
     if returncode:
         return returncode
 
+    if GEMFILELOCK_PATH.is_file() and should_cache:
+        logger.info(f'{GEMFILELOCK} found. Checking for existing cache')  
+        cache_key = get_checksum(GEMFILELOCK_PATH)
+        cache_folder = CacheFolder(cache_key, bucket, s3_client)
+        GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True).stdout.decode('utf-8').strip()
+        if cache_folder.exists():
+            logger.info(f'Dependency cache found, downloading to {GEMFOLDER}')
+            cache_folder.download_unzip(GEMFOLDER)
+
     logger.info('Installing dependencies in Gemfile')
-    return runp('bundle install')
+    returncode = runp('bundle install')
+
+    if returncode:
+        return returncode
+
+    if should_cache:
+        GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True).stdout.decode('utf-8').strip()
+        logger.info(f'Caching dependencies from {GEMFOLDER}.')  
+        cache_key = get_checksum(GEMFILELOCK_PATH)
+        cache_folder = CacheFolder(cache_key, bucket, s3_client)
+        cache_folder.zip_upload_folder_to_s3(GEMFOLDER)
+
+    return returncode
 
 
 def update_jekyll_config(federalist_config={}, custom_config_path=''):

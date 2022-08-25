@@ -4,6 +4,7 @@ import os
 import sys
 from datetime import datetime
 from stopit import TimeoutException, SignalTimeout as Timeout
+import boto3
 
 from common import CLONE_DIR_PATH
 
@@ -106,6 +107,14 @@ def build(
             thread = RepeatTimer(MONITORING_INTERVAL, log_monitoring_metrics, [monitoring_logger])
             thread.start()
 
+            # S3 client used in multiple steps
+            s3_client = boto3.client(
+                service_name='s3',
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+                region_name=aws_default_region
+            )
+
             ##
             # FETCH
             #
@@ -160,7 +169,7 @@ def build(
                 )
 
                 run_step(
-                    setup_bundler(),
+                    setup_bundler(federalist_config.should_cache(), bucket, s3_client),
                     'There was a problem setting up Bundler, see the above logs for details.'
                 )
 
@@ -198,8 +207,7 @@ def build(
             ##
             # PUBLISH
             #
-            publish(baseurl, site_prefix, bucket, federalist_config, aws_default_region,
-                    aws_access_key_id, aws_secret_access_key)
+            publish(baseurl, site_prefix, bucket, federalist_config, s3_client)
 
             delta_string = delta_to_mins_secs(datetime.now() - start_time)
             logger.info(f'Total build time: {delta_string}')
