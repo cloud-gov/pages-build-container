@@ -37,7 +37,7 @@ class CacheFolder():
         try:
             self.s3_client.head_object(
                 Bucket=self.bucket,
-                Prefix=f'_cache/{self.key}'
+                Key=f'_cache/{self.key}'
             )
             return True
         except self.s3_client.exceptions.NoSuchKey:
