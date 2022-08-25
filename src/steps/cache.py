@@ -3,19 +3,6 @@ import hashlib
 import shutil
 import botocore
 
-# Security/Performance notes about cache implementations
-# Option 1. We store cache files in the bucket we serve the site from.
-#   They might be exposed to the internet but are generally not private
-#   We could workaround this but add to the bucket root (not the _site)
-# Option 2. We store cache files in a single bucket
-#   There might be crossover between multiple sites' caches which is
-#   good from a performance perspective but potentially insecure
-# Option 3. We store cache files in a new bucket, per site
-#   Most secure option in terms of file exposure but presents a larger
-#   (numerically) attack surface. Also runs us more quickly into our AWS
-#   account limit
-# Current Implementation: Option 1
-
 def get_checksum(filename):
     m = hashlib.md5() # nosec
     with open(filename, 'rb') as f:
