@@ -1,6 +1,7 @@
 import os
 import hashlib
 import shutil
+import botocore
 
 # Security/Performance notes about cache implementations
 # Option 1. We store cache files in the bucket we serve the site from.
@@ -40,8 +41,12 @@ class CacheFolder():
                 Key=f'_cache/{self.key}'
             )
             return True
-        except self.s3_client.exceptions.NoSuchKey:
-            return False
+        except botocore.exceptions.ClientError as error:
+            if error.response['Error']['Message'] == 'Not Found':
+                return False
+            else:
+                print(error.response['Error'])
+                raise error
 
     def zip_upload_folder_to_s3(self, folder):
         tmp_file = f'{self.key}.zip'

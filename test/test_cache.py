@@ -27,7 +27,10 @@ def s3_client(aws_credentials):
 
 @pytest.fixture
 def bucket(s3_client):
-    s3_client.create_bucket(Bucket='testing')
+    s3_client.create_bucket(
+        Bucket='testing',
+        CreateBucketConfiguration={"LocationConstraint": "testing" }
+    )
     yield
 
 @pytest.fixture
@@ -46,7 +49,8 @@ class TestCache():
         assert not not_there
 
         # add some files and cache them
-        for _ in range(5):
+        FILES_TO_CACHE = 5
+        for _ in range(FILES_TO_CACHE):
             tempfile.NamedTemporaryFile(dir=self._tmpdir, delete=False)
         cache_folder.zip_upload_folder_to_s3(self._tmpdir)
 
@@ -56,8 +60,10 @@ class TestCache():
 
         # download the cache and compare
         with tempfile.TemporaryDirectory() as download_tmp_dir:
-            cache_folder.download_unzip(download_tmp_dir.name)
-            assert filecmp.dircmp(self._tmpdir, download_tmp_dir.name)
+            cache_folder.download_unzip(download_tmp_dir)
+            dir_comp = filecmp.dircmp(self._tmpdir, download_tmp_dir)
+            assert len(dir_comp.common) == FILES_TO_CACHE
+            assert len(dir_comp.diff_files) == 0
 
 
 
