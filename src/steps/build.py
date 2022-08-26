@@ -131,7 +131,7 @@ def is_supported_ruby_version(version):
     return is_supported
 
 
-def setup_node():
+def setup_node(should_cache: bool, bucket, s3_client):
     '''
     Sets up node and installs dependencies.
 
@@ -176,9 +176,20 @@ def setup_node():
 
         PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
         if PACKAGE_JSON_PATH.is_file():
+            cache_folder = None
+            if should_cache:
+                logger.info(f'{PACKAGE_JSON_PATH} found. Attempting to download cache')
+                NM_FOLDER = '$HOME/node_modules'
+                cache_folder = CacheFolder(PACKAGE_JSON_PATH, NM_FOLDER, bucket, s3_client, logger)
+                cache_folder.download_unzip()
+
             logger.info('Installing dependencies in package.json')
             runp('npm set audit false')
             runp('npm ci')
+
+            if should_cache:
+                if not cache_folder.exists():
+                    cache_folder.zip_upload_folder_to_s3()
 
     except (CalledProcessError, OSError, ValueError):
         return 1
@@ -362,7 +373,7 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
 
     if GEMFILELOCK_PATH.is_file() and should_cache:
         if not cache_folder.exists():
-            cache_folder.zip_upload_folder_to_s3(GEMFOLDER)
+            cache_folder.zip_upload_folder_to_s3()
 
     return returncode
 

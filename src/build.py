@@ -149,7 +149,7 @@ def build(
             # BUILD
             #
             run_step(
-                setup_node(),
+                setup_node(federalist_config.should_cache(), bucket, s3_client),
                 'There was a problem setting up Node, see the above logs for details.'
             )
 
