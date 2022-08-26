@@ -21,9 +21,7 @@ class TestPublish():
             site_prefix='site/prefix',
             bucket=TEST_BUCKET,
             federalist_config={},
-            aws_region=TEST_REGION,
-            aws_access_key_id=TEST_ACCESS_KEY,
-            aws_secret_access_key=TEST_SECRET_KEY
+            s3_client=None
         )
 
         publish(**kwargs)

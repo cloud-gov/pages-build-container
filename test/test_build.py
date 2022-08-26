@@ -49,7 +49,7 @@ class TestSetupNode():
     def test_it_uses_nvmrc_file_if_it_exists(self, mock_get_logger, mock_run, patch_clone_dir):
         create_file(patch_clone_dir / NVMRC, contents='6')
 
-        result = setup_node()
+        result = setup_node(False, None, None)
 
         assert result == 0
 
@@ -64,7 +64,7 @@ class TestSetupNode():
     def test_installs_deps(self, mock_get_logger, mock_run, patch_clone_dir):
         create_file(patch_clone_dir / PACKAGE_JSON)
 
-        result = setup_node()
+        result = setup_node(False, None, None)
 
         assert result == 0
 
@@ -90,7 +90,7 @@ class TestSetupNode():
     def test_returns_code_when_err(self, mock_get_logger, mock_run):
         mock_run.side_effect = CalledProcessError(1, 'command')
 
-        result = setup_node()
+        result = setup_node(False, None, None)
 
         assert result == 1
 
@@ -379,7 +379,7 @@ class TestSetupRuby():
 @patch('steps.build.get_logger')
 class TestSetupBundler():
     def test_when_no_gemfile_just_load_jekyll(self, mock_get_logger, mock_run, patch_clone_dir):
-        result = setup_bundler()
+        result = setup_bundler(False, None, None)
 
         assert result == mock_run.return_value
 
@@ -402,7 +402,7 @@ class TestSetupBundler():
 
         mock_run.return_value = 0
 
-        result = setup_bundler()
+        result = setup_bundler(False, None, None)
 
         assert result == 0
 
@@ -432,7 +432,7 @@ class TestSetupBundler():
 
         mock_run.return_value = 0
 
-        result = setup_bundler()
+        result = setup_bundler(False, None, None)
 
         assert result == 0
 
