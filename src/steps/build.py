@@ -349,8 +349,8 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
     cache_folder = None
     if GEMFILELOCK_PATH.is_file() and should_cache:
         logger.info(f'{GEMFILELOCK} found. Attempting to download cache')
-        GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True) \
-            .stdout.decode('utf-8').strip()
+        GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True)  # nosec
+        GEMFOLDER = GEMFOLDER.stdout.decode('utf-8').strip()
         cache_folder = CacheFolder(GEMFILELOCK_PATH, GEMFOLDER, bucket, s3_client, logger)
         cache_folder.download_unzip()
 
