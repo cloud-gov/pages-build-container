@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import requests
 import shlex
-import subprocess
+import subprocess  # nosec
 from subprocess import CalledProcessError  # nosec
 import time
 import yaml
@@ -14,7 +14,7 @@ import yaml
 from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH, WORKING_DIR_PATH)
 from log_utils import get_logger
 from runner import run
-from .cache import get_checksum, CacheFolder
+from .cache import CacheFolder
 
 HUGO_BIN = 'hugo'
 HUGO_VERSION = '.hugo-version'
@@ -346,15 +346,13 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
     if returncode:
         return returncode
 
+    cache_folder = None
     if GEMFILELOCK_PATH.is_file() and should_cache:
-        logger.info(f'{GEMFILELOCK} found. Checking for existing cache')
-        cache_key = get_checksum(GEMFILELOCK_PATH)
-        cache_folder = CacheFolder(cache_key, bucket, s3_client)
+        logger.info(f'{GEMFILELOCK} found. Attempting to download cache')
         GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True) \
             .stdout.decode('utf-8').strip()
-        if cache_folder.exists():
-            logger.info(f'Dependency cache found, downloading to {GEMFOLDER}')
-            cache_folder.download_unzip(GEMFOLDER)
+        cache_folder = CacheFolder(GEMFILELOCK_PATH, GEMFOLDER, bucket, s3_client, logger)
+        cache_folder.download_unzip()
 
     logger.info('Installing dependencies in Gemfile')
     returncode = runp('bundle install')
@@ -362,13 +360,9 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
     if returncode:
         return returncode
 
-    if should_cache:
-        GEMFOLDER = subprocess.run(["rvm", "gemdir"], capture_output=True) \
-            .stdout.decode('utf-8').strip()
-        logger.info(f'Caching dependencies from {GEMFOLDER}.')
-        cache_key = get_checksum(GEMFILELOCK_PATH)
-        cache_folder = CacheFolder(cache_key, bucket, s3_client)
-        cache_folder.zip_upload_folder_to_s3(GEMFOLDER)
+    if GEMFILELOCK_PATH.is_file() and should_cache:
+        if not cache_folder.exists():
+            cache_folder.zip_upload_folder_to_s3(GEMFOLDER)
 
     return returncode
 
