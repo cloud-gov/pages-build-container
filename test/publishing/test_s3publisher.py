@@ -134,12 +134,14 @@ def test_publish_to_s3(tmpdir, s3_client):
 
         keys = [r['Key'] for r in results['Contents']]
 
-        assert results['KeyCount'] == 6
+        assert results['KeyCount'] == 6 # 4 files, 3 redirects & 404.html
 
         assert f'{site_prefix}/index.html' in keys
         assert f'{site_prefix}/boop.txt' in keys
+        assert f'{site_prefix}/sub_dir' in keys
         assert f'{site_prefix}/sub_dir/index.html' in keys
         assert f'{site_prefix}/404.html' in keys
+        assert f'{site_prefix}' in keys # main redirect object
 
         # Check the cache control headers
         cache_control_checks = [
