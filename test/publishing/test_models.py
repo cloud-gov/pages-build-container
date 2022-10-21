@@ -45,6 +45,13 @@ class TestSiteObject():
             Bucket='test-bucket',
             Key='site/abc')
 
+    def test_upload_to_s3(self):
+        model = SiteObject('abc', 'md5')
+        # Base SiteObject should not have this method implemented
+        # because it is specific to file and redirect objects
+        with pytest.raises(NotImplementedError):
+            model.upload_to_s3('bucket', None)
+
 
 class TestSiteFile():
     @pytest.mark.parametrize('filename, is_compressible', [
