@@ -352,7 +352,7 @@ class TestSetupRuby():
 
         mock_logger.warning.assert_has_calls([
             call(
-                f'WARNING: Ruby {min_ruby_version} will soon reach end-of-life, at which point Federalist will no longer support it.'),  # noqa: E501
+                f'WARNING: Ruby {min_ruby_version} will soon reach end-of-life, at which point Pages will no longer support it.'),  # noqa: E501
             call('Please upgrade to an actively supported version, see https://www.ruby-lang.org/en/downloads/branches/ for details.')  # noqa: E501
         ])
 

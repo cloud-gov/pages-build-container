@@ -1,10 +1,6 @@
-[![CircleCI](https://circleci.com/gh/18F/federalist-garden-build.svg?style=svg)](https://circleci.com/gh/18F/federalist-garden-build)
-[![Maintainability](https://api.codeclimate.com/v1/badges/b7ddc95a6745610b685b/maintainability)](https://codeclimate.com/github/18F/federalist-garden-build/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/b7ddc95a6745610b685b/test_coverage)](https://codeclimate.com/github/18F/federalist-garden-build/test_coverage)
+# Pages Build Container
 
-# Federalist Garden Build
-
-Docker image for building and publishing static sites as part of the Federalist platform.
+Docker image for building and publishing static sites as part of the cloud.gov Pages platform.
 
 Generally, site builds work in three stages: clone, build, and publish. Each stage is broken down into a number of steps. First, the container checks out the site from GitHub. Then it builds the site with the specified build engine. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3, and also creates redirect objects for directories, such as `/path` => `/path/`.
 
@@ -36,7 +32,7 @@ docker-compose run --rm app python main.py [options]
 ```
 # build arguments provided as a JSON encoded string
 
-cf run-task federalist-build-container "python main.py -p '{\"foo\": \"bar\"}'" --name "build-123"
+cf run-task pages-build-container "python main.py -p '{\"foo\": \"bar\"}'" --name "build-123"
 ```
 
 ```
@@ -92,13 +88,13 @@ The following environment variables are available during site builds and when ru
 #### Requirements
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
 - AWS S3 bucket name and associated credentials (key, secret, region)
-- A Github repository with a Federalist-compatible site
+- A Github repository with a Pages-compatible site
 - A Github Personal Access Token if building a private repository, see [creating a new personal token for your GitHub account](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/) for more information.
 
 #### Clone the repository
 ```sh
-  git clone git@github.com:18F/federalist-garden-build.git
-  cd federalist-garden-build
+  git clone git@github.com:cloud-gov/pages-build-container.git
+  cd pages-build-container
 ```
 
 #### Create build arguments
@@ -140,7 +136,7 @@ docker-compose up -d --no-deps db
 
 2. Run psql in the container
 ```
-docker-compose exec db psql -U postgres -d federalist
+docker-compose exec db psql -U postgres -d pages
 ```
 
 ### Inspecting logs
@@ -190,6 +186,7 @@ This project is in the worldwide [public domain](LICENSE.md). As stated in [CONT
 > All contributions to this project will be released under the CC0 dedication. By submitting a pull request, you are agreeing to comply with this waiver of copyright interest.
 
 [Federalist]: https://federalist.18f.gov
+[cloud.gov Pages]: https://cloud.gov/pages
 [Docker Compose]: https://docs.docker.com/compose/install/
 [Docker]: https://docs.docker.com/engine/installation/
-[federalist-builder]: https://github.com/18f/federalist-builder
+[pages-builder]: https://github.com/cloud-gov/pages-builder

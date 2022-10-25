@@ -122,7 +122,7 @@ def is_supported_ruby_version(version):
 
         if version == RUBY_VERSION_MIN:
             logger.warning(
-                f'WARNING: Ruby {RUBY_VERSION_MIN} will soon reach end-of-life, at which point Federalist will no longer support it.')  # noqa: E501
+                f'WARNING: Ruby {RUBY_VERSION_MIN} will soon reach end-of-life, at which point Pages will no longer support it.')  # noqa: E501
             logger.warning(upgrade_msg)
 
     return is_supported
@@ -152,7 +152,7 @@ def setup_node():
                     echo "Switching to node version $RAW_VERSION specified in .nvmrc"
 
                     if [[ "$MAJOR_VERSION" -eq 12 ]]; then
-                        echo "WARNING: Node $RAW_VERSION will reach end-of-life on 4-30-2022, at which point Federalist will no longer support it."
+                        echo "WARNING: Node $RAW_VERSION will reach end-of-life on 4-30-2022, at which point Pages will no longer support it."
                         echo "Please upgrade to LTS major version 14 or 16, see https://nodejs.org/en/about/releases/ for details."
                     fi
 

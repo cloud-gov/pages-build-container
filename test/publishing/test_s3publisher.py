@@ -23,7 +23,10 @@ def s3_client(monkeypatch):
     with mock_s3():
         conn = boto3.resource('s3', region_name=TEST_REGION)
 
-        conn.create_bucket(Bucket=TEST_BUCKET)
+        conn.create_bucket(
+            Bucket=TEST_BUCKET,
+            CreateBucketConfiguration={"LocationConstraint": "test-bucket"}
+        )
 
         s3_client = boto3.client(
             service_name='s3',
@@ -121,8 +124,8 @@ def test_publish_to_s3(tmpdir, s3_client):
     # Create mock for default 404 page request
     with requests_mock.mock() as m:
         m.get(('https://raw.githubusercontent.com'
-               '/18F/federalist-404-page/master/'
-               '404-federalist-client.html'),
+               '/cloud-gov/pages-404-page/main/'
+               '404-pages-client.html'),
               text='default 404 page')
 
         publish_to_s3(**publish_kwargs)

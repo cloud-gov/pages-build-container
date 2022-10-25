@@ -14,7 +14,7 @@ services:
       - db
     environment:
       CACHE_CONTROL: max-age=60
-      DATABASE_URL: postgresql://postgres:password@db/federalist
+      DATABASE_URL: postgresql://postgres:password@db/pages
       USER_ENVIRONMENT_VARIABLE_KEY: shhhhhhh
 
   app:
@@ -31,7 +31,7 @@ services:
       - db
     environment:
       CACHE_CONTROL: max-age=60
-      DATABASE_URL: postgresql://postgres:password@db/federalist
+      DATABASE_URL: postgresql://postgres:password@db/pages
       USER_ENVIRONMENT_VARIABLE_KEY: shhhhhhh
 
   echoserver:
@@ -55,14 +55,14 @@ services:
     volumes:
       - ./tmp/db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d federalist"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pages"]
       interval: 10s
       timeout: 5s
       retries: 5      
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_USER: postgres
-      POSTGRES_DB: federalist
+      POSTGRES_DB: pages
 
   test:
     build:

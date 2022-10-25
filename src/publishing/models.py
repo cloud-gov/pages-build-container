@@ -155,13 +155,14 @@ class SiteRedirect(SiteObject):
     A redirect, typically from `/path/to/page => /path/to/page/`
     '''
 
-    def __init__(self, filename, dir_prefix, site_prefix, base_url):
+    def __init__(self, filename, dir_prefix, site_prefix, base_url, cache_control):
         super().__init__(filename=filename,
                          dir_prefix=dir_prefix,
                          md5=None,  # update after super().__init()__
                          site_prefix=site_prefix)
 
         self.base_url = base_url
+        self.cache_control = cache_control
 
         # The md5 hash is the hash of the destination string, not
         # of the file contents, for our redirect objects
@@ -204,4 +205,5 @@ class SiteRedirect(SiteObject):
             Key=self.s3_key,
             ServerSideEncryption='AES256',
             WebsiteRedirectLocation=self.destination,
+            CacheControl=self.cache_control
         )

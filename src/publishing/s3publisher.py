@@ -4,7 +4,7 @@ Classes and methods for publishing a directory to S3
 
 import requests
 
-from os import path, makedirs, walk
+from os import path, makedirs, walk, getenv
 
 from log_utils import get_logger
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
@@ -17,7 +17,7 @@ def list_remote_objects(bucket, site_prefix, s3_client):
     '''
 
     Generates a list of remote S3 objects that have keys starting with
-    site_preix in the given bucket.
+    site_prefix in the given bucket.
 
     '''
     results_truncated = True
@@ -88,8 +88,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
     filename_404 = directory + '/404.html'
     if not path.isfile(filename_404):
         default_404_url = ('https://raw.githubusercontent.com'
-                           '/18F/federalist-404-page/master/'
-                           '404-federalist-client.html')
+                           '/cloud-gov/pages-404-page/main/'
+                           '404-pages-client.html')
         default_404 = requests.get(default_404_url)
         makedirs(path.dirname(filename_404), exist_ok=True)
         with open(filename_404, "w+") as f:
@@ -117,7 +117,8 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
                     site_redirect = SiteRedirect(filename=root,
                                                  dir_prefix=directory,
                                                  site_prefix=site_prefix,
-                                                 base_url=base_url)
+                                                 base_url=base_url,
+                                                 cache_control=cache_control)
 
                     local_objects_by_filename[site_redirect.filename] = site_redirect
 
@@ -140,11 +141,14 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
     # Create lists of all the new and modified objects
     new_objects = []
     replacement_objects = []
+    # track whether we can do diffing because of cache control
+    default_cache_control = getenv('CACHE_CONTROL', 'max-age=60')
     for local_filename, local_obj in local_objects_by_filename.items():
         matching_remote_obj = remote_objects_by_filename.get(local_filename)
         if not matching_remote_obj:
             new_objects.append(local_obj)
-        else:
+        elif (matching_remote_obj.md5 != local_obj.md5 or
+              local_obj.cache_control != default_cache_control):
             replacement_objects.append(local_obj)
 
     # Create a list of the remote objects that should be deleted
