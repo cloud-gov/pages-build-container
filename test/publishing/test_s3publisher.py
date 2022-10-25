@@ -23,7 +23,10 @@ def s3_client(monkeypatch):
     with mock_s3():
         conn = boto3.resource('s3', region_name=TEST_REGION)
 
-        conn.create_bucket(Bucket=TEST_BUCKET)
+        conn.create_bucket(
+            Bucket=TEST_BUCKET,
+            CreateBucketConfiguration={"LocationConstraint": "test-bucket"}
+        )
 
         s3_client = boto3.client(
             service_name='s3',

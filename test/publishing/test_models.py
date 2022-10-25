@@ -13,7 +13,7 @@ class TestSiteObject():
             filename='boop',
             md5='md5',
             dir_prefix='dir_prefix',
-            site_prefix='site_prefix',
+            site_prefix='site_prefix'
         )
         assert model is not None
 
@@ -35,13 +35,6 @@ class TestSiteObject():
                            dir_prefix='/dir', site_prefix='site')
         assert model.s3_key == 'site//not_dir/abc'
 
-    def test_upload_to_s3(self):
-        model = SiteObject('abc', 'md5')
-        # Base SiteObject should not have this method implemented
-        # because it is specific to file and redirect objects
-        with pytest.raises(NotImplementedError):
-            model.upload_to_s3('bucket', None)
-
     def test_delete_from_s3(self):
         s3_client = Mock()
 
@@ -51,6 +44,13 @@ class TestSiteObject():
         s3_client.delete_object.assert_called_once_with(
             Bucket='test-bucket',
             Key='site/abc')
+
+    def test_upload_to_s3(self):
+        model = SiteObject('abc', 'md5')
+        # Base SiteObject should not have this method implemented
+        # because it is specific to file and redirect objects
+        with pytest.raises(NotImplementedError):
+            model.upload_to_s3('bucket', None)
 
 
 class TestSiteFile():
@@ -147,7 +147,7 @@ class TestSiteFile():
 
 
 class TestSiteRedirect():
-    def test_contructor_and_props(self, tmpdir):
+    def test_constructor_and_props(self, tmpdir):
         base_test_dir = tmpdir.mkdir('boop')
         test_dir = base_test_dir.mkdir('sub_dir')
 
@@ -155,7 +155,8 @@ class TestSiteRedirect():
             filename=str(test_dir),
             dir_prefix=str(base_test_dir),
             site_prefix='prefix',
-            base_url='/preview'
+            base_url='/preview',
+            cache_control='max-age=60'
         )
 
         assert model is not None
@@ -185,7 +186,8 @@ class TestSiteRedirect():
             filename=str(test_dir),
             dir_prefix=str(base_test_dir),
             site_prefix='site-prefix',
-            base_url='/site/test'
+            base_url='/site/test',
+            cache_control='max-age=60'
         )
 
         s3_client = Mock()
@@ -198,5 +200,6 @@ class TestSiteRedirect():
             Bucket='test-bucket',
             Key='site-prefix/wherever',
             ServerSideEncryption='AES256',
-            WebsiteRedirectLocation=expected_dest
+            WebsiteRedirectLocation=expected_dest,
+            CacheControl="max-age=60",
         )
