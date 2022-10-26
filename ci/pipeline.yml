@@ -114,7 +114,7 @@ jobs:
           params:
             text: |
               :x: FAILED: pages build container tests on ((deploy-env))
-              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME?vars.deploy-env="((deploy-env))"&vars.git-branch="((git-branch))"|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
@@ -132,7 +132,7 @@ jobs:
       params:
         text: |
           :x: FAILED: pages build container tests on ((deploy-env))
-          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME?vars.deploy-env="((deploy-env))"&vars.git-branch="((git-branch))"|View build details>
         channel: ((slack-channel))
         username: ((slack-username))
         icon_url: ((slack-icon-url))
@@ -174,7 +174,7 @@ jobs:
           params:
             text: |
               :x: FAILED: pages build container deployment on ((deploy-env))
-              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME?vars.deploy-env="((deploy-env))"&vars.git-branch="((git-branch))"|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
@@ -213,7 +213,7 @@ jobs:
       params:
         text: |
           :x: FAILED: pages build container deployment on ((deploy-env))
-          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME?vars.deploy-env="((deploy-env))"&vars.git-branch="((git-branch))"|View build details>
         channel: ((slack-channel))
         username: ((slack-username))
         icon_url: ((slack-icon-url))
@@ -234,7 +234,7 @@ jobs:
           params:
             text: |
               :white_check_mark: SUCCESS: Successfully deployed pages build containers on ((deploy-env))
-              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME?vars.deploy-env="((deploy-env))"&vars.git-branch="((git-branch))"|View build details>
             channel: ((slack-channel))
             username: ((slack-username))
             icon_url: ((slack-icon-url))
