@@ -79,7 +79,7 @@ class RepoConfig:
         return self.config.get('includePaths', []) + self.defaults.get('includePaths', [])
 
     def should_cache(self):
-        return self.config.get('cache', False) is True
+        return self.config.get('cache', True) is True
 
 
 def contains_dotpath(filename):
