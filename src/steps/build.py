@@ -20,6 +20,7 @@ HUGO_BIN = 'hugo'
 HUGO_VERSION = '.hugo-version'
 NVMRC = '.nvmrc'
 PACKAGE_JSON = 'package.json'
+PACKAGE_LOCK = 'package-lock.json'
 RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
 GEMFILELOCK = 'Gemfile.lock'
@@ -174,13 +175,13 @@ def setup_node(should_cache: bool, bucket, s3_client):
             runp('echo Node version: $(node --version)')
             runp('echo NPM version: $(npm --version)')
 
-        PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
-        if PACKAGE_JSON_PATH.is_file():
+        PACKAGE_LOCK_PATH = CLONE_DIR_PATH / PACKAGE_LOCK
+        if PACKAGE_LOCK_PATH.is_file():
             cache_folder = None
             if should_cache:
-                logger.info(f'{PACKAGE_JSON_PATH} found. Attempting to download cache')
+                logger.info(f'{PACKAGE_LOCK_PATH} found. Attempting to download cache')
                 NM_FOLDER = '$HOME/node_modules'
-                cache_folder = CacheFolder(PACKAGE_JSON_PATH, NM_FOLDER, bucket, s3_client, logger)
+                cache_folder = CacheFolder(PACKAGE_LOCK_PATH, NM_FOLDER, bucket, s3_client, logger)
                 cache_folder.download_unzip()
 
             logger.info('Installing dependencies in package.json')
