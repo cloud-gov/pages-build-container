@@ -817,7 +817,8 @@ class TestBuildEnv():
 @patch('steps.build.get_logger')
 @patch('steps.build.CacheFolder')
 class TestBuildCache():
-    def test_it_uses_ruby_cache_when_gemfile_lock(self, mock_cache_folder, mock_get_logger, mock_run, patch_clone_dir):
+    def test_it_uses_ruby_cache_when_gemfile_lock(self, mock_cache_folder,
+                                                  mock_get_logger, mock_run, patch_clone_dir):
         default_version = '<2'
         create_file(patch_clone_dir / GEMFILE, 'foo')
         create_file(patch_clone_dir / GEMFILELOCK, contents='hashable')
@@ -848,7 +849,8 @@ class TestBuildCache():
             callp('bundle install'),
         ])
 
-    def test_it_uses_node_cache_when_package_lock(self, mock_cache_folder, mock_get_logger, mock_run, patch_clone_dir):
+    def test_it_uses_node_cache_when_package_lock(self, mock_cache_folder, mock_get_logger,
+                                                  mock_run, patch_clone_dir):
         create_file(patch_clone_dir / PACKAGE_JSON)
         create_file(patch_clone_dir / PACKAGE_LOCK, contents='hashable')
 
