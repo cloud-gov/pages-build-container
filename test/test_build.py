@@ -16,8 +16,8 @@ from steps import (
 )
 from steps.build import (
     build_env, is_supported_ruby_version, BUNDLER_VERSION, GEMFILE,
-    HUGO_BIN, HUGO_VERSION, JEKYLL_CONFIG_YML,
-    NVMRC, PACKAGE_JSON, RUBY_VERSION
+    GEMFILELOCK, HUGO_BIN, HUGO_VERSION, JEKYLL_CONFIG_YML,
+    NVMRC, PACKAGE_JSON, PACKAGE_LOCK, RUBY_VERSION
 )
 
 from .support import create_file, patch_dir
@@ -811,3 +811,69 @@ class TestBuildEnv():
         assert ('user environment variable name `repository`'
                 ' conflicts with system environment variable, it will be'
                 ' ignored.') in mock_stdout.getvalue()
+
+
+@patch('steps.build.run')
+@patch('steps.build.get_logger')
+@patch('steps.build.CacheFolder')
+class TestBuildCache():
+    def test_it_uses_ruby_cache_when_gemfile_lock(self, mock_cache_folder, mock_get_logger, mock_run, patch_clone_dir):
+        default_version = '<2'
+        create_file(patch_clone_dir / GEMFILE, 'foo')
+        create_file(patch_clone_dir / GEMFILELOCK, contents='hashable')
+
+        mock_run.return_value = 0
+
+        result = setup_bundler(True, None, None)
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-bundler')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('Gemfile found, setting up bundler'),
+            call(f'{GEMFILELOCK} found. Attempting to download cache'),
+            call('Installing dependencies in Gemfile'),
+        ])
+
+        mock_cache_folder.assert_called_once()
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True)
+
+        mock_run.assert_has_calls([
+            callp(f'gem install bundler --version "{default_version}"'),
+            callp('bundle install'),
+        ])
+
+    def test_it_uses_node_cache_when_package_lock(self, mock_cache_folder, mock_get_logger, mock_run, patch_clone_dir):
+        create_file(patch_clone_dir / PACKAGE_JSON)
+        create_file(patch_clone_dir / PACKAGE_LOCK, contents='hashable')
+
+        result = setup_node(True, None, None)
+
+        assert result == 0
+
+        mock_get_logger.assert_called_once_with('setup-node')
+
+        mock_logger = mock_get_logger.return_value
+
+        mock_logger.info.assert_has_calls([
+            call('Using default node version'),
+            call(f'{PACKAGE_LOCK} found. Attempting to download cache'),
+            call('Installing dependencies in package.json')
+        ])
+
+        mock_cache_folder.assert_called_once()
+
+        def callp(cmd):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True, node=True)
+
+        mock_run.assert_has_calls([
+            callp('echo Node version: $(node --version)'),
+            callp('echo NPM version: $(npm --version)'),
+            callp('npm set audit false'),
+            callp('npm ci'),
+        ])

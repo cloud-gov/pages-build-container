@@ -179,15 +179,18 @@ def setup_node(should_cache: bool, bucket, s3_client):
         if PACKAGE_LOCK_PATH.is_file():
             cache_folder = None
             if should_cache:
-                logger.info(f'{PACKAGE_LOCK_PATH} found. Attempting to download cache')
+                logger.info(f'{PACKAGE_LOCK} found. Attempting to download cache')
                 NM_FOLDER = '$HOME/node_modules'
                 cache_folder = CacheFolder(PACKAGE_LOCK_PATH, NM_FOLDER, bucket, s3_client, logger)
                 cache_folder.download_unzip()
 
+        PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
+        if PACKAGE_JSON_PATH.is_file():
             logger.info('Installing dependencies in package.json')
             runp('npm set audit false')
             runp('npm ci')
 
+        if PACKAGE_LOCK_PATH.is_file():
             if should_cache:
                 if not cache_folder.exists():
                     cache_folder.zip_upload_folder_to_s3()
