@@ -12,4 +12,4 @@ class RepeatTimer(Timer):
 def log_monitoring_metrics(logger):
     logger.info(f'CPU Percent: {psutil.cpu_percent()}')
     logger.info(f'Memory information: {dict(psutil.virtual_memory()._asdict())}')
-    logger.info(f'Disk usage: {psutil.disk_usage("/")}')
+    logger.info(f'Disk usage: {dict(psutil.disk_usage("/")._asdict())}')
