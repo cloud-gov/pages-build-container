@@ -4,3 +4,4 @@ stopit==1.1.2
 psycopg2==2.8.5
 cryptography==3.3.2
 pyyaml==5.4
+psutil==5.9.4

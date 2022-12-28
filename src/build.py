@@ -7,7 +7,10 @@ from stopit import TimeoutException, SignalTimeout as Timeout
 
 from common import CLONE_DIR_PATH
 
-from log_utils import delta_to_mins_secs, get_logger, init_logging
+from log_utils import (
+    delta_to_mins_secs, get_logger, init_logging,
+    RepeatTimer, log_monitoring_metrics
+)
 from log_utils.remote_logs import (
     post_build_complete, post_build_error,
     post_build_timeout, post_build_processing
@@ -95,6 +98,11 @@ def build(
 
             if generator not in GENERATORS:
                 raise ValueError(f'Invalid generator: {generator}')
+
+            # start a separate scheduled thread for memory/cpu monitoring
+            MONITORING_INTERVAL = 30
+            thread = RepeatTimer(MONITORING_INTERVAL, log_monitoring_metrics)
+            thread.start()
 
             ##
             # FETCH
