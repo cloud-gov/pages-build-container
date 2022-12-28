@@ -9,6 +9,7 @@ class RepeatTimer(Timer):
             self.function(*self.args, **self.kwargs)
 
 
-def log_monitoring_metrics():
-    print(f'CPU Percent: {psutil.cpu_percent()}')
-    print(f'Memory information: {dict(psutil.virtual_memory()._asdict())}')
+def log_monitoring_metrics(logger):
+    logger.info(f'CPU Percent: {psutil.cpu_percent()}')
+    logger.info(f'Memory information: {dict(psutil.virtual_memory()._asdict())}')
+    logger.info(f'Disk usage: {psutil.disk_usage("/")}')

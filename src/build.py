@@ -60,6 +60,7 @@ def build(
 
     logger = None
     commit_sha = None
+    thread = None
 
     cache_control = os.getenv('CACHE_CONTROL', 'max-age=60')
     database_url = os.environ['DATABASE_URL']
@@ -101,7 +102,7 @@ def build(
 
             # start a separate scheduled thread for memory/cpu monitoring
             MONITORING_INTERVAL = 30
-            thread = RepeatTimer(MONITORING_INTERVAL, log_monitoring_metrics)
+            thread = RepeatTimer(MONITORING_INTERVAL, log_monitoring_metrics, logger)
             thread.start()
 
             ##
@@ -212,11 +213,15 @@ def build(
         Thrown when a step itself fails, usually because a command exited
         with a non-zero return code
         '''
+        if thread:
+            thread.cancel()
         logger.error(str(err))
         post_build_error(status_callback, str(err), commit_sha)
         sys.exit(1)
 
     except TimeoutException:
+        if thread:
+            thread.cancel()
         logger.warning(f'Build({build_info}) has timed out')
         post_build_timeout(status_callback, commit_sha)
 
@@ -224,6 +229,8 @@ def build(
         # Getting here means something really weird has happened
         # since all errors caught during tasks should be caught
         # in the previous block as `UnexpectedExit` exceptions.
+        if thread:
+            thread.cancel()
         err_string = str(err)
 
         # log the original exception
