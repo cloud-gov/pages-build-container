@@ -1,10 +1,12 @@
 import logging
 from unittest.mock import patch
+from time import sleep
 
 from log_utils.get_logger import (
     LogFilter, Formatter, get_logger, init_logging,
     set_log_attrs, DEFAULT_LOG_LEVEL)
 from log_utils.db_handler import DBHandler
+from log_utils.monitoring import RepeatTimer, log_monitoring_metrics
 
 
 class TestLogFilter():
@@ -110,3 +112,14 @@ class TestInitLogging():
         assert(len(kwargs['handlers']) == 2)
         assert(type(kwargs['handlers'][0]) == logging.StreamHandler)
         assert(type(kwargs['handlers'][1]) == DBHandler)
+
+
+@patch('log_utils.monitoring.log_monitoring_metrics')
+class TestMonitorLogging():
+    def test_it_calls_logger_on_schedule(self, mock_metrics_logger):
+        logger = get_logger('test')
+        thread = RepeatTimer(1, mock_metrics_logger, [logger])
+        thread.start()
+        sleep(5)
+        mock_metrics_logger.assert_called_with(logger)
+        thread.cancel()
