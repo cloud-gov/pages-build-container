@@ -6,7 +6,7 @@ from log_utils.get_logger import (
     LogFilter, Formatter, get_logger, init_logging,
     set_log_attrs, DEFAULT_LOG_LEVEL)
 from log_utils.db_handler import DBHandler
-from log_utils.monitoring import RepeatTimer, log_monitoring_metrics
+from log_utils.monitoring import RepeatTimer
 
 
 class TestLogFilter():
