@@ -301,6 +301,8 @@ def setup_ruby():
     if returncode:
         return returncode
 
+    runp('gem update --system')
+
     return runp('echo Ruby version: $(ruby -v)')
 
 
