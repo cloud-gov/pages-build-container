@@ -1,5 +1,6 @@
 from threading import Timer
 import psutil
+from humanize import naturalsize
 
 
 # https://stackoverflow.com/a/48741004
@@ -10,6 +11,7 @@ class RepeatTimer(Timer):
 
 
 def log_monitoring_metrics(logger):
-    logger.info(f'CPU Percent: {psutil.cpu_percent()}')
-    logger.info(f'Memory information: {dict(psutil.virtual_memory()._asdict())}')
-    logger.info(f'Disk usage: {dict(psutil.disk_usage("/")._asdict())}')
+    disk = psutil.disk_usage("/")
+    logger.info(f'CPU Usage Percentage: {psutil.cpu_percent()}')
+    logger.info(f'Memory Usage Percentage: {psutil.virtual_memory().percent}')
+    logger.info(f'Disk usage: {naturalsize(disk.used)} / {naturalsize(disk.total)}')

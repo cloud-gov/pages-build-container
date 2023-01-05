@@ -102,7 +102,8 @@ def build(
 
             # start a separate scheduled thread for memory/cpu monitoring
             MONITORING_INTERVAL = 30
-            thread = RepeatTimer(MONITORING_INTERVAL, log_monitoring_metrics, [logger])
+            monitoring_logger = get_logger('monitor')
+            thread = RepeatTimer(MONITORING_INTERVAL, log_monitoring_metrics, [monitoring_logger])
             thread.start()
 
             ##
