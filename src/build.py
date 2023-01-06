@@ -7,7 +7,10 @@ from stopit import TimeoutException, SignalTimeout as Timeout
 
 from common import CLONE_DIR_PATH
 
-from log_utils import delta_to_mins_secs, get_logger, init_logging
+from log_utils import (
+    delta_to_mins_secs, get_logger, init_logging,
+    RepeatTimer, log_monitoring_metrics
+)
 from log_utils.remote_logs import (
     post_build_complete, post_build_error,
     post_build_timeout, post_build_processing
@@ -57,6 +60,7 @@ def build(
 
     logger = None
     commit_sha = None
+    thread = None
 
     cache_control = os.getenv('CACHE_CONTROL', 'max-age=60')
     database_url = os.environ['DATABASE_URL']
@@ -95,6 +99,12 @@ def build(
 
             if generator not in GENERATORS:
                 raise ValueError(f'Invalid generator: {generator}')
+
+            # start a separate scheduled thread for memory/cpu monitoring
+            MONITORING_INTERVAL = 30
+            monitoring_logger = get_logger('monitor')
+            thread = RepeatTimer(MONITORING_INTERVAL, log_monitoring_metrics, [monitoring_logger])
+            thread.start()
 
             ##
             # FETCH
@@ -231,6 +241,9 @@ def build(
         )
 
         post_build_error(status_callback, err_message, commit_sha)
+    finally:
+        if thread:
+            thread.cancel()
 
 
 def decrypt_uevs(key, uevs):

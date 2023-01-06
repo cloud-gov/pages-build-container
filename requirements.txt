@@ -1,6 +1,8 @@
 requests==2.24.0
 boto3==1.14.20
+humanize==4.4.0
 stopit==1.1.2
 psycopg2==2.8.5
 cryptography==3.3.2
 pyyaml==5.4
+psutil==5.9.4
