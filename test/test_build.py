@@ -236,7 +236,7 @@ class TestSetupRuby():
 
         mock_logger = mock_get_logger.return_value
 
-        mock_run.assert_called_with(
+        mock_run.assert_called_once_with(
             mock_logger,
             'echo Ruby version: $(ruby -v)',
             cwd=patch_clone_dir,
@@ -270,7 +270,6 @@ class TestSetupRuby():
 
         mock_run.assert_has_calls([
             callp(f'rvm install {version}'),
-            callp('gem update --system'),
             callp('echo Ruby version: $(ruby -v)')
         ])
 
@@ -304,7 +303,6 @@ class TestSetupRuby():
 
         mock_run.assert_has_calls([
             callp("rvm install '$2.3'"),
-            callp('gem update --system'),
             callp('echo Ruby version: $(ruby -v)'),
         ])
 
