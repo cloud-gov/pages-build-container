@@ -3,11 +3,7 @@ from unittest.mock import Mock
 from steps import publish
 from common import SITE_BUILD_DIR_PATH
 
-
 TEST_BUCKET = 'test-bucket'
-TEST_REGION = 'test-region'
-TEST_ACCESS_KEY = 'fake-access-key'
-TEST_SECRET_KEY = 'fake-secret-key'
 
 
 class TestPublish():
@@ -21,9 +17,7 @@ class TestPublish():
             site_prefix='site/prefix',
             bucket=TEST_BUCKET,
             federalist_config={},
-            aws_region=TEST_REGION,
-            aws_access_key_id=TEST_ACCESS_KEY,
-            aws_secret_access_key=TEST_SECRET_KEY
+            s3_client=None
         )
 
         publish(**kwargs)
