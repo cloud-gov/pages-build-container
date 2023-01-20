@@ -866,7 +866,7 @@ class TestBuildCache():
         mock_logger.info.assert_has_calls([
             call('Using default node version'),
             call(f'{PACKAGE_LOCK} found. Attempting to download cache'),
-            call('Installing dependencies in package.json')
+            call('skipping npm ci and using cache')
         ])
 
         mock_cache_folder.assert_called_once()
@@ -877,5 +877,4 @@ class TestBuildCache():
         mock_run.assert_has_calls([
             callp('echo Node version: $(node --version)'),
             callp('echo NPM version: $(npm --version)'),
-            callp('skipping npm ci and using cache'),
         ])
