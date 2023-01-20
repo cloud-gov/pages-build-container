@@ -8,6 +8,7 @@ import botocore
 NEXT_MONTH = datetime.now() + timedelta(days=30)
 ARCHIVE_METHOD = 'tar'
 
+
 def get_checksum(filename):
     m = hashlib.md5()  # nosec
     with open(filename, 'rb') as f:
