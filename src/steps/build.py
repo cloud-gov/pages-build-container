@@ -21,6 +21,7 @@ HUGO_VERSION = '.hugo-version'
 NVMRC = '.nvmrc'
 PACKAGE_JSON = 'package.json'
 PACKAGE_LOCK = 'package-lock.json'
+NODE_MODULES = 'node_modules'
 RUBY_VERSION = '.ruby-version'
 GEMFILE = 'Gemfile'
 GEMFILELOCK = 'Gemfile.lock'
@@ -180,7 +181,7 @@ def setup_node(should_cache: bool, bucket, s3_client):
             cache_folder = None
             if should_cache:
                 logger.info(f'{PACKAGE_LOCK} found. Attempting to download cache')
-                NM_FOLDER = '$HOME/node_modules'
+                NM_FOLDER = CLONE_DIR_PATH / NODE_MODULES
                 cache_folder = CacheFolder(PACKAGE_LOCK_PATH, NM_FOLDER, bucket, s3_client, logger)
                 cache_folder.download_unzip()
 
