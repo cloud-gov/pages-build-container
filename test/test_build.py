@@ -877,6 +877,5 @@ class TestBuildCache():
         mock_run.assert_has_calls([
             callp('echo Node version: $(node --version)'),
             callp('echo NPM version: $(npm --version)'),
-            callp('npm set audit false'),
-            callp('npm ci'),
+            callp('skipping npm ci and using cache'),
         ])
