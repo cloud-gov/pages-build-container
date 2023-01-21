@@ -13,7 +13,7 @@ import yaml
 
 from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH, WORKING_DIR_PATH)
 from log_utils import get_logger
-from runner import run
+from runner import run, setuser
 from .cache import CacheFolder
 
 HUGO_BIN = 'hugo'
@@ -370,9 +370,11 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
         logger.info(f'{GEMFILELOCK} found. Attempting to download cache')
         GEMFOLDER = subprocess.run(
             f'source {RVM_PATH} && rvm gemdir',
+            cwd=CLONE_DIR_PATH,
             shell=True,
             executable='/bin/bash',
             capture_output=True,
+            preexec_fn=setuser
         )  # nosec
         GEMFOLDER = GEMFOLDER.stdout.decode('utf-8').strip()
         cache_folder = CacheFolder(GEMFILELOCK_PATH, GEMFOLDER, bucket, s3_client, logger)
