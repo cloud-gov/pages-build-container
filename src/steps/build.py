@@ -187,17 +187,16 @@ def setup_node(should_cache: bool, bucket, s3_client):
 
         PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
         if PACKAGE_JSON_PATH.is_file():
-            if not cache_folder.exists():
+            if should_cache and cache_folder.exists():
+                logger.info('skipping npm ci and using cache')
+            else:
                 logger.info('Installing dependencies in package.json')
                 runp('npm set audit false')
                 runp('npm ci')
-            else:
-                logger.info('skipping npm ci and using cache')
 
-        if PACKAGE_LOCK_PATH.is_file():
-            if should_cache:
-                if not cache_folder.exists():
-                    cache_folder.zip_upload_folder_to_s3()
+        if PACKAGE_LOCK_PATH.is_file() and should_cache:
+            if not cache_folder.exists():
+                cache_folder.zip_upload_folder_to_s3()
 
     except (CalledProcessError, OSError, ValueError):
         return 1
