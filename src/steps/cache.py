@@ -6,6 +6,7 @@ import botocore
 
 # Cache expiration time
 NEXT_MONTH = datetime.now() + timedelta(days=30)
+ARCHIVE_METHOD = 'tar'
 
 
 def get_checksum(filename):
@@ -46,8 +47,9 @@ class CacheFolder():
 
     def zip_upload_folder_to_s3(self):
         self.logger.info(f'Caching dependencies from {self.local_folder}.')
-        tmp_file = f'{self.key}.zip'
-        shutil.make_archive(self.key, 'zip', self.local_folder)
+        tmp_file = f'{self.key}.{ARCHIVE_METHOD}'
+        shutil.make_archive(self.key, ARCHIVE_METHOD, self.local_folder)
+        self.logger.info(f'Created archive {tmp_file}')
         self.s3_client.upload_file(
             Filename=tmp_file,
             Bucket=self.bucket,
@@ -59,13 +61,13 @@ class CacheFolder():
     def download_unzip(self):
         if self.exists():
             self.logger.info(f'Dependency cache found, downloading to {self.local_folder}.')
-            tmp_file = f'{self.key}.zip'
+            tmp_file = f'{self.key}.{ARCHIVE_METHOD}'
             self.s3_client.download_file(
                 Filename=tmp_file,
                 Bucket=self.bucket,
                 Key=f'_cache/{self.key}'
             )
-            shutil.unpack_archive(tmp_file, self.local_folder, 'zip')
+            shutil.unpack_archive(tmp_file, self.local_folder, ARCHIVE_METHOD)
             os.unlink(tmp_file)
         else:
             self.logger.info('No cache file found.')
