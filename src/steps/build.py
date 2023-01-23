@@ -176,9 +176,9 @@ def setup_node(should_cache: bool, bucket, s3_client):
             runp('echo Node version: $(node --version)')
             runp('echo NPM version: $(npm --version)')
 
+        cache_folder = None
         PACKAGE_LOCK_PATH = CLONE_DIR_PATH / PACKAGE_LOCK
         if PACKAGE_LOCK_PATH.is_file():
-            cache_folder = None
             if should_cache:
                 logger.info(f'{PACKAGE_LOCK} found. Attempting to download cache')
                 NM_FOLDER = CLONE_DIR_PATH / NODE_MODULES
