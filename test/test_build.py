@@ -62,7 +62,7 @@ class TestSetupNode():
         )
 
     def test_installs_deps(self, mock_get_logger, mock_run, patch_clone_dir):
-        create_file(patch_clone_dir / PACKAGE_JSON)
+        create_file(patch_clone_dir / PACKAGE_LOCK)
 
         result = setup_node(False, None, None)
 
@@ -74,7 +74,7 @@ class TestSetupNode():
 
         mock_logger.info.assert_has_calls([
             call('Using default node version'),
-            call('Installing dependencies in package.json')
+            call('Installing dependencies in package-lock.json')
         ])
 
         def callp(cmd):
