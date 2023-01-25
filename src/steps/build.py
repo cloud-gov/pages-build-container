@@ -185,8 +185,7 @@ def setup_node(should_cache: bool, bucket, s3_client):
                 cache_folder = CacheFolder(PACKAGE_LOCK_PATH, NM_FOLDER, bucket, s3_client, logger)
                 cache_folder.download_unzip()
 
-        PACKAGE_JSON_PATH = CLONE_DIR_PATH / PACKAGE_JSON
-        if PACKAGE_JSON_PATH.is_file():
+        if PACKAGE_LOCK_PATH.is_file():
             if should_cache and cache_folder.exists():
                 logger.info('skipping npm ci and using cache')
             else:
