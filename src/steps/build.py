@@ -386,6 +386,8 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
         return returncode
 
     if GEMFILELOCK_PATH.is_file() and should_cache:
+        # we also need to check for cache_folder here because we shouldn't cache if they didn't
+        # initially have a lockfile (bundle install creates one)
         if cache_folder and not cache_folder.exists():
             cache_folder.zip_upload_folder_to_s3()
 
