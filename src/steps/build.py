@@ -189,7 +189,7 @@ def setup_node(should_cache: bool, bucket, s3_client):
             if should_cache and cache_folder.exists():
                 logger.info('skipping npm ci and using cache')
             else:
-                logger.info('Installing dependencies in package.json')
+                logger.info('Installing dependencies in package-lock.json')
                 runp('npm set audit false')
                 runp('npm ci')
 
