@@ -73,6 +73,17 @@ def fetch_commit_sha(clone_dir):
     try:
         logger = get_logger('clone')
         logger.info('Fetching commit details ...')
+        # prior to running commands on the repo, make sure it isn't "dubious"
+        # "detected dubious ownership in repository"
+        git_command = shlex.split(f'git config --global --add safe.directory {clone_dir}')
+        subprocess.run(  # nosec
+            git_command,
+            shell=False,
+            check=True,
+            stdout=subprocess.PIPE,
+            universal_newlines=True,
+            cwd=clone_dir
+        )
         command = shlex.split('git log -1')  # get last commit only
         process = subprocess.run(  # nosec
             command,
