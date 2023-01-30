@@ -76,7 +76,7 @@ def fetch_commit_sha(clone_dir):
         # prior to running commands on the repo, make sure it isn't "dubious"
         # "detected dubious ownership in repository"
         git_command = shlex.split(f'git config --global --add safe.directory {clone_dir}')
-        subprocess.run(
+        subprocess.run(  # nosec
             git_command,
             shell=False,
             check=True,
