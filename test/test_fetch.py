@@ -1,10 +1,10 @@
 import logging
 import unittest
 from unittest.mock import patch
-import subprocess  # nosec
+# import subprocess  # nosec
 import pytest
 
-from steps import fetch_repo, update_repo, fetch_commit_sha
+from steps import fetch_repo, update_repo
 from common import CLONE_DIR_PATH
 
 clone_env = {
@@ -83,7 +83,7 @@ class TestUpdateRepo():
 # @patch('steps.fetch.get_logger')
 # class TestFetchCommitSHA():
 #     def test_runs_expected_cmds(self, mock_get_logger, mock_run):
-#         mock_run.return_value = subprocess.CompletedProcess([], 0, 'commit testSha blah blah blah')
+#         mock_run.return_value = subprocess.CompletedProcess([], 0, 'commit testSha blah blah')
 #         clone_dir = 'clone_dir'
 
 #         command = ['git', 'log', '-1']
