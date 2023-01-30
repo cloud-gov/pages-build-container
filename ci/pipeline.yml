@@ -56,20 +56,20 @@ jobs:
 
   - name: test-pr-((git-branch))
     plan:
-    - get: src
-      resource: pr-((git-branch))
-      trigger: true
-      version: every
+      - get: src
+        resource: pr-((git-branch))
+        trigger: true
+        version: every
 
-    - put: src
-      resource: pr-((git-branch))
-      params:
-        path: src
-        status: pending
-        base_context: concourse
-        context: test-pages-build-container-((deploy-env))
+      - put: src
+        resource: pr-((git-branch))
+        params:
+          path: src
+          status: pending
+          base_context: concourse
+          context: test-pages-build-container-((deploy-env))
 
-    - do: *test
+      - do: *test
 
     on_failure:
       put: src
@@ -121,17 +121,22 @@ jobs:
 
   - name: test-nightly-((deploy-env))
     plan:
-      - get: src
-        resource: src-((deploy-env))
-        params: {depth: 1}
       - get: nightly
         trigger: true
-      - do: *test
+    on_success:
+      put: slack
+      params:
+        text: |
+          :x: SUCCESS: pages build container nightly redeploy on ((deploy-env))
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+        channel: ((slack-channel))
+        username: ((slack-username))
+        icon_url: ((slack-icon-url))
     on_failure:
       put: slack
       params:
         text: |
-          :x: FAILED: pages build container tests on ((deploy-env))
+          :x: FAILED: pages build container nightly redeploy on ((deploy-env))
           <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
         channel: ((slack-channel))
         username: ((slack-username))
