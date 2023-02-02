@@ -165,9 +165,14 @@ jobs:
     plan:
       - get: nightly
         trigger: true
+      - get: src
+        resource: src-((deploy-env))
+        trigger: true
+        params: {depth: 1}
       - task: restage
         config:
           <<: *cf-image
+          inputs: [name: src]
           run:
             dir: src
             path: ci/tasks/restage.sh
