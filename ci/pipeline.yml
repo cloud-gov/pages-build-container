@@ -183,7 +183,7 @@ jobs:
       put: slack
       params:
         text: |
-          :x: SUCCESS: pages build container nightly restage on ((deploy-env))
+          :white_check_mark: SUCCESS: pages build container nightly restage on ((deploy-env))
           <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
         channel: ((slack-channel))
         username: ((slack-username))
