@@ -335,7 +335,7 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
 
     if not GEMFILE_PATH.is_file():
         logger.info('No Gemfile found, installing Jekyll.')
-        return runp('gem install jekyll --no-document')
+        return runp('gem install jekyll -v 4.2.2 --no-document')
 
     logger.info('Gemfile found, setting up bundler')
 
