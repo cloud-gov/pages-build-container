@@ -392,7 +392,8 @@ class TestSetupBundler():
         ])
 
         mock_run.assert_called_once_with(
-            mock_logger, 'gem install jekyll -v 4.2.2 --no-document', cwd=patch_clone_dir, env={}, ruby=True
+            mock_logger, 'gem install jekyll -v 4.2.2 --no-document',
+            cwd=patch_clone_dir, env={}, ruby=True
         )
 
     def test_it_uses_default_version_if_only_gemfile_exits(self, mock_get_logger,
