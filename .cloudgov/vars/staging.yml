@@ -1,3 +1,0 @@
-env: staging
-env_postfix: -staging
-product: federalist
