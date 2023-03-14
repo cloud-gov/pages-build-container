@@ -27,7 +27,7 @@ def post_status(status_callback_url, status, output='', commit_sha=None):
             'message': b64string(output),
             'commit_sha': commit_sha,
         },
-        timeout=5
+        timeout=10
     )
 
 
