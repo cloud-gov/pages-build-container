@@ -8,6 +8,7 @@ env-cf: &env-cf
   CF_PASSWORD: ((((deploy-env))-cf-password))
   CF_ORG: gsa-18f-federalist
   CF_SPACE: ((deploy-env))
+  CF_STACK: cflinuxfs4
 
 python-image: &python-image
   platform: linux

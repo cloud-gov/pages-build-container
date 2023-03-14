@@ -12,4 +12,4 @@ cf push $CF_APP_NAME \
   --vars-file $CF_VARS_FILE \
   --docker-image "${CF_DOCKER_IMAGE_REPOSITORY}@$(cat ${CF_DOCKER_IMAGE_DIGEST})" \
   --docker-username $CF_DOCKER_USERNAME \
-  --stack cflinuxfs4
+  --stack $CF_STACK
