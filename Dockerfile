@@ -113,8 +113,9 @@ COPY ./src ./
 # Container Hardening
 RUN ln -sf "/usr/share/zoneinfo/$SYSTEM_TIMEZONE" /etc/localtime
 COPY docker/ua-attach-config.sh .
-RUN --mount=type=secret,id=UA_TOKEN ./ua-attach-config.sh
-RUN ua attach --attach-config ua-attach-config.yaml
+RUN --mount=type=secret,id=UA_TOKEN ./ua-attach-config.sh && \
+  ua attach --attach-config ua-attach-config.yaml && \
+  rm ua-attach-config.yaml
 RUN apt-get -y -q install usg
 RUN usg fix cis_level1_server
 RUN apt-get purge --auto-remove -y ubuntu-advantage-tools
