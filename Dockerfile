@@ -90,6 +90,8 @@ RUN curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash 
   && \. "$HOME/.nvm/nvm.sh" \
   && nvm install $NODE_VERSION
 
+# Python alias
+RUN echo 'alias python=python3' >> ~/.bashrc
 
 ###############################################################
 # Run these steps and the container as the 'root' user
@@ -105,8 +107,6 @@ COPY ./requirements.txt ./requirements.txt
 
 RUN pip3 install -r requirements.txt \
   && rm ./requirements.txt
-
-RUN echo 'alias python=python3' >> ~/.bashrc
 
 COPY ./src ./
 
