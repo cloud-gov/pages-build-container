@@ -1,3 +1,4 @@
+# syntax = docker/dockerfile:1.2
 FROM ubuntu:20.04
 
 # Install general dependencies
@@ -5,7 +6,7 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends \
   apt-utils build-essential git curl libssl-dev \
   libreadline-dev zlib1g-dev libffi-dev libgl1-mesa-glx \
-  sudo gnupg ca-certificates \
+  sudo gnupg ca-certificates ubuntu-advantage-tools \
   autoconf automake libgdbm-dev libncurses5-dev \
   libsqlite3-dev libtool libyaml-dev pkg-config libgmp-dev \
   libpq-dev \
@@ -110,3 +111,11 @@ RUN pip3 install -r requirements.txt \
 RUN echo 'alias python=python3' >> ~/.bashrc
 
 COPY ./src ./
+
+# Container Hardening
+COPY docker/ua-attach-config.sh .
+RUN --mount=type=secret,id=UA_TOKEN ./ua-attach-config.sh
+RUN ua attach --attach-config ua-attach-config.yaml
+RUN apt-get -y -q install usg
+RUN usg fix cis_level1_server
+RUN apt-get purge --auto-remove -y ubuntu-advantage-tools
