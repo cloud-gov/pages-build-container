@@ -49,8 +49,6 @@ RUN useradd --no-log-init --system --create-home customer
 #
 USER system
 
-RUN echo "b"
-
 # Install rvm
 RUN set -ex \
   && for key in \
@@ -113,6 +111,7 @@ RUN echo 'alias python=python3' >> ~/.bashrc
 COPY ./src ./
 
 # Container Hardening
+RUN ln -sf "/usr/share/zoneinfo/$SYSTEM_TIMEZONE" /etc/localtime
 COPY docker/ua-attach-config.sh .
 RUN --mount=type=secret,id=UA_TOKEN ./ua-attach-config.sh
 RUN ua attach --attach-config ua-attach-config.yaml
