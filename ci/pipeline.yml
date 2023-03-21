@@ -160,8 +160,8 @@ jobs:
           CF_APP_NAME: pages-build-container-((deploy-env))
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
-          IMAGE_REPOSITORY: image-repository-((deploy-env))/repository
-          IMAGE_DIGEST: image-repository-((deploy-env))/digest
+          IMAGE_REPOSITORY: ../image-repository-((deploy-env))/repository
+          IMAGE_TAG: pages-((deploy-env))
           AWS_ACCESS_KEY_ID: ((aws-key))
           AWS_SECRET_ACCESS_KEY: ((aws-secret))
 
@@ -280,14 +280,14 @@ resources:
       access_token: ((gh-access-token))
       context_prefix: concourse
 
-- name: image-repository-((deploy-env))
-  type: registry-image
-  source:
-    aws_access_key_id: ((aws-key))
-    aws_secret_access_key: ((aws-secret))
-    repository: pages-build-container
-    aws_region: us-gov-west-1
-    tag: pages-((deploy-env))
+  - name: image-repository-((deploy-env))
+    type: registry-image
+    source:
+      aws_access_key_id: ((aws-key))
+      aws_secret_access_key: ((aws-secret))
+      repository: pages-build-container
+      aws_region: us-gov-west-1
+      tag: pages-((deploy-env))
 
 ############################
 #  RESOURCE TYPES
