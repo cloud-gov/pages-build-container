@@ -162,8 +162,8 @@ jobs:
           CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
           IMAGE_REPOSITORY: ../image-repository-((deploy-env))/repository
           IMAGE_TAG: pages-((deploy-env))
-          AWS_ACCESS_KEY_ID: ((aws-key))
-          AWS_SECRET_ACCESS_KEY: ((aws-secret))
+          CF_DOCKER_USERNAME: ((aws-key))
+          CF_DOCKER_PASSWORD: ((aws-secret))
 
     on_failure:
       in_parallel:
