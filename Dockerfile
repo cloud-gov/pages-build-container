@@ -1,13 +1,20 @@
-FROM python:3.8
+# syntax = docker/dockerfile:1.2
+FROM ubuntu:20.04
 
 # Install general dependencies
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
   apt-utils build-essential git curl libssl-dev \
   libreadline-dev zlib1g-dev libffi-dev libgl1-mesa-glx \
-  sudo \
+  sudo gnupg ca-certificates ubuntu-advantage-tools \
+  autoconf automake libgdbm-dev libncurses5-dev \
+  libsqlite3-dev libtool libyaml-dev pkg-config libgmp-dev \
+  libpq-dev \
   # Ruby deps
   gawk bison sqlite3
+
+# Uses python3.8 by default
+RUN apt install -y python3 python3-pip
 
 # Install and setup en_US.UTF-8 locale
 # This is necessary so that output from node/ruby/python
@@ -16,13 +23,6 @@ RUN apt-get update && \
   apt-get install --reinstall -y locales && \
   sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
   locale-gen en_US.UTF-8
-
-# Install headless chrome
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-  && echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' >> /etc/apt/sources.list.d/google.list \
-  && apt-get update \
-  && apt-get install -y google-chrome-unstable --no-install-recommends \
-  && rm -rf /var/lib/apt/lists/*
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US
@@ -68,7 +68,6 @@ RUN set -ex \
 # Add 'customer' user to rvm group
 RUN sudo usermod --append --groups rvm customer
 
-
 ###############################################################
 # Run these steps as the customer user
 #
@@ -104,7 +103,19 @@ WORKDIR /app
 
 COPY ./requirements.txt ./requirements.txt
 
-RUN pip install -r requirements.txt \
+RUN pip3 install -r requirements.txt \
   && rm ./requirements.txt
 
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
 COPY ./src ./
+
+# Container Hardening
+RUN ln -sf "/usr/share/zoneinfo/$SYSTEM_TIMEZONE" /etc/localtime
+COPY docker/ua-attach-config.sh .
+RUN --mount=type=secret,id=UA_TOKEN ./ua-attach-config.sh && \
+  ua attach --attach-config ua-attach-config.yaml && \
+  rm ua-attach-config.yaml
+RUN apt-get -y -q install usg
+RUN usg fix cis_level1_server
+RUN apt-get purge --auto-remove -y ubuntu-advantage-tools
