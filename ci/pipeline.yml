@@ -162,8 +162,8 @@ jobs:
           CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
           IMAGE_REPOSITORY: ../image-repository-((deploy-env))/repository
           IMAGE_TAG: pages-((deploy-env))
-          CF_DOCKER_USERNAME: ((aws-key))
-          CF_DOCKER_PASSWORD: ((aws-secret))
+          CF_DOCKER_USERNAME: ((ecr-aws-key))
+          CF_DOCKER_PASSWORD: ((ecr-aws-secret))
 
     on_failure:
       in_parallel:
@@ -283,8 +283,8 @@ resources:
   - name: image-repository-((deploy-env))
     type: registry-image
     source:
-      aws_access_key_id: ((aws-key))
-      aws_secret_access_key: ((aws-secret))
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
       repository: pages-build-container
       aws_region: us-gov-west-1
       tag: pages-((deploy-env))
