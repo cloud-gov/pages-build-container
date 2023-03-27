@@ -90,7 +90,7 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
         default_404_url = ('https://raw.githubusercontent.com'
                            '/cloud-gov/pages-404-page/main/'
                            '404-pages-client.html')
-        default_404 = requests.get(default_404_url)
+        default_404 = requests.get(default_404_url, timeout=10)
         makedirs(path.dirname(filename_404), exist_ok=True)
         with open(filename_404, "w+") as f:
             f.write(default_404.text)

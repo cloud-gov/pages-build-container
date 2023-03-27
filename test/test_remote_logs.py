@@ -18,7 +18,8 @@ class TestPostBuildComplete():
         post_build_complete(MOCK_STATUS_URL, commit_sha)
         mock_post.assert_called_once_with(
             MOCK_STATUS_URL,
-            json={'status': STATUS_COMPLETE, 'message': '', 'commit_sha': commit_sha}
+            json={'status': STATUS_COMPLETE, 'message': '', 'commit_sha': commit_sha},
+            timeout=10
         )
 
 
@@ -27,7 +28,10 @@ class TestPostBuildProcessing():
     def test_it_works(self, mock_post):
         post_build_processing(MOCK_STATUS_URL)
         mock_post.assert_called_once_with(
-            MOCK_STATUS_URL, json={'status': STATUS_PROCESSING, 'message': '', 'commit_sha': None})
+            MOCK_STATUS_URL,
+            json={'status': STATUS_PROCESSING, 'message': '', 'commit_sha': None},
+            timeout=10
+        )
 
 
 class TestPostBuildError():
@@ -43,7 +47,8 @@ class TestPostBuildError():
             MOCK_STATUS_URL,
             json={
                 'status': STATUS_ERROR, 'message': b64string('error msg'), 'commit_sha': commit_sha
-            }
+            },
+            timeout=10
         )
 
 
@@ -60,5 +65,6 @@ class TestPostBuildTimeout():
         assert mock_post.call_count == 1
         mock_post.assert_any_call(
             MOCK_STATUS_URL,
-            json={'status': STATUS_ERROR, 'message': expected_output, 'commit_sha': commit_sha}
+            json={'status': STATUS_ERROR, 'message': expected_output, 'commit_sha': commit_sha},
+            timeout=10
         )

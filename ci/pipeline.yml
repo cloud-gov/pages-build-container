@@ -20,9 +20,14 @@ python-image: &python-image
 cf-image: &cf-image
   platform: linux
   image_resource:
-    type: docker-image
+    type: registry-image
     source:
       repository: 18fgsa/concourse-task
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
+      repository: harden-concourse-task
+      aws_region: us-gov-west-1
+      tag: ((harden-concourse-task-tag))
 
 test: &test
   - task: test
@@ -126,15 +131,32 @@ jobs:
         trigger: true
         params: {depth: 1}
         passed: [test-((deploy-env))]
-      - put: build-container-image
+      - task: build
+        privileged: true
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+          inputs:
+          - name: src
+            path: .
+          outputs:
+          - name: image
+          run:
+            path: build
+          params:
+            BUILDKIT_SECRETTEXT_UA_TOKEN: ((ua-token))
+      - put: image-repository-((deploy-env))
         params:
-          build: src
+          image: image/image.tar
       - task: deploy
         config:
           <<: *cf-image
           inputs:
             - name: src
-            - name: build-container-image
+            - name: image-repository-((deploy-env))
           run:
             dir: src
             path: ci/tasks/deploy.sh
@@ -143,10 +165,11 @@ jobs:
           CF_APP_NAME: pages-build-container-((deploy-env))
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
-          CF_DOCKER_IMAGE_DIGEST: ../build-container-image/digest
-          CF_DOCKER_IMAGE_REPOSITORY: ((image-repository))
-          CF_DOCKER_USERNAME: ((docker-username))
-          CF_DOCKER_PASSWORD: ((docker-password))
+          IMAGE_REPOSITORY: ../image-repository-((deploy-env))/repository
+          IMAGE_TAG: pages-((deploy-env))
+          CF_DOCKER_USERNAME: ((ecr-aws-key))
+          CF_DOCKER_PASSWORD: ((ecr-aws-secret))
+
     on_failure:
       in_parallel:
         - put: gh-status
@@ -262,14 +285,14 @@ resources:
       access_token: ((gh-access-token))
       context_prefix: concourse
 
-  - name: build-container-image
-    type: docker-image
+  - name: image-repository-((deploy-env))
+    type: registry-image
     source:
-      repository: ((image-repository))
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
+      repository: pages-build-container
+      aws_region: us-gov-west-1
       tag: pages-((deploy-env))
-      username: ((docker-username))
-      password: ((docker-password))
-
 
 ############################
 #  RESOURCE TYPES

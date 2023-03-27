@@ -250,7 +250,7 @@ def download_hugo():
             dl_url = ('https://github.com/gohugoio/hugo/releases/download/v'
                       + hugo_version.split('_')[-1] +
                       f'/hugo_{hugo_version}_Linux-64bit.tar.gz')
-            response = requests.get(dl_url, verify=CERTS_PATH)
+            response = requests.get(dl_url, verify=CERTS_PATH, timeout=10)
 
             hugo_tar_path = WORKING_DIR_PATH / 'hugo.tar.gz'
             with hugo_tar_path.open('wb') as hugo_tar:
