@@ -9,7 +9,8 @@ RUN apt-get update \
   sudo gnupg ca-certificates ubuntu-advantage-tools \
   autoconf automake libgdbm-dev libncurses5-dev \
   libsqlite3-dev libtool libyaml-dev pkg-config libgmp-dev \
-  libpq-dev libxi6 libjpeg-dev \
+  libpq-dev libxi6 libjpeg-dev libpng-dev libtiff-dev libgif-dev \
+  libwebp-dev \
   # Ruby deps
   gawk bison sqlite3
 
