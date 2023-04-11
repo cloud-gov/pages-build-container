@@ -1,0 +1,270 @@
+---
+############################
+#  SHARED
+
+env-cf: &env-cf
+  CF_API: https://api.fr.cloud.gov
+  CF_USERNAME: ((((deploy-env))-cf-username))
+  CF_PASSWORD: ((((deploy-env))-cf-password))
+  CF_ORG: gsa-18f-federalist
+  CF_SPACE: ((deploy-env))
+
+python-image: &python-image
+  platform: linux
+  image_resource:
+    type: docker-image
+    source:
+      repository: python
+      tag: 3.8
+
+cf-image: &cf-image
+  platform: linux
+  image_resource:
+    type: registry-image
+    source:
+      repository: 18fgsa/concourse-task
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
+      repository: harden-concourse-task
+      aws_region: us-gov-west-1
+      tag: ((harden-concourse-task-tag))
+
+test: &test
+  - task: test
+    config:
+      <<: *python-image
+      inputs: [name: src]
+      outputs: [name: src]
+      run:
+        dir: src
+        path: ci/tasks/test.sh
+    params:
+      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
+
+############################
+#  JOBS
+
+jobs:
+
+  - name: set-pipeline
+    serial: true
+    plan:
+      - get: src
+        resource: pr-((git-branch))
+        trigger: true
+      - set_pipeline: build-container
+        file: src/ci/pipeline-dev.yml
+        instance_vars:
+          deploy-env: ((deploy-env))
+          git-branch: ((git-branch))
+
+  - name: test-((deploy-env))
+    plan:
+      - get: src
+        resource: pr-((git-branch))
+        trigger: true
+        passed: [set-pipeline]
+      - put: gh-status
+        inputs: [src]
+        params: {state: pending}
+      - do: *test
+
+    on_success:
+      put: gh-status
+      inputs: [src]
+      params: {state: success}
+
+    on_failure:
+      in_parallel:
+        - put: gh-status
+          inputs: [src]
+          params: {state: failure}
+        - put: slack
+          params:
+            text: |
+              :x: FAILED: pages build container tests on ((deploy-env))
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+            channel: ((slack-channel))
+            username: ((slack-username))
+            icon_url: ((slack-icon-url))
+
+  - name: deploy-((deploy-env))
+    plan:
+      - get: src
+        resource: pr-((git-branch))
+        trigger: true
+        passed: [test-((deploy-env))]
+      - task: build
+        privileged: true
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: concourse/oci-build-task
+          inputs:
+          - name: src
+            path: .
+          outputs:
+          - name: image
+          run:
+            path: build
+          params:
+            BUILDKIT_SECRETTEXT_UA_TOKEN: ((ua-token))
+      - put: image-repository-((deploy-env))
+        params:
+          image: image/image.tar
+      - task: deploy
+        config:
+          <<: *cf-image
+          inputs:
+            - name: src
+            - name: image-repository-((deploy-env))
+          run:
+            dir: src
+            path: ci/tasks/deploy.sh
+        params:
+          <<: *env-cf
+          CF_APP_NAME: pages-build-container-((deploy-env))
+          CF_MANIFEST: .cloudgov/manifest.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
+          IMAGE_REPOSITORY: ../image-repository-((deploy-env))/repository
+          IMAGE_TAG: pages-((deploy-env))
+          CF_DOCKER_USERNAME: ((ecr-aws-key))
+          CF_DOCKER_PASSWORD: ((ecr-aws-secret))
+
+    on_failure:
+      in_parallel:
+        - put: gh-status
+          inputs: [src]
+          params: {state: failure}
+        - put: slack
+          params:
+            text: |
+              :x: FAILED: pages build container deployment on ((deploy-env))
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+            channel: ((slack-channel))
+            username: ((slack-username))
+            icon_url: ((slack-icon-url))
+
+  - name: nightly-((deploy-env))
+    plan:
+      - get: nightly
+        trigger: true
+      - get: src
+        resource: pr-((git-branch))
+        trigger: true
+      - task: restage
+        config:
+          <<: *cf-image
+          inputs: [name: src]
+          run:
+            dir: src
+            path: ci/tasks/restage.sh
+        params:
+          <<: *env-cf
+          CF_APP_NAME: pages-build-container-((deploy-env))
+    on_success:
+      put: slack
+      params:
+        text: |
+          :white_check_mark: SUCCESS: pages build container nightly restage on ((deploy-env))
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+        channel: ((slack-channel))
+        username: ((slack-username))
+        icon_url: ((slack-icon-url))
+    on_failure:
+      put: slack
+      params:
+        text: |
+          :x: FAILED: pages build container nightly restage on ((deploy-env))
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+        channel: ((slack-channel))
+        username: ((slack-username))
+        icon_url: ((slack-icon-url))
+
+  - name: report-success-((deploy-env))
+    plan:
+      - get: src
+        resource: pr-((git-branch))
+        trigger: true
+        passed: [deploy-((deploy-env))]
+    on_success:
+      in_parallel:
+        - put: gh-status
+          inputs: [src]
+          params: {state: success}
+        - put: slack
+          params:
+            text: |
+              :white_check_mark: SUCCESS: Successfully deployed pages build containers on ((deploy-env))
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+            channel: ((slack-channel))
+            username: ((slack-username))
+            icon_url: ((slack-icon-url))
+
+############################
+#  RESOURCES
+
+resources:
+
+  - name: pr-((git-branch))
+    type: pull-request
+    check_every: 1m
+    source:
+      repository: ((build-container-repository-path))
+      access_token: ((gh-access-token))
+      base_branch: ((git-branch))
+      disable_forks: true
+      ignore_drafts: false
+
+  - name: nightly
+    type: time
+    source:
+      start: 12:00 AM
+      stop: 1:00 AM
+      location: America/New_York
+
+  - name: slack
+    type: slack-notification
+    source:
+      url: ((slack-webhook-url))
+
+  - name: gh-status
+    type: cogito
+    check_every: 1h
+    source:
+      owner: cloud-gov
+      repo: pages-build-container
+      access_token: ((gh-access-token))
+      context_prefix: concourse
+
+  - name: image-repository-((deploy-env))
+    type: registry-image
+    source:
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
+      repository: pages-build-container
+      aws_region: us-gov-west-1
+      tag: pages-((deploy-env))
+
+############################
+#  RESOURCE TYPES
+
+resource_types:
+
+  - name: cogito
+    type: docker-image
+    check_every: 24h
+    source:
+      repository: pix4d/cogito
+
+  - name: slack-notification
+    type: docker-image
+    source:
+      repository: cfcommunity/slack-notification-resource
+
+  - name: pull-request
+    type: docker-image
+    source:
+      repository: teliaoss/github-pr-resource

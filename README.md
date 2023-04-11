@@ -173,9 +173,34 @@ docker-compose run --rm test flake8
 docker-compose run --rm test bandit -r src
 ```
 
-## Deployment
+### Continuous Integration
+We are in the process of migrating from CircleCI to an internal instance of Concourse CI, starting with our staging environment. To use Concourse, one must have appropriate permissions in UAA as administered by the cloud.gov operators. Access to Concourse also requires using the GSA VPN.
 
-Deployment is done by in CircleCI automatically for merges into the `staging` and `main` branch.
+1. To get started install and authenticate with the `fly` CLI:
+- `brew install --cask fly`
+- `fly -t <Concourse Target Name> login -n pages -c <concourse url>`
+
+2. Update local credential files (see ci/vars/example.yml)
+
+#### CI deployments
+This repository contains two distinct deployment pipelines in concourse:
+- [__build-container__](./ci/pipeline.yml)
+- [__build-container dev__](./ci/pipeline-dev.yml)
+
+__build-container__ creates the site build container image, pushes it to ECR, and then deploys the image for the build container app.
+
+__*&#8595; NOTICE &#8595;*__
+
+> __build-container dev__ deploys the Pages app/api, the admin app, and the queues app when a PR is created into the `staging` branch. This uses a unique pipeline file: [./ci/pipeline-dev.yml](./ci/pipeline-dev.yml)
+
+#### Deployment
+##### Pipeline instance variables
+Three instances of the pipeline are set for the `pages dev`, `pages staging` and `pages production` environments. Instance variables are used to fill in Concourse pipeline parameter variables bearing the same name as the instance variable. See more on [Concourse vars](https://concourse-ci.org/vars.html). Each instance of the pipeline has three instance variables associated to it: `deploy-env`, `git-branch`.
+
+|Instance Variable|Pages Dev|Pages Staging|Pages Production|
+--- | --- | ---| ---|
+|**`deploy-env`**|`dev`|`staging`|`production`|
+|**`git-branch`**|`staging`|`staging`|`main`|
 
 ## Public domain
 
