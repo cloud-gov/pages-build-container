@@ -64,21 +64,10 @@ jobs:
         resource: pr-((git-branch))
         trigger: true
         passed: [set-pipeline]
-      - put: gh-status
-        inputs: [src]
-        params: {state: pending}
       - do: *test
-
-    on_success:
-      put: gh-status
-      inputs: [src]
-      params: {state: success}
 
     on_failure:
       in_parallel:
-        - put: gh-status
-          inputs: [src]
-          params: {state: failure}
         - put: slack
           params:
             text: |
@@ -135,9 +124,6 @@ jobs:
 
     on_failure:
       in_parallel:
-        - put: gh-status
-          inputs: [src]
-          params: {state: failure}
         - put: slack
           params:
             text: |
@@ -191,9 +177,6 @@ jobs:
         passed: [deploy-((deploy-env))]
     on_success:
       in_parallel:
-        - put: gh-status
-          inputs: [src]
-          params: {state: success}
         - put: slack
           params:
             text: |
@@ -230,15 +213,6 @@ resources:
     source:
       url: ((slack-webhook-url))
 
-  - name: gh-status
-    type: cogito
-    check_every: 1h
-    source:
-      owner: cloud-gov
-      repo: pages-build-container
-      access_token: ((gh-access-token))
-      context_prefix: concourse
-
   - name: image-repository-((deploy-env))
     type: registry-image
     source:
@@ -252,12 +226,6 @@ resources:
 #  RESOURCE TYPES
 
 resource_types:
-
-  - name: cogito
-    type: docker-image
-    check_every: 24h
-    source:
-      repository: pix4d/cogito
 
   - name: slack-notification
     type: docker-image
