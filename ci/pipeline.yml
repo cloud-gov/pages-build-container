@@ -253,6 +253,7 @@ resources:
     source:
       uri: ((git-base-url))/((build-container-repository-path))
       branch: ((git-branch))
+      commit_verification_keys: ((cloud-gov-pages-gpg-keys))
 
   - name: pr-((git-branch))
     type: pull-request
