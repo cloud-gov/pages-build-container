@@ -174,7 +174,7 @@ docker-compose run --rm test bandit -r src
 ```
 
 ### Continuous Integration
-We are in the process of migrating from CircleCI to an internal instance of Concourse CI, starting with our staging environment. To use Concourse, one must have appropriate permissions in UAA as administered by the cloud.gov operators. Access to Concourse also requires using the GSA VPN.
+We use Concourse CI for our CI/CD system. To use Concourse, one must have appropriate permissions in UAA as administered by the cloud.gov operators. Access to Concourse also requires using the GSA VPN.
 
 1. To get started install and authenticate with the `fly` CLI:
 - `brew install --cask fly`
