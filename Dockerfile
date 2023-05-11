@@ -9,7 +9,8 @@ RUN apt-get update \
   sudo gnupg ca-certificates ubuntu-advantage-tools \
   autoconf automake libgdbm-dev libncurses5-dev \
   libsqlite3-dev libtool libyaml-dev pkg-config libgmp-dev \
-  libpq-dev \
+  libpq-dev libxi6 libjpeg-dev libpng-dev libtiff-dev libgif-dev \
+  libwebp-dev wget \
   # Ruby deps
   gawk bison sqlite3
 
@@ -23,6 +24,14 @@ RUN apt-get update && \
   apt-get install --reinstall -y locales && \
   sed -i 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && \
   locale-gen en_US.UTF-8
+
+# Install headless chrome
+ARG DEBIAN_FRONTEND=noninteractive
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+  && echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' >> /etc/apt/sources.list.d/google.list \
+  && apt-get update \
+  && apt-get install -y google-chrome-unstable --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US
