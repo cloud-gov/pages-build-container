@@ -86,7 +86,7 @@ RUN source /usr/local/rvm/scripts/rvm \
 
 # Update to the latest RubyGems
 RUN source /usr/local/rvm/scripts/rvm \
-    rvm rubygems latest
+    rvm rubygems 3.4.13
 
 # Default to Node 16
 ENV NODE_VERSION lts/gallium
