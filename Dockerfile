@@ -94,7 +94,7 @@ RUN source /usr/local/rvm/scripts/rvm \
   && echo 'source /usr/local/rvm/scripts/rvm' >> ~/.bashrc
 
 # Update to the latest RubyGems
-RUN source /usr/local/rvm/scripts/rvm \
+RUN source /usr/local/rvm/scripts/rvm && \
     rvm rubygems 3.4.13
 
 # Default to Node 16
