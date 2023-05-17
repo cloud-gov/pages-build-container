@@ -93,6 +93,10 @@ RUN source /usr/local/rvm/scripts/rvm \
   # Make rvm available in non-login bash shells
   && echo 'source /usr/local/rvm/scripts/rvm' >> ~/.bashrc
 
+# Update to the latest RubyGems
+RUN source /usr/local/rvm/scripts/rvm && \
+    rvm rubygems 3.4.13
+
 # Default to Node 16
 ENV NODE_VERSION lts/gallium
 RUN curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash \
