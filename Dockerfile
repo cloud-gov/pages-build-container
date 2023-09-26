@@ -97,8 +97,8 @@ RUN source /usr/local/rvm/scripts/rvm \
 RUN source /usr/local/rvm/scripts/rvm && \
     rvm rubygems 3.4.13
 
-# Default to Node 16
-ENV NODE_VERSION lts/gallium
+# Default to Node 18
+ENV NODE_VERSION lts/hydrogen
 RUN curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash \
   && \. "$HOME/.nvm/nvm.sh" \
   && nvm install $NODE_VERSION
