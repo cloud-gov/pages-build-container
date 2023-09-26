@@ -153,7 +153,7 @@ def setup_node(should_cache: bool, bucket, s3_client):
             runp("""
                 RAW_VERSION=$(nvm version-remote $(cat .nvmrc))
                 MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
-                if [[ "$MAJOR_VERSION" =~ ^(18|20)$ ]]; then
+                if [[ "$MAJOR_VERSION" =~ ^(16|18|20)$ ]]; then
                     echo "Switching to node version $RAW_VERSION specified in .nvmrc"
 
                     if [[ "$MAJOR_VERSION" -eq 16 ]]; then
