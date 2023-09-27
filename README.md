@@ -48,6 +48,7 @@ docker-compose run --rm app python main.py -f /tmp/local/my-build.json
 | `CACHE_CONTROL` | Y | | Default value to set for the `Cache-Control` header of all published files, default is `max-age=60` |
 | `DATABASE_URL` | N | | The URL of the database for database logging |
 | `USER_ENVIRONMENT_VARIABLE_KEY` | N |  `federalist-{space}-uev-key` | Encryption key to decrypt user environment variables |
+| `MAX_WORKERS` | N | | Maximum number of workers/threads to use when uploading files to S3 |
 
 When running locally, environment variables are configured in `docker-compose.yml` under the `app` service.
 
