@@ -5,12 +5,14 @@ Classes and methods for publishing a directory to S3
 import requests
 
 from os import path, makedirs, walk, getenv
+from concurrent.futures import ThreadPoolExecutor
 
 from log_utils import get_logger
 from .models import (remove_prefix, SiteObject, SiteFile, SiteRedirect)
 
 MAX_S3_KEYS_PER_REQUEST = 1000
 FEDERALIST_JSON = 'federalist.json'
+MAX_WORKERS = getenv('MAX_WORKERS', 8)
 
 
 def list_remote_objects(bucket, site_prefix, s3_client):
@@ -168,24 +170,30 @@ def publish_to_s3(directory, base_url, site_prefix, bucket, federalist_config,
 
     # Upload new and replacement files
     upload_objects = new_objects + replacement_objects
-    for file in upload_objects:
-        if dry_run:  # pragma: no cover
+
+    # task to be run in parallel via threadpool
+    def uploader_task(client, file):
+        logger.info(f'Uploading {file.s3_key}')
+        try:
+            file.upload_to_s3(bucket, client)
+        except UnicodeEncodeError as err:
+            if err.reason == 'surrogates not allowed':
+                logger.warning(
+                    f'... unable to upload {file.filename} due '
+                    f'to invalid characters in file name.'
+                )
+            else:
+                raise
+
+    if dry_run:  # pragma: no cover
+        for file in upload_objects:
             logger.info(f'Dry-run uploading {file.s3_key}')
-        else:
-            logger.info(f'Uploading {file.s3_key}')
+    else:
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            for file in upload_objects:
+                executor.submit(uploader_task, s3_client, file)
 
-            try:
-                file.upload_to_s3(bucket, s3_client)
-            except UnicodeEncodeError as err:
-                if err.reason == 'surrogates not allowed':
-                    logger.warning(
-                        f'... unable to upload {file.filename} due '
-                        f'to invalid characters in file name.'
-                    )
-                else:
-                    raise
-
-    # Delete files not needed any more
+    #  Delete files not needed any more
     for file in deletion_objects:
         if dry_run:  # pragma: no cover
             logger.info(f'Dry run deleting {file.s3_key}')
