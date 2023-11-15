@@ -139,7 +139,6 @@ jobs:
         trigger: true
       - get: src
         resource: pr-((git-branch))
-        trigger: true
       - task: restage
         config:
           <<: *cf-image
