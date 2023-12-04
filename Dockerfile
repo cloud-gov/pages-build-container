@@ -17,6 +17,14 @@ RUN apt-get update \
 # Uses python3.8 by default
 RUN apt install -y python3 python3-pip
 
+# Deps for container hardening
+RUN ln -sf "/usr/share/zoneinfo/$SYSTEM_TIMEZONE" /etc/localtime
+COPY docker/ua-attach-config.sh .
+RUN --mount=type=secret,id=UA_TOKEN ./ua-attach-config.sh && \
+  ua attach --attach-config ua-attach-config.yaml && \
+  rm ua-attach-config.yaml
+RUN apt-get -y -q install usg
+
 # Install and setup en_US.UTF-8 locale
 # This is necessary so that output from node/ruby/python
 # won't break or have weird indecipherable characters
@@ -124,11 +132,5 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 COPY ./src ./
 
 # Container Hardening
-RUN ln -sf "/usr/share/zoneinfo/$SYSTEM_TIMEZONE" /etc/localtime
-COPY docker/ua-attach-config.sh .
-RUN --mount=type=secret,id=UA_TOKEN ./ua-attach-config.sh && \
-  ua attach --attach-config ua-attach-config.yaml && \
-  rm ua-attach-config.yaml
-RUN apt-get -y -q install usg
 RUN usg fix cis_level1_server
 RUN apt-get purge --auto-remove -y ubuntu-advantage-tools
