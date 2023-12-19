@@ -149,11 +149,13 @@ def setup_node(should_cache: bool, bucket, s3_client):
         NVMRC_PATH = CLONE_DIR_PATH / NVMRC
         if NVMRC_PATH.is_file():
             # nvm will output the node and npm versions used
+            # the warning is currently non-reachable but leaving it in for October 2024
+            # to warn about node 18 EOL
             logger.info('Checking node version specified in .nvmrc')
             runp("""
                 RAW_VERSION=$(nvm version-remote $(cat .nvmrc))
                 MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
-                if [[ "$MAJOR_VERSION" =~ ^(16|18|20)$ ]]; then
+                if [[ "$MAJOR_VERSION" =~ ^(18|20)$ ]]; then
                     echo "Switching to node version $RAW_VERSION specified in .nvmrc"
 
                     if [[ "$MAJOR_VERSION" -eq 16 ]]; then
