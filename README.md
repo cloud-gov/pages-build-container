@@ -5,6 +5,7 @@ Docker image for building and publishing static sites as part of the cloud.gov P
 Generally, site builds work in three stages: clone, build, and publish. Each stage is broken down into a number of steps. First, the container checks out the site from GitHub. Then it builds the site with the specified build engine. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3, and also creates redirect objects for directories, such as `/path` => `/path/`.
 
 ## Usage
+
 ### Command
 ```
 python main.py [options]
