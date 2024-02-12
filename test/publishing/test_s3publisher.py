@@ -2,7 +2,7 @@ import boto3
 import pytest
 import requests_mock
 
-from moto import mock_s3
+from moto import mock_aws
 
 from publishing.s3publisher import list_remote_objects, publish_to_s3
 from publishing.models import SiteObject
@@ -20,7 +20,7 @@ def s3_client(monkeypatch):
     monkeypatch.setenv('AWS_ACCESS_KEY_ID', TEST_ACCESS_KEY)
     monkeypatch.setenv('AWS_SECRET_ACCESS_KEY', TEST_SECRET_KEY)
 
-    with mock_s3():
+    with mock_aws():
         conn = boto3.resource('s3', region_name=TEST_REGION)
 
         conn.create_bucket(

@@ -12,17 +12,19 @@ env-cf: &env-cf
 python-image: &python-image
   platform: linux
   image_resource:
-    type: docker-image
+    type: registry-image
     source:
-      repository: python
-      tag: 3.8
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
+      repository: pages-python-v3.11
+      aws_region: us-gov-west-1
+      tag: latest
 
 cf-image: &cf-image
   platform: linux
   image_resource:
     type: registry-image
     source:
-      repository: 18fgsa/concourse-task
       aws_access_key_id: ((ecr-aws-key))
       aws_secret_access_key: ((ecr-aws-secret))
       repository: harden-concourse-task
@@ -38,8 +40,6 @@ test: &test
       run:
         dir: src
         path: ci/tasks/test.sh
-    params:
-      CC_TEST_REPORTER_ID: 449ef357d9e81688685bde0dcdd348bc764d717fa6a4c9c01562bd8037ceb665
 
 ############################
 #  JOBS
@@ -64,10 +64,35 @@ jobs:
         resource: pr-((git-branch))
         trigger: true
         passed: [set-pipeline]
+
+      - put: src
+        resource: pr-((git-branch))
+        params:
+          path: src
+          status: pending
+          base_context: concourse
+          context: test-pages-build-container-((deploy-env))
+
       - do: *test
+
+    on_success:
+      put: src
+      resource: pr-((git-branch))
+      params:
+        path: src
+        status: success
+        base_context: concourse
+        context: test-pages-build-container-((deploy-env))
 
     on_failure:
       in_parallel:
+        - put: src
+          resource: pr-((git-branch))
+          params:
+            path: src
+            status: failure
+            base_context: concourse
+            context: test-pages-build-container-((deploy-env))
         - put: slack
           params:
             text: |
@@ -227,11 +252,28 @@ resources:
 resource_types:
 
   - name: slack-notification
-    type: docker-image
+    type: registry-image
     source:
-      repository: cfcommunity/slack-notification-resource
+      aws_access_key_id: ((ecr_aws_key))
+      aws_secret_access_key: ((ecr_aws_secret))
+      repository: slack-notification-resource
+      aws_region: us-gov-west-1
+      tag: latest
 
   - name: pull-request
-    type: docker-image
+    type: registry-image
     source:
-      repository: teliaoss/github-pr-resource
+      aws_access_key_id: ((ecr_aws_key))
+      aws_secret_access_key: ((ecr_aws_secret))
+      repository: github-pr-resource
+      aws_region: us-gov-west-1
+      tag: latest
+
+  - name: time
+    type: registry-image
+    source:
+      aws_access_key_id: ((ecr_aws_key))
+      aws_secret_access_key: ((ecr_aws_secret))
+      repository: time-resource
+      aws_region: us-gov-west-1
+      tag: latest
