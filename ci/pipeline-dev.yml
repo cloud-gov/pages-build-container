@@ -148,15 +148,14 @@ jobs:
           CF_DOCKER_PASSWORD: ((ecr-aws-secret))
 
     on_failure:
-      in_parallel:
-        - put: slack
-          params:
-            text: |
-              :x: FAILED: pages build container deployment on ((deploy-env))
-              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-            channel: ((slack-channel))
-            username: ((slack-username))
-            icon_url: ((slack-icon-url))
+      put: slack
+      params:
+        text: |
+          :x: FAILED: pages build container deployment on ((deploy-env))
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+        channel: ((slack-channel))
+        username: ((slack-username))
+        icon_url: ((slack-icon-url))
 
   - name: nightly-((deploy-env))
     plan:
@@ -192,23 +191,6 @@ jobs:
         channel: ((slack-channel))
         username: ((slack-username))
         icon_url: ((slack-icon-url))
-
-  - name: report-success-((deploy-env))
-    plan:
-      - get: src
-        resource: pr-((git-branch))
-        trigger: true
-        passed: [deploy-((deploy-env))]
-    on_success:
-      in_parallel:
-        - put: slack
-          params:
-            text: |
-              :white_check_mark: SUCCESS: Successfully deployed pages build containers on ((deploy-env))
-              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
-            channel: ((slack-channel))
-            username: ((slack-username))
-            icon_url: ((slack-icon-url))
 
 ############################
 #  RESOURCES
