@@ -5,7 +5,7 @@ import tempfile
 import filecmp
 import shutil
 
-from moto import mock_s3
+from moto import mock_aws
 
 from steps.cache import CacheFolder, get_checksum
 from log_utils import get_logger
@@ -21,7 +21,7 @@ def aws_credentials():
 
 @pytest.fixture
 def s3_client(aws_credentials):
-    with mock_s3():
+    with mock_aws():
         conn = boto3.client("s3")
         yield conn
 

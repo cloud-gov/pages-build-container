@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import pytest
 
 from publishing.models import SiteObject, SiteFile, SiteRedirect
+from ..support import generate_file_hash
 
 
 class TestSiteObject():
@@ -123,8 +124,7 @@ class TestSiteFile():
         assert model.is_compressible is True
         assert model.is_compressed is True
 
-        # hardcoded md5 hash of compressed 'content'
-        assert model.md5 == 'f3900f9f80fac3c6ee8e077d6b172568'
+        assert model.md5 == generate_file_hash(test_file)
         assert model.s3_key == '/site/test_file.html'
         assert model.dir_prefix == str(test_dir)
         assert model.content_encoding == 'gzip'

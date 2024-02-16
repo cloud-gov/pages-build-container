@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1.2
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Install general dependencies
 RUN apt-get update \
@@ -10,12 +10,9 @@ RUN apt-get update \
   autoconf automake libgdbm-dev libncurses5-dev \
   libsqlite3-dev libtool libyaml-dev pkg-config libgmp-dev \
   libpq-dev libxi6 libjpeg-dev libpng-dev libtiff-dev libgif-dev \
-  libwebp-dev wget \
+  libwebp-dev wget python3 python3-dev python3-pip\
   # Ruby deps
   gawk bison sqlite3
-
-# Uses python3.8 by default
-RUN apt install -y python3 python3-pip
 
 # Deps for container hardening
 RUN ln -sf "/usr/share/zoneinfo/$SYSTEM_TIMEZONE" /etc/localtime
