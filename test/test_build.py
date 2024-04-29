@@ -1,7 +1,7 @@
 import json
 import os
 from io import StringIO
-from unittest.mock import call, patch
+from unittest.mock import call, patch, Mock
 from subprocess import CalledProcessError  # nosec
 
 import pytest
@@ -15,7 +15,7 @@ from steps import (
     run_build_script, setup_bundler, setup_node, setup_ruby
 )
 from steps.build import (
-    build_env, is_supported_ruby_version, BUNDLER_VERSION, GEMFILE,
+    build_env, check_supported_ruby_version, BUNDLER_VERSION, GEMFILE,
     GEMFILELOCK, HUGO_BIN, HUGO_VERSION, JEKYLL_CONFIG_YML,
     NVMRC, PACKAGE_JSON, PACKAGE_LOCK, RUBY_VERSION
 )
@@ -40,7 +40,7 @@ def patch_site_build_dir(monkeypatch):
 
 @pytest.fixture
 def patch_ruby_min_version(monkeypatch):
-    monkeypatch.setenv('RUBY_VERSION_MIN', '2.6.6')
+    monkeypatch.setenv('RUBY_VERSION_MIN', '3.0.0')
 
 
 @patch('steps.build.run')
@@ -49,9 +49,8 @@ class TestSetupNode():
     def test_it_uses_nvmrc_file_if_it_exists(self, mock_get_logger, mock_run, patch_clone_dir):
         create_file(patch_clone_dir / NVMRC, contents='6')
 
-        result = setup_node(False, None, None)
-
-        assert result == 0
+        mock_post_metrics = Mock()
+        setup_node(False, None, None, mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('setup-node')
 
@@ -61,12 +60,13 @@ class TestSetupNode():
             'Checking node version specified in .nvmrc'
         )
 
+        mock_post_metrics.assert_called_once()
+
     def test_installs_deps(self, mock_get_logger, mock_run, patch_clone_dir):
         create_file(patch_clone_dir / PACKAGE_LOCK)
 
-        result = setup_node(False, None, None)
-
-        assert result == 0
+        mock_post_metrics = Mock()
+        setup_node(False, None, None, mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('setup-node')
 
@@ -77,22 +77,25 @@ class TestSetupNode():
             call('Installing dependencies in package-lock.json')
         ])
 
-        def callp(cmd):
-            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True, node=True)
+        def callp(cmd, skip_log=False):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, node=True, skip_log=skip_log)
 
         mock_run.assert_has_calls([
             callp('echo Node version: $(node --version)'),
             callp('echo NPM version: $(npm --version)'),
+            callp('node --version', skip_log=True),
             callp('npm set audit false'),
             callp('npm ci'),
         ])
 
+        mock_post_metrics.assert_called_once()
+
     def test_returns_code_when_err(self, mock_get_logger, mock_run):
         mock_run.side_effect = CalledProcessError(1, 'command')
 
-        result = setup_node(False, None, None)
-
-        assert result == 1
+        mock_post_metrics = Mock()
+        with pytest.raises(CalledProcessError):
+            setup_node(False, None, None, mock_post_metrics)
 
 
 @patch('steps.build.run')
@@ -115,9 +118,7 @@ class TestRunBuildScript():
             base_url='/site/prefix'
         )
 
-        result = run_build_script(**kwargs)
-
-        assert result == mock_run.return_value
+        run_build_script(**kwargs)
 
         mock_get_logger.assert_called_once_with('run-federalist-script')
 
@@ -152,9 +153,7 @@ class TestRunBuildScript():
             base_url='/site/prefix'
         )
 
-        result = run_build_script(**kwargs)
-
-        assert result == mock_run.return_value
+        run_build_script(**kwargs)
 
         mock_get_logger.assert_called_once_with('run-pages-script')
 
@@ -190,9 +189,7 @@ class TestRunBuildScript():
             base_url='/site/prefix'
         )
 
-        result = run_build_script(**kwargs)
-
-        assert result == mock_run.return_value
+        run_build_script(**kwargs)
 
         mock_get_logger.assert_called_once_with('run-pages-script')
 
@@ -211,9 +208,7 @@ class TestRunBuildScript():
         )
 
     def test_it_does_not_run_otherwise(self, mock_get_logger, mock_run):
-        result = run_build_script('b', 'o', 'r', 'sp')
-
-        assert result == 0
+        run_build_script('b', 'o', 'r', 'sp')
 
         mock_get_logger.assert_not_called()
         mock_run.assert_not_called()
@@ -221,132 +216,106 @@ class TestRunBuildScript():
 
 @patch('steps.build.run')
 @patch('steps.build.get_logger')
-@patch('steps.build.is_supported_ruby_version')
+@patch('steps.build.check_supported_ruby_version')
 class TestSetupRuby():
-    def test_no_ruby_version_file(self, mock_is_supported_ruby_version,
+    def test_no_ruby_version_file(self, mock_check_supported_ruby_version,
                                   mock_get_logger, mock_run, patch_clone_dir):
 
-        mock_is_supported_ruby_version.return_value = 1
-
-        result = setup_ruby()
-
-        assert result == mock_run.return_value
+        mock_post_metrics = Mock()
+        setup_ruby(False, mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('setup-ruby')
-
         mock_logger = mock_get_logger.return_value
 
-        mock_run.assert_called_once_with(
-            mock_logger,
-            'echo Ruby version: $(ruby -v)',
-            cwd=patch_clone_dir,
-            env={},
-            ruby=True
-        )
+        mock_post_metrics.assert_called_once()
+
+        def callp(cmd, skip_log=False):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True, skip_log=skip_log)
+
+        mock_run.assert_has_calls([
+            callp('ruby -v', skip_log=True),
+            callp('echo Ruby version: $(ruby -v)')
+        ])
 
     def test_it_uses_ruby_version_if_it_exists(self,
-                                               mock_is_supported_ruby_version,
+                                               mock_check_supported_ruby_version,
                                                mock_get_logger, mock_run,
                                                patch_clone_dir):
 
-        mock_is_supported_ruby_version.return_value = 1
-
-        version = '2.3'
+        version = '3.1'
 
         create_file(patch_clone_dir / RUBY_VERSION, version)
 
-        mock_run.return_value = 0
-
-        result = setup_ruby()
-
-        assert result == 0
+        mock_post_metrics = Mock()
+        setup_ruby(False, mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('setup-ruby')
 
         mock_logger = mock_get_logger.return_value
 
-        def callp(cmd):
-            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True)
+        def callp(cmd, skip_log=False):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True, skip_log=skip_log)
 
         mock_run.assert_has_calls([
             callp(f'rvm install {version}'),
+            callp('ruby -v', skip_log=True),
             callp('echo Ruby version: $(ruby -v)')
         ])
 
     def test_it_strips_and_quotes_ruby_version(self,
-                                               mock_is_supported_ruby_version,
+                                               mock_check_supported_ruby_version,
                                                mock_get_logger, mock_run,
                                                patch_clone_dir):
 
-        mock_is_supported_ruby_version.return_value = 1
-
-        version = '  $2.3  '
-
+        version = '  $3.1  '
         create_file(patch_clone_dir / RUBY_VERSION, version)
 
-        mock_run.return_value = 0
-
-        result = setup_ruby()
-
-        assert result == 0
+        mock_post_metrics = Mock()
+        setup_ruby(False, mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('setup-ruby')
 
         mock_logger = mock_get_logger.return_value
 
-        def callp(cmd):
-            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True)
+        def callp(cmd, skip_log=False):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True, skip_log=skip_log)
 
         mock_logger.info.assert_has_calls([
             call('Using ruby version in .ruby-version'),
         ])
 
         mock_run.assert_has_calls([
-            callp("rvm install '$2.3'"),
+            callp("rvm install '$3.1'"),
+            callp('ruby -v', skip_log=True),
             callp('echo Ruby version: $(ruby -v)'),
         ])
 
-    def test_it_returns_error_code_when_rvm_install_fails(self,
-                                                          mock_is_supported_ruby_version,
-                                                          mock_get_logger, mock_run,
-                                                          patch_clone_dir):
+    def test_it_errors_when_rvm_install_fails(self,
+                                              mock_check_supported_ruby_version,
+                                              mock_get_logger, mock_run,
+                                              patch_clone_dir):
 
-        mock_is_supported_ruby_version.return_value = 1
-
-        version = '2.3'
-
-        mock_run.return_value = 1
-
+        version = '3.1'
         create_file(patch_clone_dir / RUBY_VERSION, version)
 
-        result = setup_ruby()
+        error = 'error installing ruby'
+        mock_run.side_effect = Exception(error)
 
-        assert result == 1
+        mock_post_metrics = Mock()
+        with pytest.raises(Exception) as einfo:
+            setup_ruby(False, mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('setup-ruby')
 
-        mock_logger = mock_get_logger.return_value
-
-        mock_logger.info.assert_has_calls([
-            call('Using ruby version in .ruby-version'),
-        ])
-
-        mock_run.assert_called_once_with(
-            mock_logger, 'rvm install 2.3', cwd=patch_clone_dir, env={}, ruby=True
-        )
+        assert str(einfo.value).strip() == error
 
     def test_it_outputs_warning_if_eol_approaching(self,
-                                                   mock_is_supported_ruby_version,
+                                                   mock_check_supported_ruby_version,
                                                    mock_get_logger, mock_run,
                                                    patch_ruby_min_version):
 
         min_ruby_version = os.getenv('RUBY_VERSION_MIN')
-
-        mock_run.return_value = 1
-
-        result = is_supported_ruby_version(min_ruby_version)
-
-        assert result == 1
+        check_supported_ruby_version(min_ruby_version)
 
         mock_logger = mock_get_logger.return_value
 
@@ -357,15 +326,16 @@ class TestSetupRuby():
         ])
 
     def test_it_outputs_warning_if_not_supported(self,
-                                                 mock_is_supported_ruby_version,
-                                                 mock_get_logger, mock_run):
+                                                 mock_check_supported_ruby_version,
+                                                 mock_get_logger, mock_run, patch_ruby_min_version):
         version = '2.3'
-
         mock_run.return_value = 0
 
-        result = is_supported_ruby_version(version)
+        with pytest.raises(Exception) as einfo:
+            check_supported_ruby_version(version)
 
-        assert result == 0
+        error = 'ERROR: Unsupported ruby version specified in .ruby-version.'
+        assert str(einfo.value).strip() == error
 
         mock_logger = mock_get_logger.return_value
 
@@ -379,9 +349,7 @@ class TestSetupRuby():
 @patch('steps.build.get_logger')
 class TestSetupBundler():
     def test_when_no_gemfile_just_load_jekyll(self, mock_get_logger, mock_run, patch_clone_dir):
-        result = setup_bundler(False, None, None)
-
-        assert result == mock_run.return_value
+        setup_bundler(False, None, None)
 
         mock_get_logger.assert_called_once_with('setup-bundler')
 
@@ -403,9 +371,7 @@ class TestSetupBundler():
 
         mock_run.return_value = 0
 
-        result = setup_bundler(False, None, None)
-
-        assert result == 0
+        setup_bundler(False, None, None)
 
         mock_get_logger.assert_called_once_with('setup-bundler')
 
@@ -433,9 +399,7 @@ class TestSetupBundler():
 
         mock_run.return_value = 0
 
-        result = setup_bundler(False, None, None)
-
-        assert result == 0
+        setup_bundler(False, None, None)
 
         mock_get_logger.assert_called_once_with('setup-bundler')
 
@@ -471,9 +435,7 @@ class TestBuildJekyll():
             base_url='/site/prefix', config=json.dumps(dict(boop='beep'))
         )
 
-        result = build_jekyll(**kwargs)
-
-        assert result == mock_run.return_value
+        build_jekyll(**kwargs)
 
         mock_get_logger.assert_has_calls([call('build-jekyll'), call('build-jekyll')])
 
@@ -491,7 +453,6 @@ class TestBuildJekyll():
                 f'echo Building using Jekyll version: $({command} -v)',
                 cwd=patch_clone_dir,
                 env={},
-                check=True,
                 ruby=True,
             ),
             call(
@@ -516,9 +477,7 @@ class TestBuildJekyll():
             base_url='/site/prefix', config=json.dumps(dict(boop='beep'))
         )
 
-        result = build_jekyll(**kwargs)
-
-        assert result == mock_run.return_value
+        build_jekyll(**kwargs)
 
         mock_get_logger.assert_has_calls([call('build-jekyll'), call('build-jekyll')])
 
@@ -536,7 +495,6 @@ class TestBuildJekyll():
                 f'echo Building using Jekyll version: $({command} -v)',
                 cwd=patch_clone_dir,
                 env={},
-                check=True,
                 ruby=True,
             ),
             call(
@@ -580,14 +538,14 @@ class TestDownloadHugo():
             'https://github.com/gohugoio/hugo/releases/download/v'
             f'{version}/hugo_{version}_Linux-64bit.tar.gz'
         )
+        print(dl_url)
 
         create_file(patch_clone_dir / HUGO_VERSION, version)
 
+        mock_post_metrics = Mock()
         with requests_mock.Mocker() as m:
             m.get(dl_url, text='fake-data')
-            result = download_hugo()
-
-        assert result == 0
+            download_hugo(mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('download-hugo')
 
@@ -600,8 +558,8 @@ class TestDownloadHugo():
         ])
 
         mock_run.assert_has_calls([
-            call(mock_logger, tar_cmd, env={}, check=True),
-            call(mock_logger, chmod_cmd, env={}, check=True)
+            call(mock_logger, tar_cmd, env={}),
+            call(mock_logger, chmod_cmd, env={})
         ])
 
     def test_it_is_callable_retry(self, mock_get_logger, mock_run, patch_working_dir,
@@ -616,6 +574,7 @@ class TestDownloadHugo():
 
         create_file(patch_clone_dir / HUGO_VERSION, version)
 
+        mock_post_metrics = Mock()
         with requests_mock.Mocker() as m:
             m.get(dl_url, [
                 dict(exc=requests.exceptions.ConnectTimeout),
@@ -625,9 +584,7 @@ class TestDownloadHugo():
                 dict(text='fake-data')
             ])
 
-            result = download_hugo()
-
-        assert result == 0
+            download_hugo(mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('download-hugo')
 
@@ -644,8 +601,8 @@ class TestDownloadHugo():
         ])
 
         mock_run.assert_has_calls([
-            call(mock_logger, tar_cmd, env={}, check=True),
-            call(mock_logger, chmod_cmd, env={}, check=True)
+            call(mock_logger, tar_cmd, env={}),
+            call(mock_logger, chmod_cmd, env={})
         ])
 
     def test_it_is_exception(self, mock_get_logger, mock_run, patch_working_dir, patch_clone_dir):
@@ -657,6 +614,7 @@ class TestDownloadHugo():
 
         create_file(patch_clone_dir / HUGO_VERSION, version)
 
+        mock_post_metrics = Mock()
         with pytest.raises(Exception):
             with requests_mock.Mocker() as m:
                 m.get(dl_url, [
@@ -667,7 +625,7 @@ class TestDownloadHugo():
                     dict(exc=requests.exceptions.ConnectTimeout),
                 ])
 
-                download_hugo()
+                download_hugo(mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('download-hugo')
 
@@ -709,9 +667,7 @@ class TestBuildHugo():
             base_url='/site/prefix'
         )
 
-        result = build_hugo(**kwargs)
-
-        assert result == mock_run.return_value
+        build_hugo(**kwargs)
 
         mock_get_logger.assert_called_once_with('build-hugo')
 
@@ -726,14 +682,13 @@ class TestBuildHugo():
                 mock_logger,
                 f'echo hugo version: $({hugo_path} version)',
                 env={},
-                check=True
             ),
             call(
                 mock_logger,
                 hugo_call,
                 cwd=patch_clone_dir,
                 env=build_env(*kwargs.values()),
-                node=True
+                node=True,
             )
         ])
 
@@ -827,9 +782,7 @@ class TestBuildCache():
 
         mock_run.return_value = 0
 
-        result = setup_bundler(True, None, None)
-
-        assert result == 0
+        setup_bundler(True, None, None)
 
         mock_get_logger.assert_called_once_with('setup-bundler')
 
@@ -843,7 +796,7 @@ class TestBuildCache():
 
         mock_cache_folder.assert_called_once()
 
-        def callp(cmd):
+        def callp(cmd, skip_log=False):
             return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, ruby=True)
 
         mock_run.assert_has_calls([
@@ -856,9 +809,8 @@ class TestBuildCache():
         create_file(patch_clone_dir / PACKAGE_JSON)
         create_file(patch_clone_dir / PACKAGE_LOCK, contents='hashable')
 
-        result = setup_node(True, None, None)
-
-        assert result == 0
+        mock_post_metrics = Mock()
+        setup_node(True, None, None, mock_post_metrics)
 
         mock_get_logger.assert_called_once_with('setup-node')
 
@@ -872,8 +824,8 @@ class TestBuildCache():
 
         mock_cache_folder.assert_called_once()
 
-        def callp(cmd):
-            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, check=True, node=True)
+        def callp(cmd, skip_log=False):
+            return call(mock_logger, cmd, cwd=patch_clone_dir, env={}, node=True, skip_log=skip_log)
 
         mock_run.assert_has_calls([
             callp('echo Node version: $(node --version)'),

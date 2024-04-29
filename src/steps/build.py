@@ -7,7 +7,6 @@ import re
 import requests
 import shlex
 import subprocess  # nosec
-from subprocess import CalledProcessError  # nosec
 import time
 import yaml
 
@@ -99,9 +98,10 @@ def has_build_script(script_name):
     return False
 
 
-def is_supported_ruby_version(version):
+def check_supported_ruby_version(version):
     '''
     Checks if the version defined in .ruby-version is supported
+    Raises a generic exception if not
     '''
     is_supported = 0
 
@@ -109,31 +109,30 @@ def is_supported_ruby_version(version):
         logger = get_logger('setup-ruby')
 
         RUBY_VERSION_MIN = os.getenv('RUBY_VERSION_MIN')
-
         is_supported = run(
             logger,
             f'ruby -e "exit Gem::Version.new(\'{shlex.split(version)[0]}\') >= Gem::Version.new(\'{RUBY_VERSION_MIN}\') ? 1 : 0"',  # noqa: E501
             cwd=CLONE_DIR_PATH,
             env={},
-            ruby=True
+            ruby=True,
+            check=False,
         )
 
         upgrade_msg = 'Please upgrade to an actively supported version, see https://www.ruby-lang.org/en/downloads/branches/ for details.'  # noqa: E501
-
-        if not is_supported:
-            logger.error(
-                'ERROR: Unsupported ruby version specified in .ruby-version.')
-            logger.error(upgrade_msg)
 
         if version == RUBY_VERSION_MIN:
             logger.warning(
                 f'WARNING: Ruby {RUBY_VERSION_MIN} will soon reach end-of-life, at which point Pages will no longer support it.')  # noqa: E501
             logger.warning(upgrade_msg)
 
-    return is_supported
+        if not is_supported:
+            error = 'ERROR: Unsupported ruby version specified in .ruby-version.'
+            logger.error(error)
+            logger.error(upgrade_msg)
+            raise Exception(error)
 
 
-def setup_node(should_cache: bool, bucket, s3_client):
+def setup_node(should_cache: bool, bucket, s3_client, post_metrics):
     '''
     Sets up node and installs dependencies.
 
@@ -142,67 +141,69 @@ def setup_node(should_cache: bool, bucket, s3_client):
     '''
     logger = get_logger('setup-node')
 
-    def runp(cmd):
-        return run(logger, cmd, cwd=CLONE_DIR_PATH, env={}, check=True, node=True)
+    def runp(cmd, skip_log=False):
+        return run(logger, cmd, cwd=CLONE_DIR_PATH, env={}, node=True, skip_log=skip_log)
 
-    try:
-        NVMRC_PATH = CLONE_DIR_PATH / NVMRC
-        if NVMRC_PATH.is_file():
-            # nvm will output the node and npm versions used
-            # the warning is currently non-reachable but leaving it in for October 2024
-            # to warn about node 18 EOL
-            logger.info('Checking node version specified in .nvmrc')
-            runp("""
-                RAW_VERSION=$(nvm version-remote $(cat .nvmrc))
-                MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
-                if [[ "$MAJOR_VERSION" =~ ^(18|20)$ ]]; then
-                    echo "Switching to node version $RAW_VERSION specified in .nvmrc"
+    NVMRC_PATH = CLONE_DIR_PATH / NVMRC
+    if NVMRC_PATH.is_file():
+        # nvm will output the node and npm versions used
+        # the warning is currently non-reachable but leaving it in for October 2024
+        # to warn about node 18 EOL
+        logger.info('Checking node version specified in .nvmrc')
+        runp("""
+            RAW_VERSION=$(nvm version-remote $(cat .nvmrc))
+            MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
+            if [[ "$MAJOR_VERSION" =~ ^(18|20)$ ]]; then
+                echo "Switching to node version $RAW_VERSION specified in .nvmrc"
 
-                    if [[ "$MAJOR_VERSION" -eq 16 ]]; then
-                        echo "WARNING: Node $RAW_VERSION will reach end-of-life on 9-11-2023, at which point Pages will no longer support it."
-                        echo "Please upgrade to LTS major version 18 or 20, see https://nodejs.org/en/about/releases/ for details."
-                    fi
-
-                    nvm install $RAW_VERSION
-                    nvm alias default $RAW_VERSION
-                else
-                    echo "Unsupported node major version '$MAJOR_VERSION' specified in .nvmrc."
+                if [[ "$MAJOR_VERSION" -eq 16 ]]; then
+                    echo "WARNING: Node $RAW_VERSION will reach end-of-life on 9-11-2023, at which point Pages will no longer support it."
                     echo "Please upgrade to LTS major version 18 or 20, see https://nodejs.org/en/about/releases/ for details."
-                    exit 1
                 fi
-            """)  # noqa: E501
+
+                nvm install $RAW_VERSION
+                nvm alias default $RAW_VERSION
+            else
+                echo "Unsupported node major version '$MAJOR_VERSION' specified in .nvmrc."
+                echo "Please upgrade to LTS major version 18 or 20, see https://nodejs.org/en/about/releases/ for details."
+                exit 1
+            fi
+        """)  # noqa: E501
+    else:
+        # output node and npm versions if the defaults are used
+        logger.info('Using default node version')
+        runp('nvm alias default $(nvm version)')
+        runp('echo Node version: $(node --version)')
+        runp('echo NPM version: $(npm --version)')
+
+    # capture version and cache
+    node_version = runp('node --version', skip_log=True)
+    post_metrics({
+        "engines": {
+            "node": dict(version=node_version, cache=should_cache)
+        }
+    })
+
+    cache_folder = None
+    PACKAGE_LOCK_PATH = CLONE_DIR_PATH / PACKAGE_LOCK
+    if PACKAGE_LOCK_PATH.is_file():
+        if should_cache:
+            logger.info(f'{PACKAGE_LOCK} found. Attempting to download cache')
+            NM_FOLDER = CLONE_DIR_PATH / NODE_MODULES
+            cache_folder = CacheFolder(PACKAGE_LOCK_PATH, NM_FOLDER, bucket, s3_client, logger)
+            cache_folder.download_unzip()
+
+    if PACKAGE_LOCK_PATH.is_file():
+        if should_cache and cache_folder.exists():
+            logger.info('skipping npm ci and using cache')
         else:
-            # output node and npm versions if the defaults are used
-            logger.info('Using default node version')
-            runp('nvm alias default $(nvm version)')
-            runp('echo Node version: $(node --version)')
-            runp('echo NPM version: $(npm --version)')
+            logger.info('Installing dependencies in package-lock.json')
+            runp('npm set audit false')
+            runp('npm ci')
 
-        cache_folder = None
-        PACKAGE_LOCK_PATH = CLONE_DIR_PATH / PACKAGE_LOCK
-        if PACKAGE_LOCK_PATH.is_file():
-            if should_cache:
-                logger.info(f'{PACKAGE_LOCK} found. Attempting to download cache')
-                NM_FOLDER = CLONE_DIR_PATH / NODE_MODULES
-                cache_folder = CacheFolder(PACKAGE_LOCK_PATH, NM_FOLDER, bucket, s3_client, logger)
-                cache_folder.download_unzip()
-
-        if PACKAGE_LOCK_PATH.is_file():
-            if should_cache and cache_folder.exists():
-                logger.info('skipping npm ci and using cache')
-            else:
-                logger.info('Installing dependencies in package-lock.json')
-                runp('npm set audit false')
-                runp('npm ci')
-
-        if PACKAGE_LOCK_PATH.is_file() and should_cache:
-            if not cache_folder.exists():
-                cache_folder.zip_upload_folder_to_s3()
-
-    except (CalledProcessError, OSError, ValueError):
-        return 1
-
-    return 0
+    if PACKAGE_LOCK_PATH.is_file() and should_cache:
+        if not cache_folder.exists():
+            cache_folder.zip_upload_folder_to_s3()
 
 
 def run_build_script(branch, owner, repository, site_prefix,
@@ -217,12 +218,11 @@ def run_build_script(branch, owner, repository, site_prefix,
             logger = get_logger(f'run-{script_name}-script')
             logger.info(f'Running {script_name} build script in package.json')
             env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
-            return run(logger, f'npm run {script_name}', cwd=CLONE_DIR_PATH, env=env, node=True)
+            run(logger, f'npm run {script_name}', cwd=CLONE_DIR_PATH, env=env, node=True)
+            return
 
-    return 0
 
-
-def download_hugo():
+def download_hugo(post_metrics):
     logger = get_logger('download-hugo')
 
     HUGO_VERSION_PATH = CLONE_DIR_PATH / HUGO_VERSION
@@ -240,6 +240,11 @@ def download_hugo():
 
         if hugo_version:
             logger.info(f'Using hugo version in .hugo-version: {hugo_version}')
+            post_metrics({
+                "engines": {
+                    "hugo": dict(version=hugo_version)
+                }
+            })
     else:
         raise RuntimeError(".hugo-version not found")
     '''
@@ -260,9 +265,9 @@ def download_hugo():
                     hugo_tar.write(chunk)
 
             HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
-            run(logger, f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}', env={}, check=True)
-            run(logger, f'chmod +x {HUGO_BIN_PATH}', env={}, check=True)
-            return 0
+            run(logger, f'tar -xzf {hugo_tar_path} -C {WORKING_DIR_PATH}', env={})
+            run(logger, f'chmod +x {HUGO_BIN_PATH}', env={})
+            return
         except Exception:
             failed_attempts += 1
             logger.info(
@@ -282,7 +287,7 @@ def build_hugo(branch, owner, repository, site_prefix,
 
     HUGO_BIN_PATH = WORKING_DIR_PATH / HUGO_BIN
 
-    run(logger, f'echo hugo version: $({HUGO_BIN_PATH} version)', env={}, check=True)
+    run(logger, f'echo hugo version: $({HUGO_BIN_PATH} version)', env={})
 
     logger.info('Building site with hugo')
 
@@ -291,10 +296,10 @@ def build_hugo(branch, owner, repository, site_prefix,
         hugo_args += f' --baseURL {base_url}'
 
     env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
-    return run(logger, f'{HUGO_BIN_PATH} {hugo_args}', cwd=CLONE_DIR_PATH, env=env, node=True)
+    run(logger, f'{HUGO_BIN_PATH} {hugo_args}', cwd=CLONE_DIR_PATH, env=env, node=True)
 
 
-def setup_ruby():
+def setup_ruby(should_cache, post_metrics):
     '''
     Sets up RVM and installs ruby
     Uses the ruby version specified in .ruby-version if present
@@ -302,10 +307,8 @@ def setup_ruby():
 
     logger = get_logger('setup-ruby')
 
-    def runp(cmd):
-        return run(logger, cmd, cwd=CLONE_DIR_PATH, env={}, ruby=True)
-
-    returncode = 0
+    def runp(cmd, skip_log=False):
+        return run(logger, cmd, cwd=CLONE_DIR_PATH, env={}, ruby=True, skip_log=skip_log)
 
     RUBY_VERSION_PATH = CLONE_DIR_PATH / RUBY_VERSION
     if RUBY_VERSION_PATH.is_file():
@@ -315,15 +318,16 @@ def setup_ruby():
             # escape-quote the value in case there's anything weird
             # in the .ruby-version file
             ruby_version = shlex.quote(ruby_version)
-        if is_supported_ruby_version(ruby_version):
-            returncode = runp(f'rvm install {ruby_version}')
-        else:
-            returncode = 1
+        check_supported_ruby_version(ruby_version)
+        runp(f'rvm install {ruby_version}')
 
-    if returncode:
-        return returncode
-
-    return runp('echo Ruby version: $(ruby -v)')
+    ruby_version = runp('ruby -v', skip_log=True)
+    post_metrics({
+        "engines": {
+            "ruby": dict(version=ruby_version, cache=should_cache)
+        }
+    })
+    runp('echo Ruby version: $(ruby -v)')
 
 
 def setup_bundler(should_cache: bool, bucket, s3_client):
@@ -360,10 +364,7 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
             except Exception:
                 raise RuntimeError('Invalid .bundler-version')
 
-    returncode = runp(f'gem install bundler --version "{version}"')
-
-    if returncode:
-        return returncode
+    runp(f'gem install bundler --version "{version}"')
 
     cache_folder = None
     if GEMFILELOCK_PATH.is_file() and should_cache:
@@ -381,18 +382,13 @@ def setup_bundler(should_cache: bool, bucket, s3_client):
         cache_folder.download_unzip()
 
     logger.info('Installing dependencies in Gemfile')
-    returncode = runp('bundle install')
-
-    if returncode:
-        return returncode
+    runp('bundle install')
 
     if GEMFILELOCK_PATH.is_file() and should_cache:
         # we also need to check for cache_folder here because we shouldn't cache if they didn't
         # initially have a lockfile (bundle install creates one)
         if cache_folder and not cache_folder.exists():
             cache_folder.zip_upload_folder_to_s3()
-
-    return returncode
 
 
 def update_jekyll_config(federalist_config={}, custom_config_path=''):
@@ -409,15 +405,14 @@ def update_jekyll_config(federalist_config={}, custom_config_path=''):
         try:
             custom_config = json.loads(custom_config_path)
         except json.JSONDecodeError:
-            logger.error('Could not load/parse custom yaml config.')
-            return 1
+            error = 'Could not load/parse custom yaml config.'
+            logger.error(error)
+            raise Exception(error)
 
     config_yml = {**config_yml, **custom_config, **federalist_config}
 
     with JEKYLL_CONF_YML_PATH.open('w') as jekyll_conf_file:
         yaml.dump(config_yml, jekyll_conf_file, default_flow_style=False)
-
-    return 0
 
 
 def build_jekyll(branch, owner, repository, site_prefix,
@@ -427,13 +422,10 @@ def build_jekyll(branch, owner, repository, site_prefix,
     '''
     logger = get_logger('build-jekyll')
 
-    result = update_jekyll_config(
+    update_jekyll_config(
         dict(baseurl=base_url, branch=branch),
         config
     )
-
-    if result != 0:
-        return result
 
     jekyll_cmd = 'jekyll'
 
@@ -446,14 +438,13 @@ def build_jekyll(branch, owner, repository, site_prefix,
         f'echo Building using Jekyll version: $({jekyll_cmd} -v)',
         cwd=CLONE_DIR_PATH,
         env={},
-        check=True,
         ruby=True
     )
 
     env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
     env['JEKYLL_ENV'] = 'production'
 
-    return run(
+    run(
         logger,
         f'{jekyll_cmd} build --destination {SITE_BUILD_DIR_PATH}',
         cwd=CLONE_DIR_PATH,

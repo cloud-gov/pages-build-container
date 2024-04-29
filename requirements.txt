@@ -1,6 +1,5 @@
 requests==2.31.0
 boto3==1.14.20
-humanize==4.4.0
 stopit==1.1.2
 psycopg2==2.9.9
 cryptography==42.0.2

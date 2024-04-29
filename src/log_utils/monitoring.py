@@ -1,6 +1,11 @@
 from threading import Timer
 import psutil
-from humanize import naturalsize
+
+max_metrics = dict(
+    cpu=0,
+    mem=0,
+    disk=0
+)
 
 
 # https://stackoverflow.com/a/48741004
@@ -10,8 +15,12 @@ class RepeatTimer(Timer):
             self.function(*self.args, **self.kwargs)
 
 
-def log_monitoring_metrics(logger):
+def log_monitoring_metrics(logger, post_metrics):
     disk = psutil.disk_usage("/")
-    logger.info(f'CPU Usage Percentage: {psutil.cpu_percent()}')
-    logger.info(f'Memory Usage Percentage: {psutil.virtual_memory().percent}')
-    logger.info(f'Disk usage: {naturalsize(disk.used)} / {naturalsize(disk.total)}')
+
+    # compute new maximum metrics and post to the application
+    max_metrics["cpu"] = max(psutil.cpu_percent(), max_metrics["cpu"])
+    max_metrics["mem"] = max(psutil.virtual_memory().percent, max_metrics["mem"])
+    max_metrics["disk"] = max(disk.used, max_metrics["disk"])
+
+    post_metrics(dict(machine=max_metrics))

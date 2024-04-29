@@ -2,6 +2,7 @@
 
 import base64
 import requests
+from typing import Dict
 
 from .common import (STATUS_COMPLETE, STATUS_ERROR, STATUS_PROCESSING)
 
@@ -63,3 +64,15 @@ def post_build_timeout(status_callback_url, commit_sha=None):
 
     # Post to the Pages web application with status and output
     post_status(status_callback_url, status=STATUS_ERROR, output=output, commit_sha=commit_sha)
+
+
+def post_metrics(status_callback_url: str, metrics: Dict):
+    '''
+    POST build metrics to the metrics API
+    '''
+    url = status_callback_url.replace('status', 'metrics')
+    requests.post(
+        url,
+        json=metrics,
+        timeout=10
+    )
