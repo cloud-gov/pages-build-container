@@ -192,6 +192,65 @@ jobs:
         username: ((slack-username))
         icon_url: ((slack-icon-url))
 
+  - name: audit-dependencies
+    plan:
+      - get: src
+        resource: pr-((git-branch))
+        trigger: true
+        passed: [set-pipeline]
+
+      - put: src
+        resource: pr-((git-branch))
+        params:
+          path: src
+          status: pending
+          base_context: concourse
+          context: audit-dependencies
+
+      - task: pip-audit
+        config:
+          <<: *python-image
+          inputs: [name: src]
+          outputs: [name: src]
+          run:
+            dir: src
+            path: ci/tasks/pip-audit.sh
+
+    on_failure:
+      in_parallel:
+        - put: src
+          resource: pr-((git-branch))
+          params:
+            path: src
+            status: failure
+            base_context: concourse
+            context: audit-dependencies
+        - put: slack
+          params:
+            text: |
+              :x: FAILED: pages build container dependency audit on ((git-branch))
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME?vars.deploy-env="((deploy-env))"&vars.git-branch="((git-branch))"|View build details>
+            channel: ((slack-channel))
+            username: ((slack-username))
+            icon_url: ((slack-icon-url))
+
+    on_success:
+      in_parallel:
+        - put: src
+          resource: pr-((git-branch))
+          params:
+            path: src
+            status: success
+            base_context: concourse
+            context: audit-dependencies
+        - put: slack
+          params:
+            text: |
+              :white_check_mark: SUCCESS: Successfully passed pages build container dependency audit on ((git-branch))
+            channel: ((slack-channel))
+            username: ((slack-username))
+            icon_url: ((slack-icon-url))
+
 ############################
 #  RESOURCES
 
