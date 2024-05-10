@@ -1,7 +1,7 @@
 requests==2.31.0
-boto3==1.14.20
+boto3==1.34.102
 stopit==1.1.2
 psycopg2==2.9.9
-cryptography==42.0.2
+cryptography==42.0.7
 pyyaml==6.0.1
 psutil==5.9.4
