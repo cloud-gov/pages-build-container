@@ -1,0 +1,7 @@
+platform: linux
+inputs:
+  - name: src
+  - name: image-repository
+run:
+  dir: src
+  path: ci/tasks/deploy.sh
