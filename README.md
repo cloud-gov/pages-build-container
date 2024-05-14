@@ -16,7 +16,7 @@ One of the following flags *must* be specified:
 
 | Flag | Example | Description |
 | ---- | ------- | ----------- |
-| `-p`, `--params` | `-p '{"foo": "bar"}'` | A JSON encoded string containing the [build arguments](#build-arguments) |
+| `-p`, `--params` | `-p '{"foo": "bar"}'` | An encrypted JSON encoded string containing the [build arguments](#build-arguments) |
 | `-f`, `--file` | `--file ./.local/my-build.json` | A path to a JSON file containing the [build arguments](#build-arguments) |
 
 ### Using cloud.gov tasks
@@ -53,6 +53,14 @@ docker-compose run --rm app python main.py -f /tmp/local/my-build.json
 
 When running locally, environment variables are configured in `docker-compose.yml` under the `app` service.
 
+## Connected CF service
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+| `federalist-((env))-rds` | Brokered | The RDS db credentials |
+| `federalist-((env))-uev-key` | User Provided | The site environment variable encryption key |
+| `pages-((env))-encryption` | User Provided | The site build params encryption key |
+
 ## Build arguments
 
 | Name | Optional? | Default | Description |
@@ -72,6 +80,10 @@ When running locally, environment variables are configured in `docker-compose.ym
 | `baseurl` | Y | `None` | The base URL that will be used by the build engine to determine the absolute path for site assets (blank for custom domains, the `site_prefix` with a preceding `/` for preview domains |
 | `user_environment_variables` | Y | | Array of objects containing the name and encrypted values of user-provided environment variables (Ex. `[{ name: "MY ENV VAR", ciphertext: "ABC123" }]`) |
 
+
+### Encrypted params argument
+
+When build parameters are passed to the build script using the `-p / --params` flag, they are an encrypted JSON encoded string created by the pages-core queue worker and decrypted using a shared key stored as CF user provided service `pages-<env>-encryption` and the [decrypt cipher](./src/crypto/decrypt.py).
 
 ## Environment variables provided during builds
 

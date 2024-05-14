@@ -1,4 +1,4 @@
----    
+---
 applications:
   - name: ((product))-build-container((env_postfix))
     no-route: true
@@ -7,6 +7,7 @@ applications:
     services:
       - federalist-((env))-rds
       - federalist-((env))-uev-key
+      - pages-((env))-encryption
     metadata:
       labels:
         type: build-container

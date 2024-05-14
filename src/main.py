@@ -5,6 +5,7 @@ import os
 import shlex
 
 from build import build
+from crypto.decrypt import decrypt
 
 
 def load_vcap():
@@ -24,6 +25,22 @@ def load_vcap():
     os.environ[uev_env_var] = uev_ups['credentials']['key']
 
 
+def decrypt_params(encrypted):
+    vcap_application = json.loads(os.getenv('VCAP_APPLICATION', '{}'))
+    vcap_services = json.loads(os.getenv('VCAP_SERVICES', '{}'))
+
+    space = vcap_application['space_name']
+
+    encryption_ups = next(
+        ups for ups in vcap_services['user-provided']
+        if ups['name'] == f'pages-{space}-encryption'
+    )
+
+    encryption_key = encryption_ups['credentials']['key']
+
+    return decrypt(args.params, encryption_key)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run a pages build')
     group = parser.add_mutually_exclusive_group(required=True)
@@ -36,7 +53,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.params:
-        params = json.loads(args.params)
+        decrypted = decrypt_params(args.params)
+        params = json.loads(decrypted)
     else:
         params = json.load(args.file)
 
