@@ -3,6 +3,7 @@ import os
 import pwd
 import shlex
 import subprocess  # nosec
+from io import StringIO
 
 NVM_PATH = '~/.nvm/nvm.sh'
 RVM_PATH = '/usr/local/rvm/scripts/rvm'
@@ -13,26 +14,24 @@ def setuser():
     os.setuid(pwd.getpwnam('customer').pw_uid)
 
 
-def run(logger, command, cwd=None, env=None, shell=False, check=False, node=False, ruby=False):
+def run(logger, command, cwd=None, env=None, shell=False, check=True, node=False, ruby=False, skip_log=False):  # noqa: E501
     '''
     Run an OS command with provided cwd or env, stream logs to logger, and return the exit code.
 
     Errors that occur BEFORE the command is actually executed are caught and handled here.
 
-    Errors encountered by the executed command are NOT caught. Instead a non-zero exit code
-    will be returned to be handled by the caller.
+    Errors encountered by the executed command are caught unless `check=False`. In these cases a
+    non-zero exit code will be returned to be handled by the caller.
 
     See https://docs.python.org/3/library/subprocess.html#popen-constructor for details.
     '''
 
-    # TODO - refactor to put the appropriate bundler binaries in PATH so this isn't necessary
     if ruby:
         command = f'source {RVM_PATH} && {command}'
         shell = True
 
-    # TODO - refactor to put the appropriate node/npm binaries in PATH so this isn't necessary
     if node:
-        command = f'source {NVM_PATH} && nvm use default && {command}'
+        command = f'source {NVM_PATH} && {command}'
         shell = True
 
     if isinstance(command, str) and not shell:
@@ -40,6 +39,9 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False, node=Fals
 
     # When a shell is needed, use `bash` instead of `sh`
     executable = '/bin/bash' if shell else None
+
+    # aggregate stdout in case we need to return
+    output = StringIO()
 
     try:
         p = subprocess.Popen(  # nosec
@@ -56,12 +58,20 @@ def run(logger, command, cwd=None, env=None, shell=False, check=False, node=Fals
             preexec_fn=setuser
         )
         while p.poll() is None:
-            logger.info(p.stdout.readline().strip())
+            line = p.stdout.readline().strip()
+            if not skip_log:
+                logger.info(line)
+            output.write(line)
 
-        logger.info(p.stdout.readline().strip())
+        line = p.stdout.readline().strip()
+        if not skip_log:
+            logger.info(line)
+        output.write(line)
 
-        if check and p.returncode:
-            raise subprocess.CalledProcessError(p.returncode, command)
+        if check:
+            if p.returncode:
+                raise subprocess.CalledProcessError(p.returncode, command)
+            return output.getvalue()
 
         return p.returncode
 

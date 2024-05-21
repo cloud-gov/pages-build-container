@@ -28,7 +28,7 @@ class TestCloneRepo():
 
         mock_get_logger.assert_called_once_with('clone')
 
-        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env)
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env, check=False)  # noqa: 501
 
     def test_runs_expected_cmds_with_gh_token(self, mock_get_logger, mock_run):
         owner = 'owner-2'
@@ -44,7 +44,7 @@ class TestCloneRepo():
 
         mock_get_logger.assert_called_once_with('clone')
 
-        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env)
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env, check=False)  # noqa: 501
 
 
 class TestCloneRepoNoMock(unittest.TestCase):
@@ -57,6 +57,7 @@ class TestCloneRepoNoMock(unittest.TestCase):
         repository = 'cg-site'
         branch = 'master'
 
+        # TODO: this is a totally useless test because the CI runner doesn't have git
         with self._caplog.at_level(logging.INFO):
             fetch_repo(owner, repository, branch)
 

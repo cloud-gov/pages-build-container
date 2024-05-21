@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 from stopit import TimeoutException, SignalTimeout as Timeout
 import boto3
+from functools import partial
 
 from common import CLONE_DIR_PATH
 
@@ -14,7 +15,8 @@ from log_utils import (
 )
 from log_utils.remote_logs import (
     post_build_complete, post_build_error,
-    post_build_timeout, post_build_processing
+    post_build_timeout, post_build_processing,
+    post_metrics,
 )
 
 from crypto.decrypt import decrypt
@@ -92,8 +94,14 @@ def build(
 
             logger = get_logger('main')
 
-            def run_step(returncode, msg):
-                if returncode != 0:
+            # partially apply the callback url to post_metrics
+            post_metrics_p = partial(post_metrics, status_callback)
+
+            def run_step(step, msg, *args, **kwargs):
+                try:
+                    step(*args, **kwargs)
+                except Exception as e:
+                    logger.error(e)
                     raise StepException(msg)
 
             logger.info(f'Running build for {owner}/{repository}/{branch}')
@@ -104,7 +112,11 @@ def build(
             # start a separate scheduled thread for memory/cpu monitoring
             MONITORING_INTERVAL = 30
             monitoring_logger = get_logger('monitor')
-            thread = RepeatTimer(MONITORING_INTERVAL, log_monitoring_metrics, [monitoring_logger])
+            thread = RepeatTimer(
+                MONITORING_INTERVAL,
+                log_monitoring_metrics,
+                [monitoring_logger, post_metrics_p],
+            )
             thread.start()
 
             # S3 client used in multiple steps
@@ -119,8 +131,9 @@ def build(
             # FETCH
             #
             run_step(
-                fetch_repo(owner, repository, branch, github_token),
-                'There was a problem fetching the repository, see the above logs for details.'
+                fetch_repo,
+                'There was a problem fetching the repository, see the above logs for details.',
+                owner, repository, branch, github_token,
             )
 
             commit_sha = fetch_commit_sha(CLONE_DIR_PATH)
@@ -141,57 +154,62 @@ def build(
 
             if federalist_config.full_clone():
                 run_step(
-                    update_repo(CLONE_DIR_PATH),
-                    'There was a problem updating the repository, see the above logs for details.'
+                    update_repo,
+                    'There was a problem updating the repository, see the above logs for details.',
+                    CLONE_DIR_PATH,
                 )
 
             ##
             # BUILD
             #
             run_step(
-                setup_node(federalist_config.should_cache(), bucket, s3_client),
-                'There was a problem setting up Node, see the above logs for details.'
+                setup_node,
+                'There was a problem setting up Node, see the above logs for details.',
+                federalist_config.should_cache(),
+                bucket,
+                s3_client,
+                post_metrics_p,
             )
 
             # Run the npm `federalist` task (if it is defined)
             run_step(
-                run_build_script(
-                    branch, owner, repository, site_prefix, baseurl, decrypted_uevs
-                ),
-                'There was a problem running the federalist script, see the above logs for details.'
+                run_build_script,
+                'There was a problem running the federalist script, see the above logs for details.',  # noqa: E501
+                branch, owner, repository, site_prefix, baseurl, decrypted_uevs,
             )
 
             # Run the appropriate build engine based on generator
             if generator == 'jekyll':
                 run_step(
-                    setup_ruby(),
-                    'There was a problem setting up Ruby, see the above logs for details.'
+                    setup_ruby,
+                    'There was a problem setting up Ruby, see the above logs for details.',
+                    federalist_config.should_cache(), post_metrics_p,
                 )
 
                 run_step(
-                    setup_bundler(federalist_config.should_cache(), bucket, s3_client),
-                    'There was a problem setting up Bundler, see the above logs for details.'
+                    setup_bundler,
+                    'There was a problem setting up Bundler, see the above logs for details.',
+                    federalist_config.should_cache(), bucket, s3_client,
                 )
 
                 run_step(
-                    build_jekyll(
-                        branch, owner, repository, site_prefix, baseurl, config, decrypted_uevs
-                    ),
-                    'There was a problem running Jekyll, see the above logs for details.'
+                    build_jekyll,
+                    'There was a problem running Jekyll, see the above logs for details.',
+                    branch, owner, repository, site_prefix, baseurl, config, decrypted_uevs,
                 )
 
             elif generator == 'hugo':
                 # extra: --hugo-version (not yet used)
                 run_step(
-                    download_hugo(),
-                    'There was a problem downloading Hugo, see the above logs for details.'
+                    download_hugo,
+                    'There was a problem downloading Hugo, see the above logs for details.',
+                    post_metrics_p
                 )
 
                 run_step(
-                    build_hugo(
-                        branch, owner, repository, site_prefix, baseurl, decrypted_uevs
-                    ),
-                    'There was a problem running Hugo, see the above logs for details.'
+                    build_hugo,
+                    'There was a problem running Hugo, see the above logs for details.',
+                    branch, owner, repository, site_prefix, baseurl, decrypted_uevs,
                 )
 
             elif generator == 'static':

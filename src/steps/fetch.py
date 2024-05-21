@@ -50,7 +50,7 @@ def fetch_repo(owner, repository, branch, github_token=''):  # nosec
         f'{CLONE_DIR_PATH}'
     )
 
-    return run(logger, command, env=clone_env)
+    return run(logger, command, env=clone_env, check=False)
 
 
 def update_repo(clone_dir):

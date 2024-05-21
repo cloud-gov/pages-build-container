@@ -9,38 +9,6 @@ env-cf: &env-cf
   CF_ORG: gsa-18f-federalist
   CF_SPACE: ((deploy-env))
 
-python-image: &python-image
-  platform: linux
-  image_resource:
-    type: registry-image
-    source:
-      aws_access_key_id: ((ecr-aws-key))
-      aws_secret_access_key: ((ecr-aws-secret))
-      repository: pages-python-v3.11
-      aws_region: us-gov-west-1
-      tag: latest
-
-cf-image: &cf-image
-  platform: linux
-  image_resource:
-    type: registry-image
-    source:
-      aws_access_key_id: ((ecr-aws-key))
-      aws_secret_access_key: ((ecr-aws-secret))
-      repository: harden-concourse-task
-      aws_region: us-gov-west-1
-      tag: ((harden-concourse-task-tag))
-
-test: &test
-  - task: test
-    config:
-      <<: *python-image
-      inputs: [name: src]
-      outputs: [name: src]
-      run:
-        dir: src
-        path: ci/tasks/test.sh
-
 ############################
 #  JOBS
 
@@ -74,7 +42,10 @@ jobs:
           base_context: concourse
           context: test-pages-build-container-((deploy-env))
 
-      - do: *test
+      - get: python
+      - task: test
+        image: python
+        file: src/ci/partials/test.yml
 
     on_failure:
       put: src
@@ -100,7 +71,10 @@ jobs:
         resource: src-((deploy-env))
         trigger: true
         params: {depth: 1}
-      - do: *test
+      - get: python
+      - task: test
+        image: python
+        file: src/ci/partials/test.yml
 
     on_failure:
       put: slack
@@ -119,41 +93,24 @@ jobs:
         trigger: true
         params: {depth: 1}
         passed: [test-((deploy-env))]
+      - get: cf-image
+      - get: oci-build-task
       - task: build
         privileged: true
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: concourse/oci-build-task
-          inputs:
-          - name: src
-            path: .
-          outputs:
-          - name: image
-          run:
-            path: build
-          params:
-            BUILDKIT_SECRETTEXT_UA_TOKEN: ((ua-token))
-      - put: image-repository-((deploy-env))
+        image: oci-build-task
+        file: src/ci/partials/build.yml
+      - put: image-repository
         params:
           image: image/image.tar
       - task: deploy
-        config:
-          <<: *cf-image
-          inputs:
-            - name: src
-            - name: image-repository-((deploy-env))
-          run:
-            dir: src
-            path: ci/tasks/deploy.sh
+        image: cf-image
+        file: src/ci/partials/deploy.yml
         params:
           <<: *env-cf
           CF_APP_NAME: pages-build-container-((deploy-env))
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
-          IMAGE_REPOSITORY: ../image-repository-((deploy-env))/repository
+          IMAGE_REPOSITORY: ../image-repository/repository
           IMAGE_TAG: pages-((deploy-env))
           CF_DOCKER_USERNAME: ((ecr-aws-key))
           CF_DOCKER_PASSWORD: ((ecr-aws-secret))
@@ -186,13 +143,10 @@ jobs:
         resource: src-((deploy-env))
         trigger: true
         params: {depth: 1}
+      - get: cf-image
       - task: restage
-        config:
-          <<: *cf-image
-          inputs: [name: src]
-          run:
-            dir: src
-            path: ci/tasks/restage.sh
+        image: cf-image
+        file: src/ci/partials/restage.yml
         params:
           <<: *env-cf
           CF_APP_NAME: pages-build-container-((deploy-env))
@@ -214,6 +168,38 @@ jobs:
         channel: ((slack-channel))
         username: ((slack-username))
         icon_url: ((slack-icon-url))
+
+  - name: audit-dependencies
+    plan:
+      - get: src
+        resource: src-((deploy-env))
+        trigger: true
+        passed: [set-pipeline]
+
+      - get: python
+      - task: pip-audit
+        image: python
+        file: src/ci/partials/audit.yml
+
+    on_failure:
+        put: slack
+        params:
+          text: |
+            :x: FAILED: pages build container dependency audit on ((deploy-env))
+            <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME?vars.deploy-env="((deploy-env))"&vars.git-branch="((git-branch))"|View build details>
+          channel: ((slack-channel))
+          username: ((slack-username))
+          icon_url: ((slack-icon-url))
+
+    on_success:
+      in_parallel:
+        put: slack
+        params:
+          text: |
+            :white_check_mark: SUCCESS: Successfully passed pages build container dependency audit on ((deploy-env))
+          channel: ((slack-channel))
+          username: ((slack-username))
+          icon_url: ((slack-icon-url))
 
 ############################
 #  RESOURCES
@@ -250,7 +236,7 @@ resources:
     source:
       url: ((slack-webhook-url))
 
-  - name: image-repository-((deploy-env))
+  - name: image-repository
     type: registry-image
     source:
       aws_access_key_id: ((ecr-aws-key))
@@ -258,6 +244,33 @@ resources:
       repository: pages-build-container
       aws_region: us-gov-west-1
       tag: pages-((deploy-env))
+
+  - name: python
+    type: registry-image
+    source:
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
+      repository: pages-python-v3.11
+      aws_region: us-gov-west-1
+      tag: latest
+
+  - name: cf-image
+    type: registry-image
+    source:
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
+      repository: general-task
+      aws_region: us-gov-west-1
+      tag: latest
+
+  - name: oci-build-task
+    type: registry-image
+    source:
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
+      repository: oci-build-task
+      aws_region: us-gov-west-1
+      tag: latest
 
 ############################
 #  RESOURCE TYPES
@@ -297,5 +310,14 @@ resource_types:
       aws_access_key_id: ((ecr_aws_key))
       aws_secret_access_key: ((ecr_aws_secret))
       repository: time-resource
+      aws_region: us-gov-west-1
+      tag: latest
+
+  - name: registry-image
+    type: registry-image
+    source:
+      aws_access_key_id: ((ecr_aws_key))
+      aws_secret_access_key: ((ecr_aws_secret))
+      repository: registry-image-resource
       aws_region: us-gov-west-1
       tag: latest

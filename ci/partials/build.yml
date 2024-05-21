@@ -1,0 +1,10 @@
+platform: linux
+inputs:
+- name: src
+  path: .
+outputs:
+- name: image
+run:
+  path: build
+params:
+  BUILDKIT_SECRETTEXT_UA_TOKEN: ((ua-token))
