@@ -14,6 +14,7 @@ from common import (CLONE_DIR_PATH, SITE_BUILD_DIR, SITE_BUILD_DIR_PATH, WORKING
 from log_utils import get_logger
 from runner import run, setuser
 from .cache import CacheFolder
+from .exceptions import StepException
 
 HUGO_BIN = 'hugo'
 HUGO_VERSION = '.hugo-version'
@@ -220,6 +221,13 @@ def run_build_script(branch, owner, repository, site_prefix,
             env = build_env(branch, owner, repository, site_prefix, base_url, user_env_vars)
             run(logger, f'npm run {script_name}', cwd=CLONE_DIR_PATH, env=env, node=True)
             return
+
+
+def run_step(step, msg, *args, **kwargs):
+    try:
+        step(*args, **kwargs)
+    except Exception:
+        raise StepException(msg)
 
 
 def download_hugo(post_metrics):

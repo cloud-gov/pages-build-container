@@ -1,3 +1,4 @@
+from pytest import raises
 import json
 import os
 from io import StringIO
@@ -12,7 +13,7 @@ import yaml
 import steps
 from steps import (
     build_hugo, build_jekyll, build_static, download_hugo,
-    run_build_script, setup_bundler, setup_node, setup_ruby
+    run_build_script, run_step, setup_bundler, setup_node, setup_ruby, StepException
 )
 from steps.build import (
     build_env, check_supported_ruby_version, BUNDLER_VERSION, GEMFILE,
@@ -212,6 +213,19 @@ class TestRunBuildScript():
 
         mock_get_logger.assert_not_called()
         mock_run.assert_not_called()
+
+
+class TestRunStep():
+    def test_it_should_raise_an_exception(self):
+        msg = 'testing-msg'
+        arg1 = 'arg1'
+        kwarg1 = 'kwarg1'
+        mock_step = Mock(side_effect=KeyError)
+
+        with raises(StepException):
+            run_step(mock_step, msg, arg1, kwarg1=kwarg1)
+
+        mock_step.assert_called_once_with(arg1, kwarg1=kwarg1)
 
 
 @patch('steps.build.run')
