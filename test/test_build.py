@@ -216,7 +216,7 @@ class TestRunBuildScript():
 
 
 class TestRunStep():
-    def test_it_should_raise_an_exception(self):
+    def test_it_should_raise_an_exception_from_step(self):
         msg = 'testing-msg'
         arg1 = 'arg1'
         kwarg1 = 'kwarg1'
@@ -224,6 +224,17 @@ class TestRunStep():
 
         with raises(StepException):
             run_step(mock_step, msg, arg1, kwarg1=kwarg1)
+
+        mock_step.assert_called_once_with(arg1, kwarg1=kwarg1)
+
+    def test_it_should_run_step_successfully(self):
+        msg = 'testing-msg'
+        arg1 = 'arg1'
+        kwarg1 = 'kwarg1'
+        mock_step = Mock()
+        mock_step.return_value()
+
+        run_step(mock_step, msg, arg1, kwarg1=kwarg1)
 
         mock_step.assert_called_once_with(arg1, kwarg1=kwarg1)
 
