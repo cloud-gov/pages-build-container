@@ -1,11 +1,12 @@
 from .build import (
     build_hugo, build_jekyll, build_static,
-    download_hugo, run_build_script, setup_bundler,
+    download_hugo, run_build_script, run_step, setup_bundler,
     setup_node, setup_ruby,
 )
 from .exceptions import StepException
 from .fetch import fetch_repo, update_repo, fetch_commit_sha
 from .publish import publish
+
 
 __all__ = [
     'build_hugo',
@@ -15,6 +16,7 @@ __all__ = [
     'fetch_repo',
     'publish',
     'run_build_script',
+    'run_step',
     'setup_bundler',
     'setup_node',
     'setup_ruby',

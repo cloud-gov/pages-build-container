@@ -8,6 +8,15 @@ from build import build
 from crypto.decrypt import decrypt
 
 
+KEYS_TO_DECRYPT = [
+    'STATUS_CALLBACK',
+    'GITHUB_TOKEN',
+    'AWS_ACCESS_KEY_ID',
+    'AWS_SECRET_ACCESS_KEY',
+    'BUCKET',
+]
+
+
 def load_vcap():
     vcap_application = json.loads(os.getenv('VCAP_APPLICATION', '{}'))
     vcap_services = json.loads(os.getenv('VCAP_SERVICES', '{}'))
@@ -25,7 +34,13 @@ def load_vcap():
     os.environ[uev_env_var] = uev_ups['credentials']['key']
 
 
-def decrypt_params(encrypted):
+def decrypt_key_value(k, v, encryption_key):
+    if k in KEYS_TO_DECRYPT:
+        return decrypt(v, encryption_key)
+    return v
+
+
+def decrypt_params(params):
     vcap_application = json.loads(os.getenv('VCAP_APPLICATION', '{}'))
     vcap_services = json.loads(os.getenv('VCAP_SERVICES', '{}'))
 
@@ -38,7 +53,9 @@ def decrypt_params(encrypted):
 
     encryption_key = encryption_ups['credentials']['key']
 
-    return decrypt(args.params, encryption_key)
+    params = {k: decrypt_key_value(k, v, encryption_key) for (k, v) in params.items()}
+
+    return params
 
 
 if __name__ == "__main__":
@@ -53,8 +70,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.params:
-        decrypted = decrypt_params(args.params)
-        params = json.loads(decrypted)
+        params = json.loads(args.params)
+        params = decrypt_params(params)
     else:
         params = json.load(args.file)
 

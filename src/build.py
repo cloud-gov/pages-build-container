@@ -25,10 +25,9 @@ import repo_config
 
 from steps import (
     build_hugo, build_jekyll, build_static, download_hugo,
-    fetch_repo, publish, run_build_script, fetch_commit_sha,
+    fetch_repo, publish, run_build_script, run_step, fetch_commit_sha,
     setup_bundler, setup_node, setup_ruby, StepException, update_repo
 )
-
 
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
@@ -96,13 +95,6 @@ def build(
 
             # partially apply the callback url to post_metrics
             post_metrics_p = partial(post_metrics, status_callback)
-
-            def run_step(step, msg, *args, **kwargs):
-                try:
-                    step(*args, **kwargs)
-                except Exception as e:
-                    logger.error(e)
-                    raise StepException(msg)
 
             logger.info(f'Running build for {owner}/{repository}/{branch}')
 
