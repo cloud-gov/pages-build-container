@@ -23,7 +23,7 @@ jobs:
         image: general-task
         file: pipeline-tasks/tasks/init.yml
         params:
-          PIPELINE_YML: src/ci/pipeline.yml
+          PIPELINE_YML: src/ci/pipeline-staging.yml
       - set_pipeline: build-container
         file: compiled/set-pipeline.yml
         instance_vars:
