@@ -14,7 +14,8 @@ jobs:
   - name: set-pipeline
     plan:
       - get: src
-        resource: pr-((deploy-env))
+        resource: src-((deploy-env))-tagged
+        params: { depth: 1 }
         trigger: true
       - get: pipeline-tasks
       - get: general-task
@@ -22,7 +23,7 @@ jobs:
         image: general-task
         file: pipeline-tasks/tasks/init.yml
         params:
-          PIPELINE_YML: src/ci/pipeline-dev.yml
+          PIPELINE_YML: src/ci/pipeline.yml
       - set_pipeline: build-container
         file: compiled/set-pipeline.yml
         instance_vars:
@@ -31,47 +32,22 @@ jobs:
   - name: test-((deploy-env))
     plan:
       - get: src
-        resource: pr-((deploy-env))
+        resource: src-((deploy-env))-tagged
         trigger: true
-        passed: [set-pipeline]
-
-      - put: src
-        resource: pr-((deploy-env))
-        params:
-          path: src
-          status: pending
-          base_context: concourse
-          context: test-pages-build-container-((deploy-env))
+        params: { depth: 1 }
       - get: python
       - task: test
         image: python
         file: src/ci/partials/test.yml
 
-    on_success:
-      put: src
-      resource: pr-((deploy-env))
-      params:
-        path: src
-        status: success
-        base_context: concourse
-        context: test-pages-build-container-((deploy-env))
-
-    on_failure:
-      in_parallel:
-        - put: src
-          resource: pr-((deploy-env))
-          params:
-            path: src
-            status: failure
-            base_context: concourse
-            context: test-pages-build-container-((deploy-env))
-        -  #@ slack_hook("failure", "tests")
+    on_failure: #@ slack_hook("failure", "tests")
 
   - name: deploy-((deploy-env))
     plan:
       - get: src
-        resource: pr-((deploy-env))
+        resource: src-((deploy-env))-tagged
         trigger: true
+        params: { depth: 1 }
         passed: [test-((deploy-env))]
       - get: general-task
       - get: oci-build-task
@@ -79,7 +55,6 @@ jobs:
         privileged: true
         image: oci-build-task
         file: src/ci/partials/build.yml
-
       - put: image-repository
         params:
           image: image/image.tar
@@ -96,6 +71,7 @@ jobs:
           CF_DOCKER_USERNAME: ((ecr-aws-key))
           CF_DOCKER_PASSWORD: ((ecr-aws-secret))
 
+    on_success: #@ slack_hook("success", "deployment")
     on_failure: #@ slack_hook("failure", "deployment")
 
   - name: nightly-((deploy-env))
@@ -103,12 +79,13 @@ jobs:
       - get: nightly
         trigger: true
       - get: src
-        resource: pr-((deploy-env))
+        resource: src-((deploy-env))-tagged
+        trigger: true
+        params: { depth: 1 }
       - get: general-task
-      - get: pipeline-tasks
       - task: restage
         image: general-task
-        file: pipeline-tasks/tasks/restage.yml
+        file: src/ci/partials/restage.yml
         params:
           <<: *env-cf
           CF_APP_NAME: pages-build-container-((deploy-env))
@@ -118,57 +95,30 @@ jobs:
   - name: audit-dependencies
     plan:
       - get: src
-        resource: pr-((deploy-env))
+        resource: src-((deploy-env))-tagged
         trigger: true
         passed: [set-pipeline]
-
-      - put: src
-        resource: pr-((deploy-env))
-        params:
-          path: src
-          status: pending
-          base_context: concourse
-          context: audit-dependencies
 
       - get: python
       - task: pip-audit
         image: python
         file: src/ci/partials/audit.yml
 
-    on_failure:
-      in_parallel:
-        - put: src
-          resource: pr-((deploy-env))
-          params:
-            path: src
-            status: failure
-            base_context: concourse
-            context: audit-dependencies
-        -  #@ slack_hook("failure", "dependency audit")
-
-    on_success:
-      in_parallel:
-        - put: src
-          resource: pr-((deploy-env))
-          params:
-            path: src
-            status: success
-            base_context: concourse
-            context: audit-dependencies
-        -  #@ slack_hook("success", "dependency audit")
+    on_failure: #@ slack_hook("failure", "dependency audit")
+    on_success: #@ slack_hook("success", "dependency audit")
 
 #!  RESOURCES
 
 resources:
-  - name: pr-((deploy-env))
-    type: pull-request
-    check_every: 1m
+  - name: src-((deploy-env))-tagged
+    type: git
+    icon: github
     source:
-      repository: ((build-container-repository-path))
-      access_token: ((gh-access-token))
-      base_branch: main
-      disable_forks: true
-      ignore_drafts: false
+      uri: ((git-base-url))/((build-container-repository-path))
+      branch: main
+      commit_verification_keys: ((cloud-gov-pages-gpg-keys))
+      tag_filter: 0.*.*
+      fetch_tags: true
 
   - name: nightly
     type: time
