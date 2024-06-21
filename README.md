@@ -197,24 +197,19 @@ We use Concourse CI for our CI/CD system. To use Concourse, one must have approp
 2. Update local credential files (see ci/vars/example.yml)
 
 #### CI deployments
-This repository contains two distinct deployment pipelines in concourse:
-- [__build-container__](./ci/pipeline.yml)
-- [__build-container dev__](./ci/pipeline-dev.yml)
+This repository contains three distinct deployment pipelines in concourse:
+- [__build-container production__](./ci/pipeline-production.yml); starts on a new tag pushed to the `main` branch
+- [__build-container staging__](./ci/pipeline-staging.yml); starts on a new commit pushed to the `main` branch.
+- [__build-container dev__](./ci/pipeline-dev.yml); starts when a PR is created into the `main` branch.
 
-__build-container__ creates the site build container image, pushes it to ECR, and then deploys the image for the build container app.
+Each pipeline runs tests, creates the appropriate site build container image, pushes it to ECR, and then deploys the image for the build container app.
 
-__*&#8595; NOTICE &#8595;*__
-
-> __build-container dev__ deploys the Pages app/api, the admin app, and the queues app when a PR is created into the `staging` branch. This uses a unique pipeline file: [./ci/pipeline-dev.yml](./ci/pipeline-dev.yml)
-
-#### Deployment
 ##### Pipeline instance variables
 Three instances of the pipeline are set for the `pages dev`, `pages staging` and `pages production` environments. Instance variables are used to fill in Concourse pipeline parameter variables bearing the same name as the instance variable. See more on [Concourse vars](https://concourse-ci.org/vars.html). Each instance of the pipeline has three instance variables associated to it: `deploy-env`, `git-branch`.
 
 |Instance Variable|Pages Dev|Pages Staging|Pages Production|
 --- | --- | ---| ---|
 |**`deploy-env`**|`dev`|`staging`|`production`|
-|**`git-branch`**|`staging`|`staging`|`main`|
 
 ## Public domain
 

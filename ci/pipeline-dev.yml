@@ -1,12 +1,7 @@
 ---
 #@ load("funcs.lib.yml", "slack_hook")
-
-env-cf: &env-cf
-  CF_API: https://api.fr.cloud.gov
-  CF_USERNAME: ((((deploy-env))-cf-username))
-  CF_PASSWORD: ((((deploy-env))-cf-password))
-  CF_ORG: gsa-18f-federalist
-  CF_SPACE: ((deploy-env))
+#@ load("@ytt:data", "data")
+#@ load("@ytt:template", "template")
 
 #!  JOBS
 
@@ -87,7 +82,7 @@ jobs:
         image: general-task
         file: src/ci/partials/deploy.yml
         params:
-          <<: *env-cf
+          _: #@ template.replace(data.values.env_cf)
           CF_APP_NAME: pages-build-container-((deploy-env))
           CF_MANIFEST: .cloudgov/manifest.yml
           CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
@@ -97,23 +92,6 @@ jobs:
           CF_DOCKER_PASSWORD: ((ecr-aws-secret))
 
     on_failure: #@ slack_hook("failure", "deployment")
-
-  - name: nightly-((deploy-env))
-    plan:
-      - get: nightly
-        trigger: true
-      - get: src
-        resource: pr-((deploy-env))
-      - get: general-task
-      - get: pipeline-tasks
-      - task: restage
-        image: general-task
-        file: pipeline-tasks/tasks/restage.yml
-        params:
-          <<: *env-cf
-          CF_APP_NAME: pages-build-container-((deploy-env))
-    on_success: #@ slack_hook("success", "nightly restage")
-    on_failure: #@ slack_hook("failure", "nightly restage")
 
   - name: audit-dependencies
     plan:
@@ -170,13 +148,6 @@ resources:
       disable_forks: true
       ignore_drafts: false
 
-  - name: nightly
-    type: time
-    source:
-      start: 12:00 AM
-      stop: 1:00 AM
-      location: America/New_York
-
   - name: image-repository
     type: registry-image
     source:
@@ -198,5 +169,4 @@ resource_types:
   - name: git
   - name: slack-notification
   - name: pull-request
-  - name: time
   - name: registry-image
