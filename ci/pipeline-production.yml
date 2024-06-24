@@ -30,6 +30,7 @@ jobs:
         resource: src-((deploy-env))-tagged
         trigger: true
         params: { depth: 1 }
+        passed: [set-pipeline]
       - get: python
       - task: test
         image: python
@@ -43,7 +44,7 @@ jobs:
         resource: src-((deploy-env))-tagged
         trigger: true
         params: { depth: 1 }
-        passed: [test-((deploy-env))]
+        passed: [test-((deploy-env)), audit-dependencies]
       - get: general-task
       - get: oci-build-task
       - task: build
@@ -83,6 +84,15 @@ jobs:
 
     on_failure: #@ slack_hook("failure", "dependency audit")
     on_success: #@ slack_hook("success", "dependency audit")
+
+  - name: release
+    plan:
+      - get: src
+        resource: src-((deploy-env))-tagged
+        params: { depth: 1 }
+        trigger: true
+        passed: [deploy-((deploy-env))]
+      -  #@ template.replace(data.values.release_steps)
 
 #!  RESOURCES
 

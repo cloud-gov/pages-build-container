@@ -24,12 +24,24 @@ jobs:
         instance_vars:
           deploy-env: ((deploy-env))
 
+  - name: update-release-branch
+    plan:
+      - get: src
+        resource: src-((deploy-env))
+        trigger: true
+      - get: general-task
+      - get: pipeline-tasks
+      - task: update-release-branch
+        image: general-task
+        file: pipeline-tasks/tasks/update-release-branch.yml
+
   - name: test-((deploy-env))
     plan:
       - get: src
         resource: src-((deploy-env))
         trigger: true
         params: { depth: 1 }
+        passed: [set-pipeline]
       - get: python
       - task: test
         image: python
@@ -43,7 +55,7 @@ jobs:
         resource: src-((deploy-env))
         trigger: true
         params: { depth: 1 }
-        passed: [test-((deploy-env))]
+        passed: [test-((deploy-env)), audit-dependencies]
       - get: general-task
       - get: oci-build-task
       - task: build
@@ -91,9 +103,10 @@ resources:
     type: git
     icon: github
     source:
-      uri: ((git-base-url))/((build-container-repository-path))
+      uri: git@github.com:/((build-container-repository-path))
       branch: main
       commit_verification_keys: ((cloud-gov-pages-gpg-keys))
+      private_key: ((pages-gpg-operations-github-sshkey.private_key))
 
   - name: image-repository
     type: registry-image
