@@ -116,6 +116,13 @@ resources:
       aws_region: us-gov-west-1
       tag: pages-((deploy-env))
 
+  - name: pages-release
+    type: github-release
+    source:
+      owner: cloud-gov
+      repository: pages-build-container
+      access_token: ((gh-access-token))
+
   - name: slack
   - name: pipeline-tasks
   - name: python
@@ -129,3 +136,4 @@ resource_types:
   - name: slack-notification
   - name: pull-request
   - name: registry-image
+  - name: github-release
