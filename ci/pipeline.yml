@@ -1,0 +1,226 @@
+---
+#@ load("funcs.lib.yml", "slack_hook", "pr_hook")
+#@ load("@ytt:data", "data")
+#@ load("@ytt:template", "template")
+
+#@ env = data.values.env
+
+#!  JOBS
+
+jobs:
+  - name: set-pipeline
+    plan:
+      - get: src
+        trigger: true
+        params:
+          #@ if/end env != 'dev':
+          depth: 1
+          #@ if/end env == 'dev':
+          integration_tool: checkout
+      - get: pipeline-tasks
+      - get: general-task
+      - task: boot
+        image: general-task
+        file: pipeline-tasks/tasks/boot.yml
+        params:
+          ENV_OVERRIDE: ((deploy-env))
+      - set_pipeline: self
+        file: compiled/set-pipeline.yml
+        instance_vars:
+          deploy-env: ((deploy-env))
+
+  #@ if/end env == 'staging':
+  - name: update-release-branch
+    plan:
+      - get: src
+        trigger: true
+      - get: general-task
+      - get: pipeline-tasks
+      - task: update-release-branch
+        image: general-task
+        file: pipeline-tasks/tasks/update-release-branch.yml
+
+  - name: test
+    plan:
+      - get: src
+        trigger: true
+        passed: [set-pipeline]
+        params:
+          #@ if/end env != 'dev':
+          depth: 1
+          #@ if/end env == 'dev':
+          integration_tool: checkout
+      #@ if/end env == 'dev':
+      -  #@ pr_hook("pending", "test-pages-build-container")
+      - get: python
+      - task: test
+        image: python
+        file: src/ci/partials/test.yml
+
+    on_success:
+      in_parallel:
+        -  #@ slack_hook("success", "tests")
+        #@ if/end env == 'dev':
+        -  #@ pr_hook("success", "test-pages-build-container")
+
+    on_failure:
+      in_parallel:
+        -  #@ slack_hook("failure", "tests")
+        #@ if/end env == 'dev':
+        -  #@ pr_hook("failure", "test-pages-build-container")
+
+  - name: deploy
+    plan:
+      - get: src
+        trigger: true
+        passed:
+          - test
+          #@ if/end env != 'dev':
+          - audit
+        params:
+          #@ if/end env != 'dev':
+          depth: 1
+          #@ if/end env == 'dev':
+          integration_tool: checkout
+      - get: general-task
+      - get: oci-build-task
+      - task: build
+        privileged: true
+        image: oci-build-task
+        file: src/ci/partials/build.yml
+
+      - put: image-repository
+        params:
+          image: image/image.tar
+      - task: deploy
+        image: general-task
+        file: src/ci/partials/deploy.yml
+        params:
+          _: #@ template.replace(data.values.env_cf)
+          CF_APP_NAME: pages-build-container-((deploy-env))
+          CF_MANIFEST: .cloudgov/manifest.yml
+          CF_VARS_FILE: .cloudgov/vars/pages-((deploy-env)).yml
+          IMAGE_REPOSITORY: ../image-repository/repository
+          IMAGE_TAG: pages-((deploy-env))
+          CF_DOCKER_USERNAME: ((ecr-aws-key))
+          CF_DOCKER_PASSWORD: ((ecr-aws-secret))
+
+    on_success:
+      in_parallel:
+        -  #@ slack_hook("success", "deployment")
+        #@ if/end env == 'dev':
+        -  #@ pr_hook("success", "deploy-pages-build-container")
+
+    on_failure:
+      in_parallel:
+        -  #@ slack_hook("failure", "deployment")
+        #@ if/end env == 'dev':
+        -  #@ pr_hook("failure", "deploy-pages-build-container")
+
+  - name: audit-dependencies
+    plan:
+      - get: src
+        trigger: true
+        passed: [set-pipeline]
+        params:
+          #@ if/end env != 'dev':
+          depth: 1
+          #@ if/end env == 'dev':
+          integration_tool: checkout
+
+      #@ if/end env == 'dev':
+      -  #@ pr_hook("pending", "audit-dependencies")
+
+      - get: python
+      - task: pip-audit
+        image: python
+        file: src/ci/partials/audit.yml
+
+    on_success:
+      in_parallel:
+        -  #@ slack_hook("success", "dependency audit")
+        #@ if/end env == 'dev':
+        -  #@ pr_hook("success", "audit-dependencies")
+
+    on_failure:
+      in_parallel:
+        -  #@ slack_hook("failure", "dependency audit")
+        #@ if/end env == 'dev':
+        -  #@ pr_hook("failure", "audit-dependencies")
+
+  #@ if/end env == 'production':
+  - name: release
+    plan:
+      - get: src
+        params: { depth: 1 }
+        trigger: true
+        passed: [deploy]
+      -  #@ template.replace(data.values.release_steps)
+
+#!  RESOURCES
+
+resources:
+  #@ if/end env == 'dev':
+  - name: src
+    type: pull-request
+    check_every: 1m
+    source:
+      repository: ((build-container-repository-path))
+      access_token: ((gh-access-token))
+      base_branch: main
+      disable_forks: true
+      ignore_drafts: false
+
+  #@ if/end env == 'staging':
+  - name: src
+    type: git
+    icon: github
+    source:
+      uri: git@github.com:/((build-container-repository-path))
+      branch: main
+      commit_verification_keys: ((cloud-gov-pages-gpg-keys))
+      private_key: ((pages-gpg-operations-github-sshkey.private_key))
+
+  #@ if env == 'production':
+  - name: src
+    icon: github
+    source:
+      uri: ((git-base-url))/((build-container-repository-path))
+      branch: main
+      commit_verification_keys: ((cloud-gov-pages-gpg-keys))
+      tag_filter: 0.*.*
+      fetch_tags: true
+
+  - name: pages-release
+    type: github-release
+    source:
+      owner: cloud-gov
+      repository: pages-build-container
+      access_token: ((gh-access-token))
+  #@ end
+
+  - name: image-repository
+    type: registry-image
+    source:
+      aws_access_key_id: ((ecr-aws-key))
+      aws_secret_access_key: ((ecr-aws-secret))
+      repository: pages-build-container
+      aws_region: us-gov-west-1
+      tag: pages-((deploy-env))
+
+  - name: slack
+  - name: pipeline-tasks
+  - name: python
+  - name: general-task
+  - name: oci-build-task
+
+#!  RESOURCE TYPES
+
+resource_types:
+  - name: git
+  - name: slack-notification
+  - name: registry-image
+  #@ if/end env == 'dev':
+  - name: pull-request
+  #@ if/end env == 'production':
+  - name: github-release
