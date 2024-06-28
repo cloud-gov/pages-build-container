@@ -76,7 +76,7 @@ jobs:
         passed:
           - test
           #@ if/end env != 'dev':
-          - audit
+          - audit-dependencies
         params:
           #@ if/end env != 'dev':
           depth: 1
