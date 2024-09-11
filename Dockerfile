@@ -15,12 +15,12 @@ RUN apt-get update \
   gawk bison sqlite3
 
 # Deps for container hardening
-RUN ln -sf "/usr/share/zoneinfo/$SYSTEM_TIMEZONE" /etc/localtime
-COPY docker/ua-attach-config.sh .
-RUN --mount=type=secret,id=UA_TOKEN ./ua-attach-config.sh && \
-  ua attach --attach-config ua-attach-config.yaml && \
-  rm ua-attach-config.yaml
-RUN apt-get -y -q install usg
+# RUN ln -sf "/usr/share/zoneinfo/$SYSTEM_TIMEZONE" /etc/localtime
+# COPY docker/ua-attach-config.sh .
+# RUN --mount=type=secret,id=UA_TOKEN ./ua-attach-config.sh && \
+#   ua attach --attach-config ua-attach-config.yaml && \
+#   rm ua-attach-config.yaml
+# RUN apt-get -y -q install usg
 
 # Install and setup en_US.UTF-8 locale
 # This is necessary so that output from node/ruby/python
@@ -31,12 +31,12 @@ RUN apt-get update && \
   locale-gen en_US.UTF-8
 
 # Install headless chrome
-ARG DEBIAN_FRONTEND=noninteractive
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-  && echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' >> /etc/apt/sources.list.d/google.list \
-  && apt-get update \
-  && apt-get install -y google-chrome-unstable --no-install-recommends \
-  && rm -rf /var/lib/apt/lists/*
+# ARG DEBIAN_FRONTEND=noninteractive
+# RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+#   && echo 'deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main' >> /etc/apt/sources.list.d/google.list \
+#   && apt-get update \
+#   && apt-get install -y google-chrome-unstable --no-install-recommends \
+#   && rm -rf /var/lib/apt/lists/*
 
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US
@@ -100,8 +100,7 @@ RUN source /usr/local/rvm/scripts/rvm \
 
 # Update to the latest RubyGems
 RUN source /usr/local/rvm/scripts/rvm && \
-    rvm rubygems 3.5.18 && \
-    rvm gem install bigdecimal
+    rvm rubygems 3.5.18
 
 # Default to Node 18
 ENV NODE_VERSION lts/hydrogen
@@ -130,5 +129,5 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 COPY ./src ./
 
 # Container Hardening
-RUN usg fix cis_level1_server
-RUN apt-get purge --auto-remove -y ubuntu-advantage-tools
+# RUN usg fix cis_level1_server
+# RUN apt-get purge --auto-remove -y ubuntu-advantage-tools
