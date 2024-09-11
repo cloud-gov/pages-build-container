@@ -88,7 +88,7 @@ RUN sudo usermod --append --groups rvm customer
 USER customer
 
 # Configure rvm and install default Ruby
-ENV RUBY_VERSION 3.1.4
+ENV RUBY_VERSION 3.3.4
 ENV RUBY_VERSION_MIN 3.0.6
 RUN source /usr/local/rvm/scripts/rvm \
   # Fail if deps are missing, won't prompt for sudo
@@ -100,7 +100,8 @@ RUN source /usr/local/rvm/scripts/rvm \
 
 # Update to the latest RubyGems
 RUN source /usr/local/rvm/scripts/rvm && \
-    rvm rubygems 3.4.22
+    rvm rubygems 3.5.18 && \
+    rvm gem install bigdecimal
 
 # Default to Node 18
 ENV NODE_VERSION lts/hydrogen
