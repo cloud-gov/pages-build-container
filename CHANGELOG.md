@@ -1,3 +1,9 @@
+## 0.1.2 (2024-09-12)
+
+### Maintenance
+
+- Bump cryptography from 42.0.7 to 43.0.1 in the pip
+
 ## 0.1.1 (2024-06-28)
 
 ### Maintenance
