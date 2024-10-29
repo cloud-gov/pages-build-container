@@ -148,25 +148,23 @@ def setup_node(should_cache: bool, bucket, s3_client, post_metrics):
     NVMRC_PATH = CLONE_DIR_PATH / NVMRC
     if NVMRC_PATH.is_file():
         # nvm will output the node and npm versions used
-        # the warning is currently non-reachable but leaving it in for October 2024
-        # to warn about node 18 EOL
         logger.info('Checking node version specified in .nvmrc')
         runp("""
             RAW_VERSION=$(nvm version-remote $(cat .nvmrc))
             MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
-            if [[ "$MAJOR_VERSION" =~ ^(18|20)$ ]]; then
+            if [[ "$MAJOR_VERSION" =~ ^(18|20|22)$ ]]; then
                 echo "Switching to node version $RAW_VERSION specified in .nvmrc"
 
-                if [[ "$MAJOR_VERSION" -eq 16 ]]; then
-                    echo "WARNING: Node $RAW_VERSION will reach end-of-life on 9-11-2023, at which point Pages will no longer support it."
-                    echo "Please upgrade to LTS major version 18 or 20, see https://nodejs.org/en/about/releases/ for details."
+                if [[ "$MAJOR_VERSION" -eq 18 ]]; then
+                    echo "WARNING: Node $RAW_VERSION will reach end-of-life on 2025-04-30, at which point Pages will no longer support it."
+                    echo "Please upgrade to LTS major version 20 or 22, see https://nodejs.org/en/about/releases/ for details."
                 fi
 
                 nvm install $RAW_VERSION
                 nvm alias default $RAW_VERSION
             else
                 echo "Unsupported node major version '$MAJOR_VERSION' specified in .nvmrc."
-                echo "Please upgrade to LTS major version 18 or 20, see https://nodejs.org/en/about/releases/ for details."
+                echo "Please upgrade to LTS major version 20 or 22, see https://nodejs.org/en/about/releases/ for details."
                 exit 1
             fi
         """)  # noqa: E501
