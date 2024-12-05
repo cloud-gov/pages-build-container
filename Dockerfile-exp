@@ -44,7 +44,7 @@ RUN mkdir -p /root/.gnupg \
   && echo 'disable-ipv6' >> /root/.gnupg/dirmngr.conf \
   && echo 'rvm_silence_path_mismatch_check_flag=1' >> /etc/rvmrc \
   && echo 'install: --no-document\nupdate: --no-document' >> /etc/.gemrc
-  
+
 RUN useradd --no-log-init --system --create-home --groups sudo system \
   && echo 'system ALL=(ALL:ALL) NOPASSWD:ALL' >> /etc/sudoers.d/system
 
@@ -91,8 +91,8 @@ RUN source /usr/local/rvm/scripts/rvm \
   # Make rvm available in non-login bash shells
   && echo 'source /usr/local/rvm/scripts/rvm' >> ~/.bashrc
 
-# Default to Node 18
-ENV NODE_VERSION lts/hydrogen
+# Default to Node 20
+ENV NODE_VERSION lts/iron
 RUN curl https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash \
   && \. "$HOME/.nvm/nvm.sh" \
   && nvm install $NODE_VERSION
