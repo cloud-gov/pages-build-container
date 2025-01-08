@@ -1,3 +1,9 @@
+## 0.1.3 (2024-12-05)
+
+### Maintenance
+
+- Install and set default node to v20
+
 ## 0.1.2 (2024-10-29)
 
 ### Maintenance
