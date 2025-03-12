@@ -1,3 +1,9 @@
+## 0.1.4 (2025-03-12)
+
+### Maintenance
+
+- update dependencies
+
 ## 0.1.3 (2024-12-05)
 
 ### Maintenance
