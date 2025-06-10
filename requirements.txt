@@ -1,4 +1,4 @@
-requests==2.32.3
+requests==2.32.4
 boto3==1.34.102
 stopit==1.1.2
 psycopg2==2.9.9
