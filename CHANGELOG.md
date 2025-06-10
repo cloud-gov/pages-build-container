@@ -1,3 +1,15 @@
+## 0.1.4 (2025-06-10)
+
+### Fixed
+
+- Sets proper headings on CONTRIBUTING.md
+
+### Maintenance
+
+- Update CONTRIBUTING.md
+- Update dependency requests to v2.32.4
+- update dependencies
+
 ## 0.1.3 (2024-12-05)
 
 ### Maintenance
