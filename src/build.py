@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 from stopit import TimeoutException, SignalTimeout as Timeout
 import boto3
+from botocore.config import Config
 from functools import partial
 
 from common import CLONE_DIR_PATH
@@ -32,6 +33,10 @@ from steps import (
 TIMEOUT_SECONDS = 45 * 60  # 45 minutes
 
 GENERATORS = ['hugo', 'jekyll', 'node.js', 'static']
+
+client_config = Config(
+    max_pool_connections=50
+)
 
 
 def build(
@@ -116,7 +121,8 @@ def build(
                 service_name='s3',
                 aws_access_key_id=aws_access_key_id,
                 aws_secret_access_key=aws_secret_access_key,
-                region_name=aws_default_region
+                region_name=aws_default_region,
+                config=client_config
             )
 
             ##
