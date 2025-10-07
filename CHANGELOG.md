@@ -1,3 +1,10 @@
+## 0.1.5 (2025-10-02)
+
+### Maintenance
+
+- Add CODEOWNERS
+- Bump boto3 to 50 max pool connections
+
 ## 0.1.4 (2025-06-10)
 
 ### Fixed
