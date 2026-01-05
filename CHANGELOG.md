@@ -1,3 +1,9 @@
+## 0.2.0 (2026-01-05)
+
+### Added
+
+- Add Node.js v24 as the default node version
+
 ## 0.1.5 (2025-10-02)
 
 ### Maintenance
