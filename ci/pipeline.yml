@@ -183,6 +183,7 @@ resources:
 
   #@ if env == 'production':
   - name: src
+    type: git
     icon: github
     source:
       uri: ((git-base-url))/((build-container-repository-path))
