@@ -152,19 +152,19 @@ def setup_node(should_cache: bool, bucket, s3_client, post_metrics):
         runp("""
             RAW_VERSION=$(nvm version-remote $(cat .nvmrc))
             MAJOR_VERSION=$(echo $RAW_VERSION | cut -d. -f 1 | cut -dv -f 2)
-            if [[ "$MAJOR_VERSION" =~ ^(18|20|22)$ ]]; then
+            if [[ "$MAJOR_VERSION" =~ ^(20|22|24)$ ]]; then
                 echo "Switching to node version $RAW_VERSION specified in .nvmrc"
 
-                if [[ "$MAJOR_VERSION" -eq 18 ]]; then
-                    echo "WARNING: Node $RAW_VERSION will reach end-of-life on 2025-04-30, at which point Pages will no longer support it."
-                    echo "Please upgrade to LTS major version 20 or 22, see https://nodejs.org/en/about/releases/ for details."
+                if [[ "$MAJOR_VERSION" -eq 20 ]]; then
+                    echo "WARNING: Node $RAW_VERSION will reach end-of-life in May 2026, at which point Pages will no longer support it."
+                    echo "Please upgrade to LTS major version 22 or 24, see https://nodejs.org/en/about/releases/ for details."
                 fi
 
                 nvm install $RAW_VERSION
                 nvm alias default $RAW_VERSION
             else
                 echo "Unsupported node major version '$MAJOR_VERSION' specified in .nvmrc."
-                echo "Please upgrade to LTS major version 20 or 22, see https://nodejs.org/en/about/releases/ for details."
+                echo "Please upgrade to LTS major version 22 or 24, see https://nodejs.org/en/about/releases/ for details."
                 exit 1
             fi
         """)  # noqa: E501
