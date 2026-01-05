@@ -1,3 +1,9 @@
+## 0.2.1 (2026-01-05)
+
+### Fixed
+
+- Production CI pipeline to use single file config
+
 ## 0.2.0 (2026-01-05)
 
 ### Added
