@@ -86,6 +86,39 @@ RUN sudo usermod --append --groups rvm customer
 # Run these steps as the customer user
 #
 USER customer
+# --- Install Pagefind (precompiled static binary) -------------------------
+ARG PAGEFIND_VERSION=1.4.0
+ARG PAGEFIND_FLAVOR=extended   # "bin" or "extended"
+ARG PAGEFIND_TARGET=x86_64-unknown-linux-musl
+
+USER root
+RUN set -eux; \
+    install -d -m 0755 /opt/pagefind; \
+    cd /opt/pagefind; \
+    # pick archive base name based on flavor
+    if [ "${PAGEFIND_FLAVOR}" = "extended" ]; then \
+      BASENAME="pagefind_extended-v${PAGEFIND_VERSION}-${PAGEFIND_TARGET}"; \
+      BINNAME="pagefind_extended"; \
+    else \
+      BASENAME="pagefind-v${PAGEFIND_VERSION}-${PAGEFIND_TARGET}"; \
+      BINNAME="pagefind"; \
+    fi; \
+    TARBALL="${BASENAME}.tar.gz"; \
+    URL="https://github.com/Pagefind/pagefind/releases/download/v${PAGEFIND_VERSION}/${TARBALL}"; \
+    echo "Fetching ${URL}"; \
+    curl -fsSL -o "${TARBALL}" "${URL}"; \
+    tar -xzf "${TARBALL}"; \
+    rm -f "${TARBALL}"; \
+    # sanity: ensure expected binary exists after extraction
+    ls -l "${BINNAME}"; \
+    install -m 0755 "${BINNAME}" "/usr/local/bin/${BINNAME}"; \
+    # Optional: for convenience, map `pagefind` to extended if chosen
+    if [ "${PAGEFIND_FLAVOR}" = "extended" ]; then ln -sf "/usr/local/bin/${BINNAME}" /usr/local/bin/pagefind; fi; \
+    # final sanity checks
+    (pagefind --help || true) >/dev/null 2>&1; \
+    (pagefind_extended --help || true) >/dev/null 2>&1
+
+USER customer
 
 # Configure rvm and install default Ruby
 ENV RUBY_VERSION 3.1.4
