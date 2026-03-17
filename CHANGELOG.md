@@ -1,3 +1,14 @@
+## 0.2.1 (2026-03-17)
+
+### Fixed
+
+- update cryptography package
+- Production CI pipeline to use single file config
+
+### Maintenance
+
+- add pagefind to site build container
+
 ## 0.2.0 (2026-01-05)
 
 ### Added
