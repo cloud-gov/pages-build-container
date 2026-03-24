@@ -18,6 +18,7 @@ services:
       USER_ENVIRONMENT_VARIABLE_KEY: shhhhhhh
 
   app:
+    platform: linux/amd64
     build:
       context: .
     volumes:

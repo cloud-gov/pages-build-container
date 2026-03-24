@@ -11,6 +11,7 @@ from crypto.decrypt import decrypt
 KEYS_TO_DECRYPT = [
     'STATUS_CALLBACK',
     'GITHUB_TOKEN',
+    'SOURCE_CODE_PLATFORM_TOKEN',
     'AWS_ACCESS_KEY_ID',
     'AWS_SECRET_ACCESS_KEY',
     'BUCKET',
@@ -94,6 +95,12 @@ if __name__ == "__main__":
     kwargs['branch'] = shlex.quote(kwargs['branch'])
     kwargs['owner'] = shlex.quote(kwargs['owner'])
     kwargs['repository'] = shlex.quote(kwargs['repository'])
+    if kwargs.get('source_code_platform'):
+        kwargs['source_code_platform'] = shlex.quote(kwargs['source_code_platform'])
+    if kwargs.get('source_code_platform_domain'):
+        kwargs['source_code_platform_domain'] = shlex.quote(kwargs['source_code_platform_domain'])
+    if kwargs.get('source_code_platform_token'):
+        kwargs['source_code_platform_token'] = shlex.quote(kwargs['source_code_platform_token'])
 
     if os.getenv('VCAP_APPLICATION', None):
         load_vcap()
