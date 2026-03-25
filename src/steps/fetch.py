@@ -10,7 +10,9 @@ from common import (REPO_BASE_URL, CLONE_DIR_PATH)
 from steps import StepException
 
 
-def fetch_url(owner, repository, access_token=''):  # nosec
+def fetch_url(owner, repository, access_token='',
+              source_code_platform='', source_code_platform_domain='',
+              source_code_platform_token=''):  # nosec
     '''
     Creates a URL to a remote git repository.
     If `access_token` is specified, it will be included in the authentication
@@ -21,15 +23,24 @@ def fetch_url(owner, repository, access_token=''):  # nosec
 
     >>> fetch_url('owner2', 'repo2', 'secret-token')
     'https://secret-token@github.com/owner2/repo2.git'
+
+    >>> fetch_url('owner3', 'repo3', 'secret-token3',  \\
+    ... 'source_code_platform3', 'source_code_platform_domain3', 'source_code_platform_token3')
+    'https://source_code_platform_token3@source_code_platform_domain3/owner3/repo3.git'
     '''
-    repo_url = f'{REPO_BASE_URL}/{owner}/{repository}.git'
-    if access_token:
-        repo_url = f'{access_token}@{repo_url}'
+    base_url = source_code_platform_domain if source_code_platform else REPO_BASE_URL
+    repo_url = f'{base_url}/{owner}/{repository}.git'
+    if token := source_code_platform_token if source_code_platform else access_token:
+        repo_url = f'{token}@{repo_url}'
 
     return f'https://{repo_url}'
 
 
-def fetch_repo(owner, repository, branch, github_token=''):  # nosec
+
+def fetch_repo(  # noqa: E303
+        owner, repository, branch, access_token='',
+        source_code_platform='', source_code_platform_domain='',
+        source_code_platform_token=''):  # nosec
     '''
     Clones the GitHub repository specified by owner and repository
     into CLONE_DIR_PATH.
@@ -44,9 +55,13 @@ def fetch_repo(owner, repository, branch, github_token=''):  # nosec
         'HOME': '/home'
     }
 
+    url = fetch_url(owner, repository, access_token,
+                    source_code_platform, source_code_platform_domain, source_code_platform_token)
+    logger.info(f'Fetch URL: {url}')
+
     command = (
         f'git clone -b {branch} --single-branch --depth 1 '
-        f'{fetch_url(owner, repository, github_token)} '
+        f'{url} '
         f'{CLONE_DIR_PATH}'
     )
 
