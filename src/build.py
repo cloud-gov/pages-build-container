@@ -89,6 +89,7 @@ def build(  # nosec: B107  # reason: empty placeholder, not a credential
                 priv_vals.append(source_code_platform_token)
 
             logattrs = {
+                'source_code_platform': source_code_platform,
                 'branch': branch,
                 'buildid': build_id,
                 'owner': owner,
