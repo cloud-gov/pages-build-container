@@ -2,7 +2,7 @@
 
 Docker image for building and publishing static sites as part of the cloud.gov Pages platform.
 
-Generally, site builds work in three stages: clone, build, and publish. Each stage is broken down into a number of steps. First, the container checks out the site from GitHub. Then it builds the site with the specified build engine. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3, and also creates redirect objects for directories, such as `/path` => `/path/`.
+Generally, site builds work in three stages: clone, build, and publish. Each stage is broken down into a number of steps. First, the container checks out the site from GitHub or GitLab. Then it builds the site with the specified build engine. Then it gzip compresses text files and sets cache control headers. Finally, it uploads the built site to S3, and also creates redirect objects for directories, such as `/path` => `/path/`.
 
 ## Usage
 
@@ -63,22 +63,23 @@ When running locally, environment variables are configured in `docker-compose.ym
 
 ## Build arguments
 
-| Name | Optional? | Default | Description |
-| ---- | :-------: | ------- | ----------- |
-| `aws_access_key_id` | N | | AWS access key for the destination S3 bucket |
-| `aws_secret_access_key` | N | | AWS secret key for the destination S3 bucket |
-| `aws_default_region` | N | | AWS region for the destination S3 bucket |
-| `bucket` | N | | AWS S3 bucket name for the destination S3 bucket |
-| `github_token` | Y | `None` | GitHub auth token for cloning the repository |
-| `status_callback` | N | | The URL the container should use to report the status of the completed build (ie, success or failure) |
-| `config` | Y | `None` | A yaml block of configuration to add to `_config.yml` before building. Currently only used in `jekyll` site builds |
-| `generator` | N | | The engine to use to build the site (`'jekyll'`, `'hugo'`, `'node.js'`, or `'static'`) |
-| `owner` | N | | The GitHub organization of the source repository |
-| `repository` | N | | The name of source the repository |
-| `branch` | N | | The branch of the source repository to build |
-| `site_prefix` | N | | The S3 bucket "path" that the site files will be published to. It should **not** have a trailing or prefix slash (Ex. `preview/<OWNER>/<REPOSITORY>/<BRANCH>`) |
+| Name | Optional? | Default | Description                                                                                                                                                               |
+| ---- | :-------: | ------- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `aws_access_key_id` | N | | AWS access key for the destination S3 bucket                                                                                                                              |
+| `aws_secret_access_key` | N | | AWS secret key for the destination S3 bucket                                                                                                                              |
+| `aws_default_region` | N | | AWS region for the destination S3 bucket                                                                                                                                  |
+| `bucket` | N | | AWS S3 bucket name for the destination S3 bucket                                                                                                                          |
+| `source_code_platform_domain` | Y | `None` | Source code platform domain (`'github.com'`, `'workshop.cloud.gov'`)                                                                                                      |
+| `source_code_platform_token` | Y | `None` | GitHub or GitLab auth token for cloning the repository                                                                                                                    |
+| `status_callback` | N | | The URL the container should use to report the status of the completed build (ie, success or failure)                                                                     |
+| `config` | Y | `None` | A yaml block of configuration to add to `_config.yml` before building. Currently only used in `jekyll` site builds                                                        |
+| `generator` | N | | The engine to use to build the site (`'jekyll'`, `'hugo'`, `'node.js'`, or `'static'`)                                                                                    |
+| `owner` | N | | The GitHub organization of the source repository or GitLab group of the source project                                                                                    |
+| `repository` | N | | The name of source the repository                                                                                                                                         |
+| `branch` | N | | The branch of the source repository to build                                                                                                                              |
+| `site_prefix` | N | | The S3 bucket "path" that the site files will be published to. It should **not** have a trailing or prefix slash (Ex. `preview/<OWNER>/<REPOSITORY>/<BRANCH>`)            |
 | `baseurl` | Y | `None` | The base URL that will be used by the build engine to determine the absolute path for site assets (blank for custom domains, the `site_prefix` with a preceding `/` for preview domains |
-| `user_environment_variables` | Y | | Array of objects containing the name and encrypted values of user-provided environment variables (Ex. `[{ name: "MY ENV VAR", ciphertext: "ABC123" }]`) |
+| `user_environment_variables` | Y | | Array of objects containing the name and encrypted values of user-provided environment variables (Ex. `[{ name: "MY ENV VAR", ciphertext: "ABC123" }]`)                   |
 
 
 ### Encrypted params argument
@@ -102,8 +103,8 @@ The following environment variables are available during site builds and when ru
 #### Requirements
 - [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
 - AWS S3 bucket name and associated credentials (key, secret, region)
-- A Github repository with a Pages-compatible site
-- A Github Personal Access Token if building a private repository, see [creating a new personal token for your GitHub account](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/) for more information.
+- A GitHub repository or GitLab project with a Pages-compatible site
+- A GitHub Personal Access Token or GitLab OAuth token if building a private repository, see [creating a new personal token for your GitHub account](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/) for more information.
 
 #### Clone the repository
 ```sh

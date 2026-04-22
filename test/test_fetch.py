@@ -46,6 +46,83 @@ class TestCloneRepo():
 
         mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env, check=False)  # noqa: 501
 
+    def test_runs_expected_cmds_with_source_code_platform_config_github(
+            self, mock_get_logger, mock_run):
+        owner = 'owner-1'
+        repository = 'repo-1'
+        branch = 'main'
+        source_code_platform_domain = 'github.com2'
+        source_code_platform_token = ''
+
+        command = (f'git clone -b {branch} --single-branch --depth 1 '
+                   f'https://github.com2/{owner}/{repository}.git '
+                   f'{CLONE_DIR_PATH}')
+
+        fetch_repo(owner, repository, branch, source_code_platform_token,
+                   source_code_platform_domain)
+
+        mock_get_logger.assert_called_once_with('clone')
+
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env, check=False)  # noqa: 501
+
+    def test_runs_expected_cmds_with_source_code_platform_config_github_with_token(
+            self, mock_get_logger, mock_run):
+        owner = 'owner-1'
+        repository = 'repo-1'
+        branch = 'main'
+        source_code_platform_domain = 'github2.com'
+        source_code_platform_token = 'source_code_platform_ABC123'
+
+        command = (f'git clone -b {branch} --single-branch --depth 1 '
+                   f'https://{source_code_platform_token}@github2.com/{owner}/{repository}.git '
+                   f'{CLONE_DIR_PATH}')
+
+        fetch_repo(owner, repository, branch,
+                   source_code_platform_token, source_code_platform_domain)
+
+        mock_get_logger.assert_called_once_with('clone')
+
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env, check=False)  # noqa: 501
+
+    def test_runs_expected_cmds_with_source_code_platform_config_workshop(
+            self, mock_get_logger, mock_run):
+        owner = 'owner-1'
+        repository = 'repo-1'
+        branch = 'main'
+        source_code_platform_domain = 'workshop.cloud.gov'
+        source_code_platform_token = ''
+
+        command = (f'git clone -b {branch} --single-branch --depth 1 '
+                   f'https://{source_code_platform_domain}/{owner}/{repository}.git '
+                   f'{CLONE_DIR_PATH}')
+
+        fetch_repo(owner, repository, branch,
+                   source_code_platform_token, source_code_platform_domain)
+
+        mock_get_logger.assert_called_once_with('clone')
+
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env, check=False)  # noqa: 501
+
+    def test_runs_expected_cmds_with_source_code_platform_config_workshop_with_token(
+            self, mock_get_logger, mock_run):
+        owner = 'owner-1'
+        repository = 'repo-1'
+        branch = 'main'
+        source_code_platform_domain = 'workshop.cloud.gov'
+        source_code_platform_token = 'source_code_platform_ABC123'
+
+        command = (f'git clone -b {branch} --single-branch --depth 1 '
+                   f'https://{source_code_platform_token}@'
+                   f'{source_code_platform_domain}/{owner}/{repository}.git '
+                   f'{CLONE_DIR_PATH}')
+
+        fetch_repo(owner, repository, branch,
+                   source_code_platform_token, source_code_platform_domain)
+
+        mock_get_logger.assert_called_once_with('clone')
+
+        mock_run.assert_called_once_with(mock_get_logger.return_value, command, env=clone_env, check=False)  # noqa: 501
+
 
 class TestCloneRepoNoMock(unittest.TestCase):
     @pytest.fixture(autouse=True)

@@ -39,7 +39,7 @@ client_config = Config(
 )
 
 
-def build(
+def build(  # nosec: B107  # reason: empty placeholder, not a credential
     aws_access_key_id,
     aws_default_region,
     aws_secret_access_key,
@@ -50,11 +50,12 @@ def build(
     build_id,
     config,
     generator,
-    github_token,
     owner,
     repository,
     site_prefix,
-    user_environment_variables=[]
+    user_environment_variables=[],
+    source_code_platform_domain='',
+    source_code_platform_token='',
 ):
     '''
     Main task to run a full site build process.
@@ -84,8 +85,8 @@ def build(
             priv_vals = [uev['value'] for uev in decrypted_uevs]
             priv_vals.append(aws_access_key_id)
             priv_vals.append(aws_secret_access_key)
-            if github_token:
-                priv_vals.append(github_token)
+            if source_code_platform_token:
+                priv_vals.append(source_code_platform_token)
 
             logattrs = {
                 'branch': branch,
@@ -131,7 +132,8 @@ def build(
             run_step(
                 fetch_repo,
                 'There was a problem fetching the repository, see the above logs for details.',
-                owner, repository, branch, github_token,
+                owner, repository, branch,
+                source_code_platform_token, source_code_platform_domain
             )
 
             commit_sha = fetch_commit_sha(CLONE_DIR_PATH)
