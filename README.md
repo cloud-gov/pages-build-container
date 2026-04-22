@@ -69,7 +69,6 @@ When running locally, environment variables are configured in `docker-compose.ym
 | `aws_secret_access_key` | N | | AWS secret key for the destination S3 bucket                                                                                                                              |
 | `aws_default_region` | N | | AWS region for the destination S3 bucket                                                                                                                                  |
 | `bucket` | N | | AWS S3 bucket name for the destination S3 bucket                                                                                                                          |
-| `github_token` | Y | `None` | GitHub auth token for cloning the repository                                                                                                                              |
 | `source_code_platform` | Y | `None` | Source code platform  (`'github'`, `'workshop'`)                                                                                                                          |
 | `source_code_platform_domain` | Y | `None` | Source code platform domain (`'github.com'`, `'workshop.cloud.gov'`)                                                                                                      |
 | `source_code_platform_token` | Y | `None` | GitHub or GitLab auth token for cloning the repository                                                                                                                    |
