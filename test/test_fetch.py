@@ -51,8 +51,6 @@ class TestCloneRepo():
         owner = 'owner-1'
         repository = 'repo-1'
         branch = 'main'
-        github_token = 'ABC123'
-        source_code_platform = 'github'
         source_code_platform_domain = 'github.com2'
         source_code_platform_token = ''
 
@@ -60,8 +58,8 @@ class TestCloneRepo():
                    f'https://github.com2/{owner}/{repository}.git '
                    f'{CLONE_DIR_PATH}')
 
-        fetch_repo(owner, repository, branch, github_token,
-                   source_code_platform, source_code_platform_domain, source_code_platform_token)
+        fetch_repo(owner, repository, branch, source_code_platform_token,
+                   source_code_platform_domain)
 
         mock_get_logger.assert_called_once_with('clone')
 
@@ -72,8 +70,6 @@ class TestCloneRepo():
         owner = 'owner-1'
         repository = 'repo-1'
         branch = 'main'
-        github_token = 'ABC123'
-        source_code_platform = 'github'
         source_code_platform_domain = 'github2.com'
         source_code_platform_token = 'source_code_platform_ABC123'
 
@@ -81,8 +77,8 @@ class TestCloneRepo():
                    f'https://{source_code_platform_token}@github2.com/{owner}/{repository}.git '
                    f'{CLONE_DIR_PATH}')
 
-        fetch_repo(owner, repository, branch, github_token,
-                   source_code_platform, source_code_platform_domain, source_code_platform_token)
+        fetch_repo(owner, repository, branch,
+                   source_code_platform_token, source_code_platform_domain)
 
         mock_get_logger.assert_called_once_with('clone')
 
@@ -93,8 +89,6 @@ class TestCloneRepo():
         owner = 'owner-1'
         repository = 'repo-1'
         branch = 'main'
-        github_token = 'ABC123'
-        source_code_platform = 'workshop'
         source_code_platform_domain = 'workshop.cloud.gov'
         source_code_platform_token = ''
 
@@ -102,8 +96,8 @@ class TestCloneRepo():
                    f'https://{source_code_platform_domain}/{owner}/{repository}.git '
                    f'{CLONE_DIR_PATH}')
 
-        fetch_repo(owner, repository, branch, github_token,
-                   source_code_platform, source_code_platform_domain, source_code_platform_token)
+        fetch_repo(owner, repository, branch,
+                   source_code_platform_token, source_code_platform_domain)
 
         mock_get_logger.assert_called_once_with('clone')
 
@@ -114,8 +108,6 @@ class TestCloneRepo():
         owner = 'owner-1'
         repository = 'repo-1'
         branch = 'main'
-        github_token = 'ABC123'
-        source_code_platform = 'workshop'
         source_code_platform_domain = 'workshop.cloud.gov'
         source_code_platform_token = 'source_code_platform_ABC123'
 
@@ -124,8 +116,8 @@ class TestCloneRepo():
                    f'{source_code_platform_domain}/{owner}/{repository}.git '
                    f'{CLONE_DIR_PATH}')
 
-        fetch_repo(owner, repository, branch, github_token,
-                   source_code_platform, source_code_platform_domain, source_code_platform_token)
+        fetch_repo(owner, repository, branch,
+                   source_code_platform_token, source_code_platform_domain)
 
         mock_get_logger.assert_called_once_with('clone')
 
