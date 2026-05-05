@@ -1,3 +1,20 @@
+## 0.3.0 (2026-05-05)
+
+### Added
+
+- clean build params 4893
+- create workshop service for webhooks 509
+
+### Fixed
+
+- update cryptography package
+- Production CI pipeline to use single file config
+
+### Maintenance
+
+- Update deps requests and cryptography
+- add pagefind to site build container
+
 ## 0.2.0 (2026-01-05)
 
 ### Added
