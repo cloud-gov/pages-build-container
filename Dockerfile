@@ -77,7 +77,7 @@ RUN set -ex \
   done \
   # We use 'sudo' here to support multi-user install
   # http://rvm.io/rvm/install#1-download-and-run-the-rvm-installation-script
-  && \curl -sSL https://get.rvm.io | sudo -n bash -s stable
+  && \curl -sSL https://get.rvm.io | sudo -n bash -s master
 
 # Add 'customer' user to rvm group
 RUN sudo usermod --append --groups rvm customer
@@ -121,7 +121,7 @@ RUN set -eux; \
 USER customer
 
 # Configure rvm and install default Ruby
-ENV RUBY_VERSION 3.1.4
+ENV RUBY_VERSION 4.0.5
 ENV RUBY_VERSION_MIN 3.0.6
 RUN source /usr/local/rvm/scripts/rvm \
   # Fail if deps are missing, won't prompt for sudo
@@ -133,7 +133,7 @@ RUN source /usr/local/rvm/scripts/rvm \
 
 # Update to the latest RubyGems
 RUN source /usr/local/rvm/scripts/rvm && \
-    rvm rubygems 3.4.22
+    rvm rubygems 4.0.5
 
 # Default to Node 24
 ENV NODE_VERSION lts/krypton

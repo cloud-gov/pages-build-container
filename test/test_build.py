@@ -41,7 +41,7 @@ def patch_site_build_dir(monkeypatch):
 
 @pytest.fixture
 def patch_ruby_min_version(monkeypatch):
-    monkeypatch.setenv('RUBY_VERSION_MIN', '3.0.0')
+    monkeypatch.setenv('RUBY_VERSION_MIN', '4.0.5')
 
 
 @patch('steps.build.run')
