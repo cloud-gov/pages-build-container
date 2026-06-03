@@ -1,3 +1,9 @@
+## 0.3.1 (2026-05-29)
+
+### Maintenance
+
+- Update default ruby version (510)
+
 ## 0.3.0 (2026-05-05)
 
 ### Added
