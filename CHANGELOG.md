@@ -1,3 +1,10 @@
+## 0.3.2 (2026-08-17)
+
+### Maintenance
+
+- Upgrade cryptography dependency to fix vulnerabilities
+- update min ruby version
+
 ## 0.3.1 (2026-05-29)
 
 ### Maintenance
